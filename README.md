@@ -115,10 +115,6 @@ kubectl apply -f k8s/
 ```
 elixir-cloud-demos/
 ├── 📄 README.md                    # This file
-├── 📄 LICENSE                      # Apache 2.0 license
-├── 🔧 run.sh                       # One-command startup script
-├── 🔧 build.sh                     # Build script
-├── 🔧 deploy.sh                    # Deployment script
 ├── 📁 backend/                     # Flask Backend API
 │   ├── app.py                      # Main Flask application
 │   ├── requirements.txt            # Python dependencies
