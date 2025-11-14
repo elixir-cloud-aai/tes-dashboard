@@ -98,18 +98,6 @@ Build and run with Docker:
 docker-compose up -d
 ```
 
-### ☸️ Kubernetes Deployment
-
-Deploy to Kubernetes:
-
-```bash
-# Apply Kubernetes manifests
-kubectl apply -f k8s/
-
-# Or use the deployment script
-./deploy.sh
-```
-
 ## 📁 Project Structure
 
 ```
@@ -146,13 +134,6 @@ elixir-cloud-demos/
 │   │   ├── utils/                  # Utility functions
 │   │   └── styles/                 # CSS stylesheets
 │   └── public/                     # Static assets
-├── 📁 k8s/                         # Kubernetes Deployments
-│   ├── backend-deployment.yaml     # Backend K8s config
-│   ├── frontend-deployment.yaml    # Frontend K8s config
-│   ├── complete-deployment.yaml    # Full stack deployment
-│   └── ingress.yaml                # Ingress configuration
-└── 📁 uploads/                     # Upload directory
-    └── batch_runs.json             # Sample batch data
 ```
 
 ## 🎯 Key Components
