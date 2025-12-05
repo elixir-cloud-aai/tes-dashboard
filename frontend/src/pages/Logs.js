@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { FileText, Download, RefreshCw, Search, Filter, Calendar } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -7,6 +8,7 @@ import { statusService } from '../services/statusService';
 import { taskService } from '../services/taskService';
 import { workflowService } from '../services/workflowService';
 import { batchService } from '../services/batchService';
+import { logService } from '../services/logService';
 import { formatDateTime } from '../utils/formatters';
 
 const LogsContainer = styled.div`
@@ -206,6 +208,7 @@ const NoLogsMessage = styled.div`
 `;
 
 const Logs = () => {
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [logs, setLogs] = useState([]);
@@ -213,6 +216,20 @@ const Logs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [logType, setLogType] = useState('all');
   const [expandedLogs, setExpandedLogs] = useState(new Set());
+
+  // Check URL parameters for pre-selection
+  useEffect(() => {
+    const typeParam = searchParams.get('type');
+    const taskIdParam = searchParams.get('taskId');
+    
+    if (typeParam === 'task') {
+      setLogType('task');
+    }
+    
+    if (taskIdParam) {
+      setSearchTerm(taskIdParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadLogs();
@@ -228,47 +245,115 @@ const Logs = () => {
       setError('');
 
       const allLogs = [];
-
-      // Get dashboard data for submitted tasks and workflows
-      const dashboardData = await taskService.getDashboardData();
-
-      // Add task logs
-      if (Array.isArray(dashboardData.submitted_tasks)) {
-        for (const task of dashboardData.submitted_tasks.slice(-10)) { // Latest 10 tasks
-          try {
-            const logContent = await statusService.getTaskLogs(task.task_id);
+      
+      // Check if we have a specific task ID from URL parameters
+      const taskIdParam = searchParams.get('taskId');
+      
+      if (taskIdParam) {
+        // Load only the specific task log
+        try {
+          console.log('Loading log for specific task:', taskIdParam);
+          const logResponse = await logService.getTaskLogs(taskIdParam);
+          
+          if (logResponse && logResponse.success) {
             allLogs.push({
-              id: task.task_id,
+              id: taskIdParam,
               type: 'task',
-              title: `Task ${task.task_id}`,
-              content: logContent || 'No log content available',
-              timestamp: task.submitted_at || new Date().toISOString(),
+              title: `Task ${taskIdParam}`,
+              content: logResponse.log || 'No log content available',
+              timestamp: new Date().toISOString(),
               metadata: {
-                status: task.status,
-                tesInstance: task.tes_name || 'Unknown'
+                status: logResponse.task?.status || 'Unknown',
+                tesInstance: logResponse.task?.tes_name || 'Unknown'
               }
             });
-          } catch (err) {
+          } else {
             allLogs.push({
-              id: task.task_id,
+              id: taskIdParam,
               type: 'task',
-              title: `Task ${task.task_id}`,
-              content: `Failed to load log: ${err.message}`,
-              timestamp: task.submitted_at || new Date().toISOString(),
+              title: `Task ${taskIdParam}`,
+              content: 'Task log not found or no log content available',
+              timestamp: new Date().toISOString(),
               metadata: {
-                status: task.status,
-                tesInstance: task.tes_name || 'Unknown'
+                status: 'Unknown',
+                tesInstance: 'Unknown'
               }
             });
           }
+        } catch (err) {
+          console.error('Error loading specific task log:', err);
+          allLogs.push({
+            id: taskIdParam,
+            type: 'task',
+            title: `Task ${taskIdParam}`,
+            content: `Failed to load log: ${err.message}`,
+            timestamp: new Date().toISOString(),
+            metadata: {
+              status: 'Error',
+              tesInstance: 'Unknown'
+            }
+          });
         }
-      }
+      } else {
+        // Load all recent logs (existing behavior)
+        const dashboardData = await taskService.getDashboardData();
 
-      // Add workflow logs
-      if (Array.isArray(dashboardData.workflow_runs)) {
+        console.log('Dashboard data for logs:', dashboardData);
+        console.log('Submitted tasks found:', dashboardData.submitted_tasks?.length || 0);
+
+        // Add task logs
+        if (Array.isArray(dashboardData.submitted_tasks)) {
+          for (const task of dashboardData.submitted_tasks.slice(-10)) { // Latest 10 tasks
+            try {
+              console.log('Loading log for task:', task.task_id, 'from:', task.tes_name);
+              const logResponse = await logService.getTaskLogs(task.task_id);
+              let content = 'No log content available';
+              
+              console.log('Task log response:', logResponse);
+              
+              if (logResponse && logResponse.success) {
+                content = logResponse.log || 'Log endpoint returned success but no log content';
+              } else if (logResponse && logResponse.message) {
+                content = logResponse.message;
+              } else {
+                // Fallback: create a basic log entry even if backend endpoint isn't working
+                content = `Task Log for ${task.task_id}\n\nTask Details:\n- Status: ${task.status}\n- TES Instance: ${task.tes_name}\n- Submitted: ${task.submitted_at}\n- Type: ${task.type || 'Unknown'}\n\nNote: Full log details not available (backend may still be updating)`;
+              }
+              
+              allLogs.push({
+                id: task.task_id,
+                type: 'task',
+                title: `Task ${task.task_id} (${task.tes_name})`,
+                content: content,
+                timestamp: task.submitted_at || new Date().toISOString(),
+                metadata: {
+                  status: task.status,
+                  tesInstance: task.tes_name || 'Unknown'
+                }
+              });
+            } catch (err) {
+              console.error('Error loading task log for', task.task_id, ':', err);
+              // Still add the task to the logs list with error info and basic task details
+              allLogs.push({
+                id: task.task_id,
+                type: 'task',
+                title: `Task ${task.task_id} (${task.tes_name})`,
+                content: `Task Log for ${task.task_id}\n\nError: ${err.message}\n\nTask Details:\n- Status: ${task.status}\n- TES Instance: ${task.tes_name}\n- Submitted: ${task.submitted_at}\n- Type: ${task.type || 'Unknown'}\n\nNote: This task exists but logs couldn't be fetched from the backend.`,
+                timestamp: task.submitted_at || new Date().toISOString(),
+                metadata: {
+                  status: task.status,
+                  tesInstance: task.tes_name || 'Unknown'
+                }
+              });
+            }
+          }
+        }
+
+        // Add workflow logs
+        if (Array.isArray(dashboardData.workflow_runs)) {
         for (const workflow of dashboardData.workflow_runs.slice(-10)) { // Latest 10 workflows
           try {
-            const logContent = await workflowService.getWorkflowLogs(workflow.run_id);
+            const logContent = await logService.getWorkflowLogs(workflow.run_id);
             allLogs.push({
               id: workflow.run_id,
               type: 'workflow',
@@ -296,14 +381,14 @@ const Logs = () => {
             });
           }
         }
-      }
+        }
 
-      // Add batch logs
-      try {
+        // Add batch logs
+        try {
         const batchRuns = await batchService.getBatchRuns();
         for (const batch of batchRuns.slice(-10)) { // Latest 10 batch runs
           try {
-            const logContent = await batchService.getBatchLog(batch.run_id);
+            const logContent = await logService.getBatchLogs(batch.run_id);
             allLogs.push({
               id: batch.run_id,
               type: 'batch',
@@ -333,13 +418,14 @@ const Logs = () => {
             });
           }
         }
-      } catch (err) {
-        console.error('Failed to load batch logs:', err);
+        } catch (err) {
+          console.error('Failed to load batch logs:', err);
+        }
       }
 
       // Get topology logs
       try {
-        const topologyLogs = await statusService.getTopologyLogs();
+        const topologyLogs = await logService.getTopologyLogs();
         if (Array.isArray(topologyLogs)) {
           topologyLogs.forEach((log, index) => {
             allLogs.push({
@@ -484,7 +570,10 @@ const Logs = () => {
               
               {expandedLogs.has(log.id) && (
                 <LogContent>
-                  {log.content || 'No log content available'}
+                  {typeof log.content === 'string' ? 
+                    log.content : 
+                    JSON.stringify(log.content, null, 2) || 'No log content available'
+                  }
                 </LogContent>
               )}
             </LogEntry>

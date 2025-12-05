@@ -154,6 +154,49 @@ def get_tes_locations():
     """Get TES instance locations for map visualization"""
     return jsonify(tes_locations)
 
+@app.route('/api/service_info', methods=['GET'])
+def get_service_info():
+    """Get TES service info for a specific instance"""
+    try:
+        tes_url = request.args.get('tes_url')
+        if not tes_url:
+            return jsonify({'error': 'tes_url parameter is required'}), 400
+        
+        # Try to get real service info from the TES instance
+        try:
+            # Make a request to the TES instance service-info endpoint
+            service_info_url = f"{tes_url.rstrip('/')}/ga4gh/tes/v1/service-info"
+            response = requests.get(service_info_url, timeout=10)
+            if response.status_code == 200:
+                return jsonify(response.json())
+        except Exception as e:
+            print(f"Failed to get real service info from {tes_url}: {e}")
+        
+        # Fallback: return mock service info
+        return jsonify({
+            "id": "tes-service",
+            "name": "Task Execution Service",
+            "type": {
+                "group": "org.ga4gh",
+                "artifact": "tes",
+                "version": "1.1.0"
+            },
+            "description": "TES service for task execution",
+            "organization": {
+                "name": "Elixir Cloud",
+                "url": "https://elixir-cloud.dcc.sib.swiss/"
+            },
+            "contactUrl": "mailto:cloud-service@elixir-europe.org",
+            "documentationUrl": "https://ga4gh.github.io/task-execution-schemas/",
+            "version": "1.1.0",
+            "createdAt": "2023-01-01T00:00:00Z",
+            "updatedAt": datetime.now().isoformat() + "Z",
+            "environment": "production"
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/network_topology', methods=['GET'])
 def get_network_topology():
     """Get comprehensive network topology data"""
@@ -627,25 +670,75 @@ def get_task_details():
     task_id = request.args.get('task_id')
     tes_url = request.args.get('tes_url')
     
-    # Find task in submitted tasks
+    if not task_id or not tes_url:
+        return jsonify({'success': False, 'error': 'task_id and tes_url parameters are required'}), 400
+    
+    try:
+        # First try to get task details from the actual TES instance
+        tes_endpoint = f"{tes_url.rstrip('/')}/ga4gh/tes/v1/tasks/{task_id}"
+        
+        # Get instance-specific credentials
+        instance_name = next((inst['name'] for inst in TES_INSTANCES if inst['url'] in tes_url), 'unknown')
+        credentials = get_instance_credentials(instance_name, tes_url)
+        
+        headers = {'Accept': 'application/json'}
+        auth = None
+        
+        # Add authentication if available
+        if credentials.get('token'):
+            headers['Authorization'] = f"Bearer {credentials['token']}"
+        elif credentials.get('user') and credentials.get('password'):
+            auth = (credentials['user'], credentials['password'])
+        
+        print(f"Fetching task details from: {tes_endpoint}")
+        
+        response = requests.get(tes_endpoint, headers=headers, auth=auth, timeout=30)
+        
+        if response.status_code == 200:
+            task_json = response.json()
+            print(f"Successfully fetched task details: {task_json.get('id', 'Unknown ID')}")
+            return jsonify({
+                'success': True, 
+                'task_json': task_json,
+                'source': 'tes_instance'
+            })
+        else:
+            print(f"TES API returned status {response.status_code}: {response.text}")
+            
+    except Exception as e:
+        print(f"Error fetching from TES instance: {e}")
+    
+    # Fallback: look for task in submitted tasks
     task = None
     for t in submitted_tasks:
         if t['task_id'] == task_id:
             task = t
             break
     
-    if not task:
-        return jsonify({'success': False, 'error': 'Task not found'}), 404
+    if task:
+        return jsonify({
+            'success': True, 
+            'task_json': task,
+            'source': 'dashboard_submitted'
+        })
     
-    return jsonify({'success': True, 'task': task})
+    # If not found anywhere, return a helpful error
+    return jsonify({
+        'success': False, 
+        'error': f'Task {task_id} not found in TES instance {tes_url} or dashboard records. The task may not exist, or you may not have permission to view it.'
+    }), 404
 
-@app.route('/api/workflow_log/<run_id>', methods=['GET'])
+@app.route('/api/workflow_log/<path:run_id>', methods=['GET'])
 def get_workflow_log(run_id):
     """Get workflow execution log"""
+    # URL decode the run_id to handle special characters
+    from urllib.parse import unquote
+    decoded_run_id = unquote(run_id)
+    
     # Find workflow run
     workflow = None
     for w in workflow_runs:
-        if w['run_id'] == run_id:
+        if w['run_id'] == decoded_run_id:
             workflow = w
             break
     
@@ -668,13 +761,17 @@ Submitted: {workflow['submitted_at']}
     
     return jsonify({'success': True, 'log': log_content, 'workflow': workflow})
 
-@app.route('/api/batch_log/<run_id>', methods=['GET'])
+@app.route('/api/batch_log/<path:run_id>', methods=['GET'])
 def get_batch_log(run_id):
     """Get batch execution log"""
+    # URL decode the run_id to handle special characters
+    from urllib.parse import unquote
+    decoded_run_id = unquote(run_id)
+    
     # Find batch run
     batch = None
     for b in batch_runs:
-        if b['run_id'] == run_id:
+        if b['run_id'] == decoded_run_id:
             batch = b
             break
     
@@ -698,6 +795,49 @@ Submitted: {batch['submitted_at']}
 """
     
     return jsonify({'success': True, 'log': log_content, 'batch': batch})
+
+@app.route('/api/task_log/<path:task_id>', methods=['GET'])
+def get_task_log(task_id):
+    """Get individual task execution log"""
+    # URL decode the task_id to handle special characters
+    from urllib.parse import unquote
+    decoded_task_id = unquote(task_id)
+    
+    # Find task in submitted_tasks
+    task = None
+    for t in submitted_tasks:
+        if t['task_id'] == decoded_task_id:
+            task = t
+            break
+    
+    if not task:
+        return jsonify({'success': False, 'error': 'Task not found'}), 404
+    
+    # Mock log content for individual task
+    log_content = f"""
+=== Task Execution Log ===
+Task ID: {task_id}
+Task Name: {task.get('task_name', 'Unknown')}
+TES Instance: {task.get('tes_name', 'Unknown')}
+Status: {task.get('status', 'Unknown')}
+Submitted: {task.get('submitted_at', 'Unknown')}
+
+[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Task execution started
+[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Initializing execution environment
+[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Downloading input files
+[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Executing command: {task.get('command', 'echo "Hello World"')}
+[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Command output: Hello World from TES!
+[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Uploading output files
+[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Task execution completed successfully
+
+=== Task Details ===
+Executors: {len(task.get('executors', []))}
+Resources: CPU={task.get('cpu', 'N/A')}, Memory={task.get('memory', 'N/A')}
+Inputs: {len(task.get('inputs', []))} files
+Outputs: {len(task.get('outputs', []))} files
+"""
+    
+    return jsonify({'success': True, 'log': log_content, 'task': task})
 
 @app.route('/api/topology_logs', methods=['GET'])
 def get_topology_logs():
@@ -1396,7 +1536,16 @@ def get_storage_locations():
 
 @app.route('/')
 def index():
-    """Root endpoint - API information"""
+    """Root endpoint - API information with embedded data for proxy workaround"""
+    # Get nodes data for frontend workaround
+    try:
+        with open(os.path.join(os.path.dirname(__file__), 'tes_instance_locations.json'), 'r') as f:
+            locations_data = json.load(f)
+            nodes = locations_data.get('nodes', [])
+    except Exception as e:
+        print(f"Error loading nodes: {e}")
+        nodes = []
+    
     return jsonify({
         'message': 'TES Dashboard API',
         'version': '1.0.0',
@@ -1426,6 +1575,12 @@ def index():
             'total_workflows': len(workflow_runs),
             'total_batch_runs': len(batch_runs),
             'available_instances': len(TES_INSTANCES)
+        },
+        # Embedded data for proxy workaround - accessible via /api/
+        'workaround_data': {
+            'nodes': nodes,
+            'instances': TES_INSTANCES,
+            'tes_instances': TES_INSTANCES  # For compatibility with different frontend calls
         }
     })
 

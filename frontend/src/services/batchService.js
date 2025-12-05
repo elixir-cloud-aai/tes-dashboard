@@ -84,8 +84,16 @@ export const batchService = {
   // Get batch logs
   getBatchLogs: async (runId) => {
     try {
-      const response = await api.get(`/api/batch_log/${runId}`);
-      return response.data;
+      const encodedRunId = encodeURIComponent(runId);
+      const response = await api.get(`/api/batch_log/${encodedRunId}`);
+      // Extract just the log content from the response
+      if (response.data && response.data.success && response.data.log) {
+        return response.data.log;
+      } else if (response.data && response.data.log) {
+        return response.data.log;
+      } else {
+        return 'No log content available for this batch run';
+      }
     } catch (error) {
       console.error('Error fetching batch logs:', error);
       throw error;
@@ -95,8 +103,16 @@ export const batchService = {
   // Get batch log (singular) - alias for compatibility
   getBatchLog: async (runId) => {
     try {
-      const response = await api.get(`/api/batch_log/${runId}`);
-      return response.data;
+      const encodedRunId = encodeURIComponent(runId);
+      const response = await api.get(`/api/batch_log/${encodedRunId}`);
+      // Extract just the log content from the response
+      if (response.data && response.data.success && response.data.log) {
+        return response.data.log;
+      } else if (response.data && response.data.log) {
+        return response.data.log;
+      } else {
+        return 'No log content available for this batch run';
+      }
     } catch (error) {
       console.error('Error fetching batch log:', error);
       throw error;

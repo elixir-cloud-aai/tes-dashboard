@@ -11,12 +11,13 @@ import TaskDetails from './pages/TaskDetails';
 import SubmitTask from './pages/SubmitTask';
 import Workflows from './pages/Workflows';
 import BatchProcessing from './pages/BatchProcessing';
-import SystemStatus from './pages/SystemStatus';
 import ServiceInfo from './pages/ServiceInfo';
 import Logs from './pages/Logs';
 import NetworkTopology from './pages/NetworkTopology';
 import NodeManagement from './pages/NodeManagement';
 import Utilities from './pages/Utilities';
+import InstanceManagement from './pages/InstanceManagement';
+import ApiTest from './pages/ApiTest';
 import Settings from './pages/Settings';
 import { testConnection } from './services/api';
 
@@ -73,11 +74,12 @@ function App() {
                 <Route path="/submit-task" element={<SubmitTask />} />
                 <Route path="/workflows" element={<Workflows />} />
                 <Route path="/batch" element={<BatchProcessing />} />
-                <Route path="/status" element={<SystemStatus />} />
                 <Route path="/service-info" element={<ServiceInfo />} />
                 <Route path="/logs" element={<Logs />} />
                 <Route path="/topology" element={<NetworkTopology />} />
                 <Route path="/utilities" element={<Utilities />} />
+                <Route path="/instances" element={<InstanceManagement />} />
+                <Route path="/api-test" element={<ApiTest />} />
                 <Route path="/nodes" element={
                   <ProtectedRoute>
                     <NodeManagement />

@@ -1,0 +1,12 @@
+# TES Instance Configuration
+# Format: name,url
+# Lines starting with # are comments
+
+# ELIXIR Cloud TES Instances
+Funnel/OpenPBS @ ELIXIR-CZ,https://tesk-prod.cloud.e-infra.cz
+Funnel/Slurm @ ELIXIR-FI,https://tesk-na.cloud.e-infra.cz
+TESK/Kubernetes @ ELIXIR-GR,https://tes.example-gr.org
+TESK/OpenShift @ ELIXIR-FI,https://tes.example-fi.org
+
+# Local Development
+Local TES,http://localhost:8080

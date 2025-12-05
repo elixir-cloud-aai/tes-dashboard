@@ -98,11 +98,6 @@ const Sidebar = () => {
 
       <NavSection>
         <SectionTitle>Monitoring</SectionTitle>
-        <NavItem to="/status" $isActive={isActive('/status')}>
-          <NavIcon><Activity size={18} /></NavIcon>
-          <NavText>System Status</NavText>
-        </NavItem>
-        
         <NavItem to="/service-info" $isActive={isActive('/service-info')}>
           <NavIcon><Server size={18} /></NavIcon>
           <NavText>Service Info</NavText>
@@ -125,13 +120,15 @@ const Sidebar = () => {
           <NavIcon><Wrench size={18} /></NavIcon>
           <NavText>Service Status</NavText>
         </NavItem>
-      </NavSection>
-
-      <NavSection>
-        <SectionTitle>Administration</SectionTitle>
-        <NavItem to="/nodes" $isActive={isActive('/nodes')}>
+        
+        <NavItem to="/instances" $isActive={isActive('/instances')}>
           <NavIcon><Network size={18} /></NavIcon>
-          <NavText>Node Management</NavText>
+          <NavText>Instance Management</NavText>
+        </NavItem>
+        
+        <NavItem to="/api-test" $isActive={isActive('/api-test')}>
+          <NavIcon><Activity size={18} /></NavIcon>
+          <NavText>API Test</NavText>
         </NavItem>
       </NavSection>
 

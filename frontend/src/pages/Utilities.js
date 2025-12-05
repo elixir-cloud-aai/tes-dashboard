@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import axios from 'axios';
+import api from '../services/api';
 import { Wifi, Globe, Server, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
 const UtilitiesContainer = styled.div`
@@ -194,22 +194,19 @@ const Utilities = () => {
     const startTime = performance.now();
     
     try {
-      // For the gateway, check the basic API endpoint
+      // For the gateway, check the test connection endpoint
       if (service.isGateway) {
-        const response = await axios.get(`${service.url}/api/service-status`, {
-          timeout: 5000
-        });
+        const response = await api.get('/api/test_connection', { timeout: 5000 });
         const responseTime = Math.round(performance.now() - startTime);
         return {
           ...service,
           status: response.status === 200 ? 'online' : 'offline',
-          responseTime
+          responseTime,
+          endpoint: service.url
         };
       } else {
         // For TES nodes, use backend proxy to avoid CORS issues
-        const response = await axios.get(`http://localhost:8000/api/service-health/${encodeURIComponent(service.id)}`, {
-          timeout: 8000
-        });
+        const response = await api.get(`/api/service-health/${encodeURIComponent(service.id)}`, { timeout: 10000 });
         
         const responseTime = Math.round(performance.now() - startTime);
         
@@ -255,11 +252,25 @@ const Utilities = () => {
     
     try {
       // Load TES nodes from backend
-      const nodesResponse = await axios.get('http://localhost:8000/api/nodes');
-      const tesNodes = nodesResponse.data.map(node => ({
-        ...node,
-        isGateway: false
-      }));
+      const nodesResponse = await api.get('/api/nodes');
+      console.log('🔍 Nodes response:', nodesResponse.data);
+      
+      // Ensure we have an array of nodes
+      let tesNodes = [];
+      if (Array.isArray(nodesResponse.data)) {
+        tesNodes = nodesResponse.data.map(node => ({
+          ...node,
+          isGateway: false
+        }));
+      } else if (nodesResponse.data && Array.isArray(nodesResponse.data.nodes)) {
+        tesNodes = nodesResponse.data.nodes.map(node => ({
+          ...node,
+          isGateway: false
+        }));
+      } else {
+        console.warn('⚠️ No valid nodes array found in response');
+        tesNodes = [];
+      }
 
       // Create list with gateway first, then TES nodes in configured order
       const allServices = [gatewayService, ...tesNodes];

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { fetchDashboardData, testConnection } from '../services/api';
+import api, { fetchDashboardData, testConnection } from '../services/api';
 import { taskService } from '../services/taskService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
+import { TES_INSTANCES } from '../utils/constants';
 import { ArrowLeft, Play } from 'lucide-react';
 
 const PageContainer = styled.div`
@@ -197,10 +198,87 @@ const SubmitTask = () => {
   const loadTesInstances = async () => {
     try {
       setLoading(true);
-      const data = await fetchDashboardData();
-      setTesInstances(data.tes_instances || []);
-      // Don't auto-select the first instance, let user choose
+      
+      // WORKAROUND: Use root API endpoint that works until proxy is fixed
+      let instances = [];
+      
+      try {
+        // Try to get embedded data from root endpoint (workaround)
+        const rootResponse = await api.get('/');
+        console.log('🔄 Using workaround: loading instances from root endpoint');
+        
+        if (rootResponse.data?.workaround_data?.nodes) {
+          const nodes = rootResponse.data.workaround_data.nodes.map(node => ({
+            name: node.name,
+            url: node.url,
+            id: node.id
+          }));
+          instances = [...instances, ...nodes];
+          console.log('✅ Loaded instances from workaround data:', instances);
+        }
+        
+        if (rootResponse.data?.workaround_data?.instances) {
+          instances = [...instances, ...rootResponse.data.workaround_data.instances];
+        }
+        
+      } catch (workaroundError) {
+        console.warn('Workaround failed, trying regular endpoints:', workaroundError);
+        
+        // Fallback to regular API calls
+        const [dashboardData, instancesData, nodesData] = await Promise.allSettled([
+          fetchDashboardData(),
+          api.get('/instances'),
+          api.get('/nodes')
+        ]);
+        
+        // Debug API responses
+        console.log('API Responses:', {
+          dashboardData: dashboardData.status === 'fulfilled' ? 'success' : dashboardData.reason?.message || 'failed',
+          instancesData: instancesData.status === 'fulfilled' ? 'success' : instancesData.reason?.message || 'failed', 
+          nodesData: nodesData.status === 'fulfilled' ? 'success' : nodesData.reason?.message || 'failed'
+        });
+        
+        // Add instances from dashboard data
+        if (dashboardData.status === 'fulfilled' && dashboardData.value?.tes_instances) {
+          console.log('Adding instances from dashboard_data:', dashboardData.value.tes_instances);
+          instances = [...instances, ...dashboardData.value.tes_instances];
+        }
+        
+        // Add instances from /instances endpoint
+        if (instancesData.status === 'fulfilled' && Array.isArray(instancesData.value?.data)) {
+          console.log('Adding instances from /instances:', instancesData.value.data);
+          instances = [...instances, ...instancesData.value.data];
+        }
+        
+        // Add instances from /nodes endpoint
+        if (nodesData.status === 'fulfilled' && nodesData.value?.data?.nodes) {
+          console.log('Adding instances from /nodes:', nodesData.value.data.nodes);
+          const nodes = nodesData.value.data.nodes.map(node => ({
+            name: node.name,
+            url: node.url,
+            id: node.id
+          }));
+          instances = [...instances, ...nodes];
+        }
+      }
+      
+      // Fallback: Use static constants if no instances loaded from API
+      if (instances.length === 0) {
+        console.log('🔄 No instances from API, using fallback constants');
+        instances = [...TES_INSTANCES];
+        console.log('✅ Using static TES_INSTANCES as fallback:', instances);
+      }
+      
+      // Remove duplicates by URL
+      const uniqueInstances = instances.filter((instance, index, self) => 
+        index === self.findIndex(i => i.url === instance.url)
+      );
+      
+      console.log(`📊 Final loaded TES instances (${uniqueInstances.length}):`, uniqueInstances);
+      setTesInstances(uniqueInstances);
+      
     } catch (err) {
+      console.error('Error loading TES instances:', err);
       setError(err);
     } finally {
       setLoading(false);
