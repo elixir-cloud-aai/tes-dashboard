@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 
-// Custom hook for polling data at regular intervals
 export const usePolling = (fetchFunction, interval = 5000, dependencies = []) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,8 +17,22 @@ export const usePolling = (fetchFunction, interval = 5000, dependencies = []) =>
       }
     } catch (err) {
       if (isMountedRef.current) {
-        setError(err);
-        console.error('Polling error:', err);
+        if (err.response?.status === 504 || 
+            err.code === 'ECONNABORTED' || 
+            (err.message && err.message.includes('timeout'))) {
+          console.warn('External service timeout (expected with slow TES instances):', err.message);
+          if (!data) {
+            setError(new Error('Some external services are responding slowly. Data may be incomplete.'));
+          }
+        } else if (err.response?.status === 503) {
+          console.warn('External service temporarily unavailable:', err.message);
+          if (!data) {
+            setError(new Error('Some external services are temporarily unavailable. Data may be incomplete.'));
+          }
+        } else {
+          setError(err);
+          console.error('Critical polling error:', err);
+        }
       }
     } finally {
       if (isMountedRef.current) {
@@ -29,7 +42,7 @@ export const usePolling = (fetchFunction, interval = 5000, dependencies = []) =>
   };
 
   const startPolling = () => {
-    fetchData(); // Initial fetch
+    fetchData();
     intervalRef.current = setInterval(fetchData, interval);
   };
 
@@ -53,7 +66,7 @@ export const usePolling = (fetchFunction, interval = 5000, dependencies = []) =>
       isMountedRef.current = false;
       stopPolling();
     };
-  }, dependencies); // eslint-disable-line react-hooks/exhaustive-deps
+  }, dependencies);
 
   useEffect(() => {
     return () => {

@@ -103,6 +103,23 @@ const SearchInput = styled.input`
   outline: none;
 `;
 
+const StatusNotification = styled.div`
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  color: #856404;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  
+  &:before {
+    content: "ℹ️";
+    margin-right: 8px;
+  }
+`;
+
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -176,49 +193,55 @@ const Tasks = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTasks, setFilteredTasks] = useState([]);
-
-  // Poll tasks data
+ 
   const { 
     data: tasksData, 
     loading, 
     error,
     refetch 
   } = usePolling(taskService.listTasks, POLLING_INTERVALS.NORMAL);
-
-  // Handle task cancellation
+  
   const handleCancelTask = async (tesUrl, taskId) => {
     if (window.confirm('Are you sure you want to cancel this task?')) {
       try {
         await taskService.cancelTask(tesUrl, taskId);
-        refetch(); // Refresh the tasks list
+        refetch(); 
       } catch (error) {
         console.error('Error canceling task:', error);
         alert('Failed to cancel task: ' + error.message);
       }
     }
   };
-
-  // Handle viewing task details
+ 
   const handleViewDetails = (tesUrl, taskId) => {
     navigate(`/task-details?tes_url=${encodeURIComponent(tesUrl)}&task_id=${encodeURIComponent(taskId)}`);
   };
-
-  // Handle viewing task logs
+ 
   const handleViewLogs = (taskId) => {
     navigate(`/logs?type=task&taskId=${taskId}`);
-  };
-
-  // Filter tasks based on search term
+  }; 
   useEffect(() => {
-    if (!tasksData || !Array.isArray(tasksData)) {
-      setFilteredTasks([]);
-      return;
-    }
+    let allTasks = []; 
+    if (tasksData?.tasks && Array.isArray(tasksData.tasks)) {
+      allTasks = tasksData.tasks;
+    } else if (Array.isArray(tasksData)) {
+      allTasks = tasksData;
+    } 
+    const healthyTasks = allTasks.filter(task => { 
+      return task && 
+             task.id && 
+             task.tes_url && 
+             task.state &&
+             task.state !== 'ERROR' &&
+             task.state !== 'SYSTEM_ERROR' &&
+             task.state !== 'EXECUTOR_ERROR' && 
+             !task.error_prone_instance;
+    });
 
     if (!searchTerm) {
-      setFilteredTasks(tasksData);
+      setFilteredTasks(healthyTasks);
     } else {
-      const filtered = tasksData.filter(task => 
+      const filtered = healthyTasks.filter(task => 
         task.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         task.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         task.state?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -265,7 +288,13 @@ const Tasks = () => {
           />
         </SearchBar>
 
-        {error && <ErrorMessage error={error} />}
+        {error && !error.message.includes('responding slowly') && !error.message.includes('temporarily unavailable') && <ErrorMessage error={error} />}
+        
+        {error && (error.message.includes('responding slowly') || error.message.includes('temporarily unavailable')) && (
+          <StatusNotification>
+            {error.message}
+          </StatusNotification>
+        )}
         
         {loading && <LoadingSpinner text="Loading tasks..." />}
         
@@ -282,7 +311,6 @@ const Tasks = () => {
                 <TableHeader>Status</TableHeader>
                 <TableHeader>TES Instance</TableHeader>
                 <TableHeader>Created</TableHeader>
-                <TableHeader>Duration</TableHeader>
                 <TableHeader>Actions</TableHeader>
               </tr>
             </thead>
@@ -302,12 +330,7 @@ const Tasks = () => {
                   </TableCell>
                   <TableCell>{task.tes_url || 'Unknown'}</TableCell>
                   <TableCell>{formatDate(task.creation_time)}</TableCell>
-                  <TableCell>
-                    {task.creation_time && task.end_time 
-                      ? formatDuration((new Date(task.end_time) - new Date(task.creation_time)) / 1000)
-                      : task.state === 'RUNNING' ? 'Running...' : 'N/A'
-                    }
-                  </TableCell>
+                 
                   <TableCell>
                     <ActionButton 
                       onClick={() => handleViewDetails(task.tes_url, task.id)}

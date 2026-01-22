@@ -1,6 +1,3 @@
-// App-wide constants
-
-// Task states
 export const TASK_STATES = {
   UNKNOWN: 'UNKNOWN',
   QUEUED: 'QUEUED',
@@ -14,7 +11,6 @@ export const TASK_STATES = {
   PREEMPTED: 'PREEMPTED'
 };
 
-// Task state colors
 export const TASK_STATE_COLORS = {
   [TASK_STATES.UNKNOWN]: '#6c757d',
   [TASK_STATES.QUEUED]: '#ffc107',
@@ -28,14 +24,12 @@ export const TASK_STATE_COLORS = {
   [TASK_STATES.PREEMPTED]: '#e83e8c'
 };
 
-// Workflow types
 export const WORKFLOW_TYPES = {
   SNAKEMAKE: 'snakemake',
   NEXTFLOW: 'nextflow',
   CWL: 'cwl'
 };
 
-// API endpoints
 export const API_ENDPOINTS = {
   TEST_CONNECTION: '/api/test_connection',
   DASHBOARD_DATA: '/api/dashboard_data',
@@ -49,23 +43,21 @@ export const API_ENDPOINTS = {
   BATCH_SNAKEMAKE: '/batch_snakemake',
   BATCH_NEXTFLOW: '/batch_nextflow',
   BATCH_LOG: '/batch_log',
-  SERVICE_INFO: '/service_info',
+  SERVICE_INFO: '/api/service_info',
   STATUS: '/status',
   DEBUG_ENV: '/debug_env',
   TOPOLOGY_LOGS: '/api/topology_logs'
 };
 
-// Polling intervals (in milliseconds)
 export const POLLING_INTERVALS = {
-  FAST: 2000,      // 2 seconds - for active tasks
-  NORMAL: 5000,    // 5 seconds - for dashboard
-  SLOW: 10000,     // 10 seconds - for logs
-  VERY_SLOW: 30000 // 30 seconds - for service info
+  FAST: 2000,
+  NORMAL: 5000,
+  SLOW: 10000,
+  VERY_SLOW: 30000
 };
 
-// File upload limits
 export const FILE_UPLOAD = {
-  MAX_SIZE: 10 * 1024 * 1024, // 10MB
+  MAX_SIZE: 10 * 1024 * 1024, 
   ALLOWED_TYPES: [
     'text/plain',
     'application/yaml',
@@ -79,13 +71,11 @@ export const FILE_UPLOAD = {
   ]
 };
 
-// Table pagination
 export const TABLE_CONFIG = {
   DEFAULT_PAGE_SIZE: 10,
   PAGE_SIZE_OPTIONS: [5, 10, 25, 50, 100]
 };
 
-// Theme colors
 export const THEME = {
   PRIMARY: '#007bff',
   SECONDARY: '#6c757d',
@@ -97,11 +87,14 @@ export const THEME = {
   DARK: '#343a40'
 };
 
-// TES Instances - These match the backend configuration
 export const TES_INSTANCES = [
-  { name: 'TESK Production', url: 'https://tesk-prod.cloud.e-infra.cz', id: 'elixir-cz' },
-  { name: 'TESK/OpenShift @ ELIXIR-FI', url: 'https://csc-tesk-noauth.rahtiapp.fi/ga4gh/tes', id: 'elixir-fi' },
-  { name: 'TESK/Kubernetes @ ELIXIR-GR', url: 'https://tesk.c3g.calculquebec.ca', id: 'elixir-gr' },
-  { name: 'TESK North America', url: 'https://tesk-na.cloud.e-infra.cz', id: 'elixir-ca' },
-  { name: 'Funnel/OpenPBS @ ELIXIR-CZ', url: 'https://funnel.cloud.e-infra.cz', id: 'funnel-cz' }
+  { name: 'Funnel/OpenPBS @ ELIXIR-CZ', url: 'https://funnel.cloud.e-infra.cz', id: 'funnel-cz' },
+  { name: 'Funnel/Slurm @ ELIXIR-FI', url: 'https://vm4816.kaj.pouta.csc.fi', id: 'funnel-fi' },
+  { name: 'TESK/Kubernetes @ ELIXIR-CZ (Prod)', url: 'https://tesk-prod.cloud.e-infra.cz', id: 'elixir-cz-prod' },
+  { name: 'TESK/Kubernetes @ ELIXIR-CZ (NA)', url: 'https://tesk-na.cloud.e-infra.cz', id: 'elixir-cz-na' },
+  { name: 'TESK/Kubernetes @ ELIXIR-DE', url: 'https://tesk.elixir-cloud.bi.denbi.de', id: 'elixir-de' },
+  { name: 'TESK/Kubernetes @ ELIXIR-GR', url: 'https://tesk-eu.hypatia-comp.athenarc.gr', id: 'elixir-gr' },
+  { name: 'TESK/OpenShift @ ELIXIR-FI', url: 'https://csc-tesk-noauth.rahtiapp.fi', id: 'elixir-fi' },
+  { name: 'TESK North America', url: 'https://tesk-na.cloud.e-infra.cz', id: 'tesk-na' },
+  { name: 'Local TES', url: 'http://localhost:8080', id: 'local-tes' }
 ];

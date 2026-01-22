@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Info, Server, Database, Code, RefreshCw, AlertTriangle } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import ErrorMessage from '../components/common/ErrorMessage';
 import { serviceInfoService } from '../services/serviceInfoService';
 import { TES_INSTANCES } from '../utils/constants';
 
@@ -141,17 +140,7 @@ const InfoValue = styled.span`
   word-break: break-all;
 `;
 
-const JsonViewer = styled.pre`
-  background: #1f2937;
-  color: #e5e7eb;
-  padding: 1.5rem;
-  border-radius: 8px;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  margin-top: 1rem;
-`;
+
 
 const NoDataMessage = styled.div`
   text-align: center;
@@ -176,48 +165,58 @@ const ServiceInfo = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [serviceInfo, setServiceInfo] = useState(null);
-  const [debugInfo, setDebugInfo] = useState(null);
-
+  const [tesInstances, setTesInstances] = useState([]);
+  const [loadingInstances, setLoadingInstances] = useState(true);
+ 
   useEffect(() => {
-    if (TES_INSTANCES.length > 0 && !selectedInstance) {
-      setSelectedInstance(TES_INSTANCES[0].url);
-    }
-  }, [selectedInstance]);
-
-  useEffect(() => {
-    if (selectedInstance) {
-      loadServiceInfo();
-    }
-  }, [selectedInstance]);
-
-  useEffect(() => {
-    loadDebugInfo();
+    loadTesInstances();
   }, []);
+ 
+  useEffect(() => {
+    if (tesInstances.length > 0 && !selectedInstance) {
+      setSelectedInstance(tesInstances[0].url);
+    }
+  }, [tesInstances, selectedInstance]);
+ 
+  const loadTesInstances = async () => {
+    try {
+      setLoadingInstances(true); 
+      const response = await serviceInfoService.getHealthyInstances();
+      if (response && response.instances && response.instances.length > 0) {
+        setTesInstances(response.instances);
+      } else { 
+        const allInstances = await serviceInfoService.getTesInstances();
+        setTesInstances(allInstances);
+      }
+    } catch (err) {
+      console.error('Failed to load TES instances:', err); 
+      setTesInstances(TES_INSTANCES);
+    } finally {
+      setLoadingInstances(false);
+    }
+  };
 
   const loadServiceInfo = async () => {
-    if (!selectedInstance) return;
+  if (!selectedInstance) return;
 
-    try {
-      setLoading(true);
-      setError('');
-      const info = await serviceInfoService.getServiceInfo(selectedInstance);
-      setServiceInfo(info);
-    } catch (err) {
-      setError(`Failed to load service info: ${err.message}`);
-      setServiceInfo(null);
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    setError('');
+    const info = await serviceInfoService.getServiceInfo(selectedInstance);
+     
+    if (info.error) { 
+      setError(`⚠️ ${info.errorStatus}: ${info.errorMessage}`);
     }
-  };
-
-  const loadDebugInfo = async () => {
-    try {
-      const info = await serviceInfoService.getDebugInfo();
-      setDebugInfo(info);
-    } catch (err) {
-      console.error('Failed to load debug info:', err);
-    }
-  };
+    
+    setServiceInfo(info);
+  } catch (err) {
+    console.error('Unexpected error fetching service info:', err);
+    setError('❌ An unexpected error occurred while fetching service information. Please try again.');
+    setServiceInfo(null);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const formatServiceInfo = (info) => {
     if (!info) return null;
@@ -227,6 +226,8 @@ const ServiceInfo = () => {
       'Service Version': info.version || 'Unknown',
       'Service ID': info.id || 'Unknown',
       'Organization Name': info.organization?.name || 'Unknown',
+      'Created At': info.createdAt || 'Unknown',
+      'Description': info.description || 'N/A',
       'Organization URL': info.organization?.url || 'Unknown',
       'Contact URL': info.contactUrl || 'Unknown',
       'Documentation URL': info.documentationUrl || 'Unknown',
@@ -240,12 +241,14 @@ const ServiceInfo = () => {
 
     const storageInfo = {
       'Storage Type': info.storage?.join(', ') || 'Unknown',
+      'Environment': info.environment || 'Unknown',
+      'Version': info.version || 'Unknown',
     };
 
     return { basicInfo, apiInfo, storageInfo };
   };
 
-  const selectedInstanceName = TES_INSTANCES.find(i => i.url === selectedInstance)?.name || 'Unknown';
+  const selectedInstanceName = tesInstances.find(i => i.url === selectedInstance)?.name || 'Unknown';
 
   return (
     <ServiceInfoContainer>
@@ -258,9 +261,10 @@ const ServiceInfo = () => {
           <InstanceSelector
             value={selectedInstance}
             onChange={(e) => setSelectedInstance(e.target.value)}
+            disabled={loadingInstances}
           >
-            <option value="">Select TES Instance</option>
-            {TES_INSTANCES.map((instance, idx) => (
+            <option value="">{loadingInstances ? 'Loading instances...' : 'Select TES Instance'}</option>
+            {tesInstances.map((instance, idx) => (
               <option key={idx} value={instance.url}>
                 {instance.name} ({instance.url})
               </option>
@@ -276,7 +280,7 @@ const ServiceInfo = () => {
       {error && (
         <ErrorCard>
           <AlertTriangle size={16} />
-          {error}
+          <div>{error}</div>
         </ErrorCard>
       )}
 
@@ -288,7 +292,7 @@ const ServiceInfo = () => {
           </SectionTitle>
 
           {loading ? (
-            <LoadingSpinner />
+            <LoadingSpinner text="Fetching service information..." />
           ) : serviceInfo ? (
             (() => {
               const formattedInfo = formatServiceInfo(serviceInfo);
@@ -335,76 +339,12 @@ const ServiceInfo = () => {
                 </InfoGrid>
               );
             })()
-          ) : selectedInstance ? (
+          ) : !error ? (
             <NoDataMessage>
-              No service information available for this instance
+              Click "Refresh" to load service information for this instance
             </NoDataMessage>
           ) : null}
 
-          {serviceInfo && (
-            <div>
-              <h3 style={{ marginTop: '2rem', marginBottom: '1rem', fontWeight: 600 }}>
-                Raw Service Info (JSON)
-              </h3>
-              <JsonViewer>
-                {JSON.stringify(serviceInfo, null, 2)}
-              </JsonViewer>
-            </div>
-          )}
-        </ServiceInfoCard>
-      )}
-
-      {debugInfo && (
-        <ServiceInfoCard>
-          <SectionTitle>
-            <Code size={20} />
-            Debug Information
-          </SectionTitle>
-
-          <InfoGrid>
-            <InfoSection>
-              <InfoSectionTitle>
-                Environment Variables
-              </InfoSectionTitle>
-              {debugInfo.environment ? (
-                Object.entries(debugInfo.environment).map(([key, value]) => (
-                  <InfoItem key={key}>
-                    <InfoLabel>{key}</InfoLabel>
-                    <InfoValue>{value || '(empty)'}</InfoValue>
-                  </InfoItem>
-                ))
-              ) : (
-                <p>No environment information available</p>
-              )}
-            </InfoSection>
-
-            <InfoSection>
-              <InfoSectionTitle>
-                System Information
-              </InfoSectionTitle>
-              {debugInfo.system ? (
-                Object.entries(debugInfo.system).map(([key, value]) => (
-                  <InfoItem key={key}>
-                    <InfoLabel>{key}</InfoLabel>
-                    <InfoValue>{String(value)}</InfoValue>
-                  </InfoItem>
-                ))
-              ) : (
-                <p>No system information available</p>
-              )}
-            </InfoSection>
-          </InfoGrid>
-
-          {debugInfo && (
-            <div>
-              <h3 style={{ marginTop: '2rem', marginBottom: '1rem', fontWeight: 600 }}>
-                Raw Debug Info (JSON)
-              </h3>
-              <JsonViewer>
-                {JSON.stringify(debugInfo, null, 2)}
-              </JsonViewer>
-            </div>
-          )}
         </ServiceInfoCard>
       )}
     </ServiceInfoContainer>

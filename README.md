@@ -101,14 +101,37 @@ docker-compose up -d
 ## 📁 Project Structure
 
 ```
-elixir-cloud-demos/
+tes-dashboard/
 ├── 📄 README.md                    # This file
-├── 📁 backend/                     # Flask Backend API
-│   ├── app.py                      # Main Flask application
+├── 📁 backend/                     # Flask Backend API (Modular Architecture)
+│   ├── app.py                      # Main Flask application entry point
+│   ├── config.py                   # Configuration management
 │   ├── requirements.txt            # Python dependencies
 │   ├── tes_instance_locations.json # TES federation configuration
 │   ├── Dockerfile                  # Backend container image
-│   └── uploads/                    # File upload directory
+│   ├── 📁 routes/                  # API route handlers
+│   │   ├── dashboard.py            # Dashboard endpoints
+│   │   ├── tasks.py                # Task management endpoints
+│   │   ├── workflows.py            # Workflow endpoints
+│   │   ├── batch.py                # Batch processing endpoints
+│   │   ├── nodes.py                # Node management endpoints
+│   │   ├── instances.py            # TES instance endpoints
+│   │   ├── network.py              # Network topology endpoints
+│   │   ├── health.py               # Health check endpoints
+│   │   └── logs.py                 # Log endpoints
+│   ├── 📁 services/                # Business logic layer
+│   │   ├── tes_service.py          # TES API interactions
+│   │   ├── task_service.py         # Task operations
+│   │   ├── workflow_service.py     # Workflow orchestration
+│   │   └── batch_service.py        # Batch processing
+│   ├── 📁 middleware/              # Custom middleware
+│   │   └── middleware_api.py       # Middleware API handlers
+│   ├── 📁 utils/                   # Helper utilities
+│   │   ├── tes_utils.py            # TES utility functions
+│   │   ├── file_utils.py           # File handling
+│   │   └── auth_utils.py           # Authentication helpers
+│   ├── 📁 logs/                    # Application logs (gitignored)
+│   └── 📁 uploads/                 # File upload directory (gitignored)
 ├── 📁 frontend/                    # React Frontend Application
 │   ├── package.json                # Node.js dependencies
 │   ├── Dockerfile                  # Frontend container image
@@ -139,6 +162,9 @@ elixir-cloud-demos/
 ## 🎯 Key Components
 
 ### Backend API (`/backend`)
+- **Modular Flask Architecture** with separate routes, services, and middleware layers
+- **Service Layer Pattern** for clean separation of business logic
+- **Middleware System** for request/response processing and cross-cutting concerns
 - **Flask REST API** with comprehensive TES management endpoints
 - **Service Health Monitoring** with real-time status checks
 - **Node Management API** for federated TES network administration

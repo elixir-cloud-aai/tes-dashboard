@@ -11,8 +11,8 @@ import {
   Server,
   FileText,
   BarChart3,
-  Network,
-  Wrench
+  Wrench,
+  Shield
 } from 'lucide-react';
 
 const SidebarContainer = styled.nav`
@@ -98,7 +98,7 @@ const Sidebar = () => {
 
       <NavSection>
         <SectionTitle>Monitoring</SectionTitle>
-        <NavItem to="/service-info" $isActive={isActive('/service-info')}>
+        <NavItem to="/api/service-info" $isActive={isActive('/api/service-info')}>
           <NavIcon><Server size={18} /></NavIcon>
           <NavText>Service Info</NavText>
         </NavItem>
@@ -116,21 +116,26 @@ const Sidebar = () => {
 
       <NavSection>
         <SectionTitle>Utilities</SectionTitle>
-        <NavItem to="/utilities" $isActive={isActive('/utilities')}>
+        <NavItem to="/utilities" $isActive={isActive('/utilities') || isActive('/instances')}>
           <NavIcon><Wrench size={18} /></NavIcon>
-          <NavText>Service Status</NavText>
-        </NavItem>
-        
-        <NavItem to="/instances" $isActive={isActive('/instances')}>
-          <NavIcon><Network size={18} /></NavIcon>
-          <NavText>Instance Management</NavText>
+          <NavText>Utilities & Instances</NavText>
         </NavItem>
         
         <NavItem to="/api-test" $isActive={isActive('/api-test')}>
           <NavIcon><Activity size={18} /></NavIcon>
           <NavText>API Test</NavText>
         </NavItem>
+        
+        {/* <NavItem to="/middleware" $isActive={isActive('/middleware')}>
+          <NavIcon><Shield size={18} /></NavIcon>
+          <NavText>Middleware Manager</NavText>
+        </NavItem> */}
+        <NavItem to="/middleware" $isActive={isActive('/middleware')}>
+          <NavIcon><Server size={18} /></NavIcon>
+          <NavText>Middleware</NavText>
+        </NavItem>
       </NavSection>
+
 
       <NavSection>
         <SectionTitle>Settings</SectionTitle>

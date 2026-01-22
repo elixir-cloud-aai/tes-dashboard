@@ -16,10 +16,10 @@ import Logs from './pages/Logs';
 import NetworkTopology from './pages/NetworkTopology';
 import NodeManagement from './pages/NodeManagement';
 import Utilities from './pages/Utilities';
-import InstanceManagement from './pages/InstanceManagement';
 import ApiTest from './pages/ApiTest';
 import Settings from './pages/Settings';
 import { testConnection } from './services/api';
+import MiddlewareManager from './components/MiddlewareManager';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -39,7 +39,6 @@ function App() {
   const [connectionStatus, setConnectionStatus] = useState('Checking...');
   const [isConnected, setIsConnected] = useState(false);
 
-  // Check connection on app load
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -74,12 +73,13 @@ function App() {
                 <Route path="/submit-task" element={<SubmitTask />} />
                 <Route path="/workflows" element={<Workflows />} />
                 <Route path="/batch" element={<BatchProcessing />} />
-                <Route path="/service-info" element={<ServiceInfo />} />
+                <Route path="/api/service-info" element={<ServiceInfo />} />
                 <Route path="/logs" element={<Logs />} />
                 <Route path="/topology" element={<NetworkTopology />} />
                 <Route path="/utilities" element={<Utilities />} />
-                <Route path="/instances" element={<InstanceManagement />} />
+                <Route path="/instances" element={<Navigate to="/utilities" replace />} />
                 <Route path="/api-test" element={<ApiTest />} />
+                <Route path="/middleware" element={<MiddlewareManager />} />
                 <Route path="/nodes" element={
                   <ProtectedRoute>
                     <NodeManagement />
