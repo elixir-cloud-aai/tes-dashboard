@@ -1,0 +1,39 @@
+services:
+  tes-dashboard-backend-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tes-dashboard-backend
+    environment:
+      PORT: 8000
+      FLASK_ENV: production
+      FLASK_DEBUG: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/tes_instance_locations.json:/app/tes_instance_locations.json
+      - ./backend/.tes_instances:/app/.tes_instances
+    extra_hosts:
+      - "spe4hd.tes.bihealth.org:194.94.4.48"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  tes-dashboard-frontend-service:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: ""
+    container_name: tes-dashboard-frontend
+    depends_on:
+      tes-dashboard-backend-service:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    restart: unless-stopped

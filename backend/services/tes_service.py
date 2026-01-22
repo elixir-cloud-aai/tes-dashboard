@@ -135,13 +135,29 @@ def fetch_tes_status(instance):
 
 def get_service_info(tes_url):
     """Get service info from a TES instance with multiple endpoint attempts"""
-    try: 
+    try:
+        tes_url = (tes_url or "").rstrip("/")
+        credentials = get_instance_credentials("unknown", tes_url)
+        headers = {
+            'Accept': 'application/json',
+            'User-Agent': 'TES-Dashboard/1.0'
+        }
+        auth = None
+
+        if credentials.get('token'):
+            headers['Authorization'] = f"Bearer {credentials['token']}"
+        elif credentials.get('user') and credentials.get('password'):
+            auth = (credentials['user'], credentials['password'])
+
         endpoints_to_try = [
             f"{tes_url}/ga4gh/tes/v1/service-info",
-            f"{tes_url}/v1/tasks",
+            f"{tes_url}/v1/service-info",
+            f"{tes_url}/tasks/v1/service-info",
             f"{tes_url}/service-info",
             f"{tes_url}/api/service-info",
             f"{tes_url}/api/v1/service-info",
+            f"{tes_url}/v1/tasks",
+            f"{tes_url}/tasks/v1/tasks",
         ]
         
         last_error = None
@@ -153,10 +169,8 @@ def get_service_info(tes_url):
                 response = requests.get(
                     endpoint,
                     timeout=10,
-                    headers={
-                        'Accept': 'application/json',
-                        'User-Agent': 'TES-Dashboard/1.0'
-                    },
+                    headers=headers,
+                    auth=auth,
                     verify=True
                 )
                 
@@ -164,19 +178,42 @@ def get_service_info(tes_url):
                   
                 if response.status_code == 200:
                     try:
-                        service_info = response.json()
+                        payload = response.json()
+                        if endpoint.endswith('/v1/tasks'):
+                            print(f"✅ TES API reachable via {endpoint}; building synthetic service info")
+                            return {
+                                'name': f"TES Service @ {tes_url}",
+                                'id': tes_url,
+                                'organization': {
+                                    'name': 'Unknown',
+                                    'url': tes_url
+                                },
+                                'description': 'TES instance reachable, service-info endpoint not exposed at common paths.',
+                                'type': {
+                                    'group': 'ga4gh',
+                                    'artifact': 'tes',
+                                    'version': 'Unknown'
+                                },
+                                'contactUrl': 'Unknown',
+                                'documentationUrl': 'Unknown',
+                                'storage': ['Unknown'],
+                                'version': payload.get('version', 'Unknown') if isinstance(payload, dict) else 'Unknown',
+                                'message': 'TES endpoint is reachable; service metadata is limited.',
+                                'timestamp': datetime.now(timezone.utc).isoformat()
+                            }
+
                         print(f"✅ Successfully got service info from {endpoint}")
-                        return service_info
+                        return payload
                     except ValueError as json_error:
                         print(f"⚠️ Invalid JSON response: {json_error}")
                         last_error = f"Invalid JSON: {json_error}"
                         continue
                  
-                elif response.status_code == 403:
+                elif response.status_code in (401, 403):
                     print(f"🔒 Endpoint {endpoint} requires authentication")
                     auth_required = True
-                    last_error = "Authentication required" 
-                    break
+                    last_error = "Authentication required or credentials rejected"
+                    continue
                 
                 else:
                     print(f"⚠️ Status {response.status_code} from {endpoint}")
