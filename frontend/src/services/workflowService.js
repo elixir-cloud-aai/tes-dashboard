@@ -1,8 +1,6 @@
 import api from './api';
 
-// Workflow-related API functions
 export const workflowService = {
-  // Submit a workflow
   submitWorkflow: async (workflowData) => {
     try {
       const formData = new FormData();
@@ -26,11 +24,9 @@ export const workflowService = {
     }
   },
 
-  // Get workflow logs
   getWorkflowLogs: async (runId) => {
     try {
       const response = await api.get(`/api/workflow_log/${runId}`);
-      // Extract just the log content from the response
       if (response.data && response.data.success && response.data.log) {
         return response.data.log;
       } else if (response.data && response.data.log) {
@@ -44,7 +40,6 @@ export const workflowService = {
     }
   },
 
-  // Get latest workflow status
   getLatestWorkflowStatus: async () => {
     try {
       const response = await api.get('/api/latest_workflow_status');
@@ -55,16 +50,35 @@ export const workflowService = {
     }
   },
 
-  // Get workflow runs
   getWorkflowRuns: async () => {
     try {
       const response = await api.get('/api/dashboard_data');
       const dashboardData = response.data;
       
-      // Return workflow runs from dashboard data
-      return dashboardData.workflow_runs || [];
+      const workflowRuns = dashboardData.workflow_runs || [];
+      
+      const healthyWorkflowRuns = workflowRuns.filter(run => {
+        return run && 
+               run.run_id && 
+               run.tes_url &&
+               run.status &&
+               !run.connection_error &&
+               !run.timeout_error &&
+               run.status !== 'CONNECTION_ERROR' &&
+               run.status !== 'TIMEOUT_ERROR' &&
+               run.status !== 'SYSTEM_ERROR';
+      });
+      
+      console.log(`WorkflowService: Filtered ${healthyWorkflowRuns.length} healthy workflow runs out of ${workflowRuns.length} total`);
+      return healthyWorkflowRuns;
     } catch (error) {
       console.error('Error fetching workflow runs:', error);
+      
+      if (error.response?.status === 504 || error.response?.status === 503) {
+        console.warn('External services timeout/unavailable, returning empty workflow runs');
+        return [];
+      }
+      
       throw error;
     }
   }

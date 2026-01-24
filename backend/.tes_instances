@@ -3,10 +3,14 @@
 # Lines starting with # are comments
 
 # ELIXIR Cloud TES Instances
-Funnel/OpenPBS @ ELIXIR-CZ,https://tesk-prod.cloud.e-infra.cz
-Funnel/Slurm @ ELIXIR-FI,https://tesk-na.cloud.e-infra.cz
-TESK/Kubernetes @ ELIXIR-GR,https://tes.example-gr.org
-TESK/OpenShift @ ELIXIR-FI,https://tes.example-fi.org
+Funnel/OpenPBS @ ELIXIR-CZ,https://funnel.cloud.e-infra.cz/
+Funnel/Slurm @ ELIXIR-FI,https://vm4816.kaj.pouta.csc.fi/
+TESK/Kubernetes @ ELIXIR-CZ (Prod),https://tesk-prod.cloud.e-infra.cz/
+TESK/Kubernetes @ ELIXIR-CZ (NA),https://tesk-na.cloud.e-infra.cz/
+TESK/Kubernetes @ ELIXIR-DE,https://tesk.elixir-cloud.bi.denbi.de/
+TESK/Kubernetes @ ELIXIR-GR,https://tesk-eu.hypatia-comp.athenarc.gr/
+TESK/OpenShift @ ELIXIR-FI,https://csc-tesk-noauth.rahtiapp.fi/
+TESK North America,https://tesk-na.cloud.e-infra.cz/
 
 # Local Development
 Local TES,http://localhost:8080

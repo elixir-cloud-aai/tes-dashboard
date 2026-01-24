@@ -5,7 +5,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import { batchService } from '../services/batchService';
 import { formatDateTime, formatDuration } from '../utils/formatters';
-import { TES_INSTANCES } from '../utils/constants';
+import useInstances from '../hooks/useInstances';
 
 const BatchContainer = styled.div`
   padding: 2rem;
@@ -362,14 +362,14 @@ const BatchProcessing = () => {
   const [error, setError] = useState('');
   const [batchRuns, setBatchRuns] = useState([]);
   const [runsLoading, setRunsLoading] = useState(true);
+  
+  const { instances = [], loading: instancesLoading, error: instancesError, refresh: refreshInstances } = useInstances();
 
-  // Log modal state
   const [showLogModal, setShowLogModal] = useState(false);
   const [currentLog, setCurrentLog] = useState('');
   const [currentLogRunId, setCurrentLogRunId] = useState('');
   const [logLoading, setLogLoading] = useState(false);
 
-  // Refs for file inputs
   const snakefileRef = useRef(null);
   const smkDirRef = useRef(null);
   const nextflowFileRef = useRef(null);
@@ -377,7 +377,6 @@ const BatchProcessing = () => {
   const cwlFileRef = useRef(null);
   const cwlInputsRef = useRef(null);
 
-  // Form states
   const [snakemakeForm, setSnakemakeForm] = useState({
     batchMode: 'all',
     snakefile: null,
@@ -397,7 +396,6 @@ const BatchProcessing = () => {
     inputsFile: null
   });
 
-  // Load batch runs
   useEffect(() => {
     loadBatchRuns();
   }, []);
@@ -409,6 +407,12 @@ const BatchProcessing = () => {
       setBatchRuns(runs);
     } catch (err) {
       console.error('Error loading batch runs:', err);
+      if (err.response?.status === 504 || err.response?.status === 503 || err.message?.includes('timeout')) {
+        console.warn('External services slow/unavailable - showing empty batch runs');
+        setBatchRuns([]);
+      } else {
+        console.error('Critical batch loading error:', err);
+      }
     } finally {
       setRunsLoading(false);
     }
@@ -419,7 +423,7 @@ const BatchProcessing = () => {
       console.log('Opening batch logs modal for run:', runId);
       setLogLoading(true);
       setCurrentLogRunId(runId);
-      setCurrentLog(''); // Clear previous logs
+      setCurrentLog(''); 
       setShowLogModal(true);
       
       console.log('Fetching batch logs...');
@@ -528,7 +532,7 @@ const BatchProcessing = () => {
               checked={snakemakeForm.batchMode === 'all'}
               onChange={(e) => setSnakemakeForm({ ...snakemakeForm, batchMode: e.target.value })}
             />
-            All TES Instances
+            All Healthy TES Instances ✅ ({instances.length})
           </RadioOption>
           <RadioOption>
             <input
@@ -590,7 +594,7 @@ const BatchProcessing = () => {
               checked={nextflowForm.batchMode === 'all'}
               onChange={(e) => setNextflowForm({ ...nextflowForm, batchMode: e.target.value })}
             />
-            All TES Instances
+            All Healthy TES Instances ✅ ({instances.length})
           </RadioOption>
           <RadioOption>
             <input
@@ -662,7 +666,7 @@ const BatchProcessing = () => {
               checked={cwlForm.batchMode === 'all'}
               onChange={(e) => setCwlForm({ ...cwlForm, batchMode: e.target.value })}
             />
-            <span>Submit to All TES Instances</span>
+            <span>Submit to All Healthy TES Instances ✅ ({instances.length})</span>
           </RadioOption>
           <RadioOption>
             <input
@@ -717,10 +721,43 @@ const BatchProcessing = () => {
     <BatchContainer>
       <Header>
         <Title>Batch Processing</Title>
-        <Subtitle>Submit workflows to multiple TES instances or use federated execution</Subtitle>
+        <Subtitle>Submit workflows to multiple healthy TES instances or use federated execution</Subtitle>
       </Header>
 
       {error && <ErrorMessage message={error} />}
+
+      {instances.length === 0 && !instancesLoading && (
+        <div style={{
+          background: '#fef3cd',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <strong style={{ color: '#92400e' }}>No Healthy TES Instances Available</strong>
+            <p style={{ margin: '0.5rem 0 0 0', color: '#92400e' }}>
+              Unable to connect to any TES instances. Please check instance availability.
+            </p>
+          </div>
+          <button
+            onClick={refreshInstances || (() => {})}
+            style={{
+              background: '#d97706',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '0.5rem 1rem',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh Instance Health
+          </button>
+        </div>
+      )}
 
       <BatchSection>
         <SectionTitle>
@@ -762,7 +799,7 @@ const BatchProcessing = () => {
                 <th>Run ID</th>
                 <th>Workflow Type</th>
                 <th>Mode</th>
-                <th>TES Instance</th>
+                <th>TES Instance Status</th>
                 <th>Status</th>
                 <th>Submitted</th>
                 <th>Actions</th>

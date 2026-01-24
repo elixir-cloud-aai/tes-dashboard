@@ -357,7 +357,7 @@ const NodeManagement = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get('/nodes');
+      const response = await api.get('/api/nodes');
       setNodes(response.data.nodes || []);
     } catch (err) {
       setError('Failed to load nodes: ' + err.message);
@@ -428,10 +428,10 @@ const NodeManagement = () => {
       };
 
       if (isEdit) {
-        await api.put(`/nodes/${editingNode.id}`, payload);
+        await api.put(`/api/nodes/${editingNode.id}`, payload);
         setShowEditModal(false);
       } else {
-        await api.post('/nodes', payload);
+        await api.post('/api/nodes', payload);
         setShowAddModal(false);
       }
       
@@ -445,7 +445,7 @@ const NodeManagement = () => {
   const handleDeleteNode = async (nodeId) => {
     if (window.confirm('Are you sure you want to remove this node? This action cannot be undone.')) {
       try {
-        await api.delete(`/nodes/${nodeId}`);
+        await api.delete(`/api/nodes/${nodeId}`);
         fetchNodes();
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to delete node');
@@ -456,7 +456,7 @@ const NodeManagement = () => {
   const handleTestNode = async (nodeId) => {
     try {
       setTestingNodes(prev => new Set([...prev, nodeId]));
-      const response = await api.post(`/nodes/${nodeId}/test`);
+      const response = await api.post(`/api/nodes/${nodeId}/test`);
       setTestResults(prev => ({ ...prev, [nodeId]: response.data }));
     } catch (err) {
       setError('Failed to test node connectivity: ' + err.message);

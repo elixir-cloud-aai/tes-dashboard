@@ -5,11 +5,21 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import { workflowService } from '../services/workflowService';
 import { formatDateTime, formatDuration } from '../utils/formatters';
-import { TES_INSTANCES } from '../utils/constants';
+import useInstances from '../hooks/useInstances';
 
 const WorkflowsContainer = styled.div`
-  padding: 2rem;
-  max-width: 1400px;
+  paddi          <Select
+            value={cwlForm.tesUrl}
+            onChange={(e) => setCwlForm({ ...cwlForm, tesUrl: e.target.value })}
+            required
+          >
+            <option value="">Select Healthy TES Instance</option>
+            {instances.map((instance, idx) => (
+              <option key={idx} value={instance.url}>
+                {instance.name} ({instance.url})
+              </option>
+            ))}
+          </Select>max-width: 1400px;
   margin: 0 auto;
 `;
 
@@ -346,22 +356,21 @@ const Workflows = () => {
   const [error, setError] = useState('');
   const [workflowRuns, setWorkflowRuns] = useState([]);
   const [runsLoading, setRunsLoading] = useState(true);
-  
-  // Log modal state
+ 
+  const { instances, loading: instancesLoading } = useInstances();
+   
   const [showLogModal, setShowLogModal] = useState(false);
   const [currentLog, setCurrentLog] = useState('');
   const [currentLogRunId, setCurrentLogRunId] = useState('');
   const [logLoading, setLogLoading] = useState(false);
-
-  // Refs for file inputs
+ 
   const cwlFileRef = useRef(null);
   const cwlInputRef = useRef(null);
   const nextflowFileRef = useRef(null);
   const nextflowConfigRef = useRef(null);
   const snakefileRef = useRef(null);
   const smkDirRef = useRef(null);
-
-  // Form states for different workflow types
+ 
   const [cwlForm, setCwlForm] = useState({
     tesInstance: '',
     cwlFile: null,
@@ -383,8 +392,7 @@ const Workflows = () => {
     smkDir: null,
     distributionLogic: ''
   });
-
-  // Load workflow runs
+ 
   useEffect(() => {
     loadWorkflowRuns();
   }, []);
@@ -395,7 +403,13 @@ const Workflows = () => {
       const runs = await workflowService.getWorkflowRuns();
       setWorkflowRuns(runs);
     } catch (err) {
-      console.error('Error loading workflow runs:', err);
+      console.error('Error loading workflow runs:', err); 
+      if (err.response?.status === 504 || err.response?.status === 503 || err.message?.includes('timeout')) {
+        console.warn('External services slow/unavailable - showing empty workflow runs');
+        setWorkflowRuns([]);
+      } else { 
+        console.error('Critical workflow loading error:', err);
+      }
     } finally {
       setRunsLoading(false);
     }
@@ -406,7 +420,7 @@ const Workflows = () => {
       console.log('Opening logs modal for workflow:', runId);
       setLogLoading(true);
       setCurrentLogRunId(runId);
-      setCurrentLog(''); // Clear previous logs
+      setCurrentLog('');  
       setShowLogModal(true);
       
       console.log('Fetching workflow logs...');
@@ -437,8 +451,7 @@ const Workflows = () => {
     try {
       setLoading(true);
       setError('');
-      
-      // Prepare form data for backend
+       
       const workflowData = {
         wf_type: 'cwl',
         wf_tes_instance: cwlForm.tesInstance,
@@ -473,8 +486,7 @@ const Workflows = () => {
     try {
       setLoading(true);
       setError('');
-      
-      // Prepare form data for backend
+       
       const workflowData = {
         wf_type: 'nextflow',
         wf_tes_instance: nextflowForm.tesInstance,
@@ -511,8 +523,7 @@ const Workflows = () => {
     try {
       setLoading(true);
       setError('');
-      
-      // Prepare form data for backend
+       
       const workflowData = {
         wf_type: 'snakemake',
         wf_tes_instance: snakemakeForm.tesInstance,
@@ -547,8 +558,8 @@ const Workflows = () => {
             onChange={(e) => setCwlForm({ ...cwlForm, tesInstance: e.target.value })}
             required
           >
-            <option value="">Select TES Instance</option>
-            {TES_INSTANCES.map((instance, idx) => (
+            <option value="">Select Healthy TES Instance</option>
+            {instances.map((instance, idx) => (
               <option key={idx} value={instance.url}>
                 {instance.name} ({instance.url})
               </option>
@@ -614,8 +625,8 @@ const Workflows = () => {
             onChange={(e) => setNextflowForm({ ...nextflowForm, tesInstance: e.target.value })}
             required
           >
-            <option value="">Select TES Instance</option>
-            {TES_INSTANCES.map((instance, idx) => (
+            <option value="">Select Healthy TES Instance</option>
+            {instances.map((instance, idx) => (
               <option key={idx} value={instance.url}>
                 {instance.name} ({instance.url})
               </option>
@@ -689,8 +700,8 @@ const Workflows = () => {
             onChange={(e) => setSnakemakeForm({ ...snakemakeForm, tesInstance: e.target.value })}
             required
           >
-            <option value="">Select TES Instance</option>
-            {TES_INSTANCES.map((instance, idx) => (
+            <option value="">Select Healthy TES Instance</option>
+            {instances.map((instance, idx) => (
               <option key={idx} value={instance.url}>
                 {instance.name} ({instance.url})
               </option>
@@ -828,8 +839,7 @@ const Workflows = () => {
           </WorkflowRunsTable>
         )}
       </WorkflowSection>
-
-      {/* Log Modal */}
+ 
       {showLogModal && (
         <LogModal onClick={closeLogModal}>
           <LogContent onClick={(e) => e.stopPropagation()}>
