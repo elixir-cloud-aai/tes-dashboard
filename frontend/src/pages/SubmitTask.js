@@ -198,10 +198,25 @@ const SubmitTask = () => {
  
   const { 
     instances, 
+    allInstances,
     loading: instancesLoading, 
     error: instancesError,
     refresh: refreshInstances 
   } = useInstances();
+
+  // Helper function to get status badge
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case 'healthy':
+        return '✓';
+      case 'unhealthy':
+        return '✗';
+      case 'unreachable':
+        return '⚠';
+      default:
+        return '?';
+    }
+  };
 
   useEffect(() => {
     if (instances.length > 0 && !formData.tes_instance) {
@@ -254,9 +269,14 @@ const SubmitTask = () => {
   };
  
   const getDemoTaskData = (demoType = 'basic') => { 
-    const defaultTesInstance = instances.length > 0 
-      ? instances[0].url 
-      : 'https://csc-tesk-noauth.rahtiapp.fi/v1/tasks';
+    let defaultTesInstance = 'https://csc-tesk-noauth.rahtiapp.fi/v1/tasks';
+    
+    if (instances.length > 0) {
+      const elixirFiInstance = instances.find(
+        instance => instance.url && instance.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING)
+      );
+      defaultTesInstance = elixirFiInstance ? elixirFiInstance.url : instances[0].url;
+    }
     
     const demoTasks = {
       basic: {
@@ -443,7 +463,8 @@ const SubmitTask = () => {
               required
             >
               <option value="">Select TES Instance</option>
-              {[...instances]
+              {(allInstances.length > 0 ? allInstances : instances)
+                .slice()
                 .sort((a, b) => {
                   const aIsElixirFi = a.url && a.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING);
                   const bIsElixirFi = b.url && b.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING);
@@ -452,8 +473,13 @@ const SubmitTask = () => {
                   return 0;
                 })
                 .map((instance, index) => (
-                  <option key={index} value={instance.url}>
-                    {instance.name} 
+                  <option 
+                    key={index} 
+                    value={instance.url}
+                  >
+                    {getStatusBadge(instance.status)} {instance.name}
+                    {instance.status === 'unhealthy' ? ' (Unhealthy)' : ''}
+                    {instance.status === 'unreachable' ? ' (Unreachable)' : ''}
                   </option>
                 ))}
             </Select>
