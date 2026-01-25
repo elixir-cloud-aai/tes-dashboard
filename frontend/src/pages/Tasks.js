@@ -318,11 +318,7 @@ const Tasks = () => {
       return task && 
              task.id && 
              task.tes_url && 
-             task.state &&
-             task.state !== 'ERROR' &&
-             task.state !== 'SYSTEM_ERROR' &&
-             task.state !== 'EXECUTOR_ERROR' && 
-             !task.error_prone_instance;
+             task.state;
     });
 
     // Apply search filter
