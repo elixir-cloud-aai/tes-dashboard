@@ -8,6 +8,8 @@ import ErrorMessage from '../components/common/ErrorMessage';
 import useInstances from '../hooks/useInstances';
 import { ArrowLeft, Play, Zap, RefreshCw } from 'lucide-react';
 
+const ELIXIR_FI_INSTANCE_SUBSTRING = 'csc-tesk-noauth.rahtiapp.fi';
+
 const PageContainer = styled.div`
   padding: 20px;
   background-color: #f8f9fa;
@@ -201,12 +203,10 @@ const SubmitTask = () => {
     refresh: refreshInstances 
   } = useInstances();
 
-  // Issue #8: bug: set TES Instance for Demo task to healthy instance 
-
   useEffect(() => {
     if (instances.length > 0 && !formData.tes_instance) {
       const elixirFiInstance = instances.find(
-        instance => instance.url && instance.url.includes('csc-tesk-noauth.rahtiapp.fi')
+        instance => instance.url && instance.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING)
       );
       
       if (elixirFiInstance) {
@@ -215,7 +215,7 @@ const SubmitTask = () => {
         setFormData(prev => ({ ...prev, tes_instance: instances[0].url }));
       }
     }
-  }, [instances]);
+  }, [instances, formData.tes_instance]);
 
   const handleTestConnection = async () => {
     try {
@@ -304,15 +304,6 @@ const SubmitTask = () => {
     const demoData = getDemoTaskData(demoType);
     setFormData(demoData);
     setError(null);
-
-    // Issue #9: remove demo task pop-ups upon form population
-    // const taskNames = {
-    //   basic: 'Basic Hello World',
-    //   python: 'Python Script',
-    //   fileops: 'File Operations'
-    // };
-    
-    // alert(`${taskNames[demoType] || 'Demo'} task data loaded! Review the form and click "Submit Task" when ready.`);
   };
 
   const handleSubmit = async (e) => {
@@ -346,12 +337,7 @@ const SubmitTask = () => {
       const result = await taskService.submitTask(submitData);
       
       console.log('Task submission result:', result);
-       
-      // if (result && result.message) {
-      //   alert(`Success: ${result.message}`);
-      // } else {
-      //   alert('Task submitted successfully!');
-      // }
+      
       navigate('/tasks');
     } catch (err) {
       console.error('Task submission error:', err);
@@ -457,11 +443,10 @@ const SubmitTask = () => {
               required
             >
               <option value="">Select TES Instance</option>
-              {instances
+              {[...instances]
                 .sort((a, b) => {
-                  // Prioritize ELIXIR-Fi instance at the top
-                  const aIsElixirFi = a.url && a.url.includes('csc-tesk-noauth.rahtiapp.fi');
-                  const bIsElixirFi = b.url && b.url.includes('csc-tesk-noauth.rahtiapp.fi');
+                  const aIsElixirFi = a.url && a.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING);
+                  const bIsElixirFi = b.url && b.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING);
                   if (aIsElixirFi && !bIsElixirFi) return -1;
                   if (!aIsElixirFi && bIsElixirFi) return 1;
                   return 0;
