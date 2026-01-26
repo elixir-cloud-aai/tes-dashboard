@@ -222,8 +222,7 @@ const Tasks = () => {
   
   const handleSort = (column) => {
     if (sortColumn === column) {
-      // Toggle direction if clicking same column
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       // Set new column with ascending as default
       setSortColumn(column);
@@ -341,7 +340,7 @@ const Tasks = () => {
     // Apply sorting
     const sortedTasks = sortTasks(tasksToDisplay);
     setFilteredTasks(sortedTasks);
-  }, [tasksData, searchTerm, sortColumn, sortDirection, sortTasks]);
+  }, [tasksData, searchTerm, sortTasks]);
 
   return (
     <PageContainer>

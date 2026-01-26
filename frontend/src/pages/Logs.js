@@ -311,6 +311,7 @@ const Logs = () => {
             if (logResponse && logResponse.success) {
               content = logResponse.log || 'Log endpoint returned success but no log content';
             } else if (logResponse && logResponse.log) {
+              content = logResponse.log;
             } else {
               content = `Task Log for ${taskId}\n\nTask Details:\n- Name: ${task.name || task.task_name || 'Unnamed'}\n- Status: ${task.status || task.state}\n- TES Instance: ${task.tes_name || 'Unknown'}\n- Submitted: ${task.submitted_at || task.creation_time}\n- Type: ${task.type || 'Task Submission'}\n\nNote: Full log details not available (task may still be running or logs not yet generated)`;
             }
@@ -338,8 +339,7 @@ const Logs = () => {
               metadata: {
                 status: task.status || task.state,
                 tesInstance: task.tes_name || 'Unknown'
-              },
-              tesInstance: task.tes_name || 'Unknown'
+              }
             });
           }
         }
