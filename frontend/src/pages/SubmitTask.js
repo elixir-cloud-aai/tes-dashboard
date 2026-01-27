@@ -8,8 +8,6 @@ import ErrorMessage from '../components/common/ErrorMessage';
 import useInstances from '../hooks/useInstances';
 import { ArrowLeft, Play, Zap, RefreshCw } from 'lucide-react';
 
-const ELIXIR_FI_INSTANCE_SUBSTRING = 'csc-tesk-noauth.rahtiapp.fi';
-
 const PageContainer = styled.div`
   padding: 20px;
   background-color: #f8f9fa;
@@ -206,31 +204,23 @@ const SubmitTask = () => {
 
   // Helper function to get status badge
   const getStatusBadge = (status) => {
-    switch(status) {
-      case 'healthy':
-        return '✓';
-      case 'unhealthy':
-        return '✗';
-      case 'unreachable':
-        return '⚠';
-      default:
-        return '?';
-    }
+    return status === 'healthy' ? '✅' : '❌';
   };
 
   useEffect(() => {
+    // Auto-select first healthy instance if no instance is selected
     if (instances.length > 0 && !formData.tes_instance) {
-      const elixirFiInstance = instances.find(
-        instance => instance.url && instance.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING)
+      // Try to find a healthy instance from allInstances (if available)
+      const healthyInstance = (allInstances.length > 0 ? allInstances : instances).find(
+        instance => instance.status === 'healthy'
       );
       
-      if (elixirFiInstance) {
-        setFormData(prev => ({ ...prev, tes_instance: elixirFiInstance.url }));
-      } else {
-        setFormData(prev => ({ ...prev, tes_instance: instances[0].url }));
+      // Only set default if a healthy instance exists
+      if (healthyInstance) {
+        setFormData(prev => ({ ...prev, tes_instance: healthyInstance.url }));
       }
     }
-  }, [instances, formData.tes_instance]);
+  }, [instances, allInstances, formData.tes_instance]);
 
   const handleTestConnection = async () => {
     try {
@@ -269,13 +259,15 @@ const SubmitTask = () => {
   };
  
   const getDemoTaskData = (demoType = 'basic') => { 
-    let defaultTesInstance = 'https://csc-tesk-noauth.rahtiapp.fi/v1/tasks';
+    // Use first healthy instance as default for demos
+    let defaultTesInstance = '';
     
     if (instances.length > 0) {
-      const elixirFiInstance = instances.find(
-        instance => instance.url && instance.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING)
+      const healthyInstance = (allInstances.length > 0 ? allInstances : instances).find(
+        instance => instance.status === 'healthy'
       );
-      defaultTesInstance = elixirFiInstance ? elixirFiInstance.url : instances[0].url;
+      // Only use an instance if it's healthy, otherwise leave empty
+      defaultTesInstance = healthyInstance ? healthyInstance.url : '';
     }
     
     const demoTasks = {
@@ -466,10 +458,9 @@ const SubmitTask = () => {
               {(allInstances.length > 0 ? allInstances : instances)
                 .slice()
                 .sort((a, b) => {
-                  const aIsElixirFi = a.url && a.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING);
-                  const bIsElixirFi = b.url && b.url.includes(ELIXIR_FI_INSTANCE_SUBSTRING);
-                  if (aIsElixirFi && !bIsElixirFi) return -1;
-                  if (!aIsElixirFi && bIsElixirFi) return 1;
+                  // Sort by status: healthy first, then others
+                  if (a.status === 'healthy' && b.status !== 'healthy') return -1;
+                  if (a.status !== 'healthy' && b.status === 'healthy') return 1;
                   return 0;
                 })
                 .map((instance, index) => (
@@ -478,8 +469,6 @@ const SubmitTask = () => {
                     value={instance.url}
                   >
                     {getStatusBadge(instance.status)} {instance.name}
-                    {instance.status === 'unhealthy' ? ' (Unhealthy)' : ''}
-                    {instance.status === 'unreachable' ? ' (Unreachable)' : ''}
                   </option>
                 ))}
             </Select>
