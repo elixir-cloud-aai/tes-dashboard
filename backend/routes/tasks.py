@@ -4,9 +4,13 @@ import uuid
 import json
 import time
 import requests
+import shlex
 from services.task_service import get_submitted_tasks, add_task, update_single_task_status
 from utils.tes_utils import load_tes_instances
 from utils.auth_utils import get_instance_credentials
+import logging
+
+logger = logging.getLogger(__name__)
 
 tasks_bp = Blueprint('tasks', __name__)
 
@@ -36,9 +40,38 @@ def submit_task():
                 tes_name = inst['name']
                 break
         
+        
+        command_raw = data.get('command', '')
+        if isinstance(command_raw, list):
+            command = command_raw
+        elif command_raw:
+           
+            shell_operators = ['&&', '||', '|', '>', '<', '>>', '2>', '&', ';', '$(', '`']
+            needs_shell = any(op in command_raw for op in shell_operators)
+            
+            if needs_shell:
+                
+                command = ["/bin/sh", "-c", command_raw]
+                print(f"🐚 Command contains shell operators, wrapping in shell: {command}")
+            else:
+                
+                try:
+                    command = shlex.split(command_raw)
+                    print(f"📝 Simple command parsed: {command}")
+                except ValueError as e:
+                    logger.error(f"Command parsing error: {e}")
+                    return jsonify({
+                        'success': False,
+                        'error': f'Invalid command syntax: {str(e)}',
+                        'error_type': 'bad_request',
+                        'error_code': 'INVALID_COMMAND'
+                    }), 400
+        else:
+            command = ['echo', 'Hello World']
+        
         executor = {
             "image": docker_image,
-            "command": data.get('command') if isinstance(data.get('command'), list) else (data.get('command', '').split() if data.get('command') else ['echo', 'Hello World']),
+            "command": command,
             "workdir": data.get('workdir', '/tmp')
         }
         
@@ -100,13 +133,24 @@ def submit_task():
             
             try:
                 print(f"  Trying service-info: {service_info_url}")
-                test_response = requests.get(service_info_url, timeout=10) 
-                if test_response.status_code in [200, 403]:
+                test_response = requests.get(service_info_url, timeout=10)
+                
+                if test_response.status_code == 200:
                     service_is_reachable = True
                     working_endpoint = tasks_url
                     print(f"  ✅ Service reachable at {service_info_url} (status {test_response.status_code})")
                     print(f"  Will use tasks endpoint: {tasks_url}")
                     break
+                elif test_response.status_code in [401, 403]:
+                    # Authentication required - treat as unreachable since we can't use it
+                    print(f"  🔐 Authentication required at {service_info_url} (status {test_response.status_code})")
+                    connectivity_error_info = {
+                        'error_type': 'unauthorized',
+                        'error_code': 'UNAUTHORIZED',
+                        'message': 'Authentication required - TES instance requires credentials',
+                        'reason': 'This TES instance requires authentication. Please configure TESK_PROD_TOKEN or credentials in environment variables.'
+                    }
+                    continue
                 else:
                     print(f"  ⚠️ Service returned status {test_response.status_code}")
                     
@@ -199,6 +243,7 @@ def submit_task():
          
         tes_endpoint = working_endpoint
         print(f"🚀 Submitting task to {tes_endpoint}")
+        print(f"📦 Task payload: {json.dumps(tes_task, indent=2)}")
          
         credentials = get_instance_credentials(tes_name, tes_url)
         headers = {
@@ -301,7 +346,7 @@ def submit_task():
         else:
             error_type_map = {
                 400: {'error_type': 'bad_request', 'error_code': 'BAD_REQUEST', 'reason': 'The task specification is invalid or malformed'},
-                401: {'error_type': 'unauthorized', 'error_code': 'UNAUTHORIZED', 'reason': 'Authentication required or credentials are invalid'},
+                401: {'error_type': 'unauthorized', 'error_code': 'UNAUTHORIZED', 'reason': 'Authentication required. Please configure TESK_PROD_TOKEN or TESK_PROD_USER/TESK_PROD_PASSWORD environment variables for this instance.'},
                 403: {'error_type': 'forbidden', 'error_code': 'FORBIDDEN', 'reason': 'You do not have permission to submit tasks to this instance'},
                 404: {'error_type': 'not_found', 'error_code': 'NOT_FOUND', 'reason': 'The TES endpoint was not found. Check if the URL is correct.'},
                 408: {'error_type': 'timeout', 'error_code': 'TIMEOUT', 'reason': 'The request timed out. The TES instance may be overloaded.'},
@@ -319,12 +364,21 @@ def submit_task():
             })
             
             error_msg = f'TES submission failed with status {response.status_code}'
+            print(f"❌ TES returned status {response.status_code}")
+            print(f"Response headers: {dict(response.headers)}")
+            print(f"Response body: {response.text[:500]}")
+            
             try:
                 error_data = response.json()
+                print(f"Error data JSON: {error_data}")
                 if error_data.get('message'):
                     error_msg = error_data.get('message')
                 elif error_data.get('error'):
                     error_msg = error_data.get('error')
+                elif error_data.get('detail'):
+                    error_msg = error_data.get('detail')
+                elif error_data.get('title'):
+                    error_msg = error_data.get('title')
                 else:
                     error_msg = f'{error_msg}: {str(error_data)}'
             except:
