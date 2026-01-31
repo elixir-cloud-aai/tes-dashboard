@@ -220,7 +220,8 @@ const SubmitTask = () => {
         setFormData(prev => ({ ...prev, tes_instance: healthyInstance.url }));
       }
     }
-  }, [instances, allInstances, formData.tes_instance]);
+
+  }, [instances, allInstances]);
 
   const handleTestConnection = async () => {
     try {
@@ -274,38 +275,38 @@ const SubmitTask = () => {
       basic: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo Hello World Task',
-        docker_image: 'ubuntu:20.04',
-        command: 'echo "Hello from TES Demo Task!" && echo "Current time: $(date)" && echo "System info: $(uname -a)" && echo "Task completed successfully"',
+        docker_image: 'alpine:latest',
+        command: 'echo "Hello from TES!" && date && uname -a',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A simple demo task that prints system information and a hello message. Safe to run and completes quickly for testing purposes.'
+        disk_gb: '1',
+        description: 'Simple demo task using Alpine Linux (5MB). Note: If you see SYSTEM_ERROR, the TES instance may be experiencing infrastructure issues. Try a different instance or wait a few minutes.'
       },
       python: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo Python Script Task',
-        docker_image: 'python:3.9-slim',
-        command: 'python3 -c "import sys; import datetime; print(f\'Hello from Python {sys.version}\'); print(f\'Current time: {datetime.datetime.now()}\'); print(\'Demo task completed successfully!\')"',
+        docker_image: 'python:3.11-alpine',
+        command: 'python3 -c "import sys; import datetime; print(sys.version); print(datetime.datetime.now())"',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A Python demo task that prints version info and timestamp using a Python container.'
+        disk_gb: '1',
+        description: 'Python demo using Alpine-based image (51MB). Faster than standard Python images.'
       },
       fileops: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo File Operations Task',
-        docker_image: 'ubuntu:20.04',
-        command: 'echo "Creating demo files..." && echo "Hello World" > /tmp/output.txt && echo "File contents:" && cat /tmp/output.txt && ls -la /tmp/',
+        docker_image: 'alpine:latest',
+        command: 'echo "Hello World" > /tmp/demo.txt && cat /tmp/demo.txt && ls -lh /tmp/demo.txt',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A demo task that creates and reads files, demonstrating basic file operations within the container.'
+        disk_gb: '1',
+        description: 'Demonstrates file creation and reading in Alpine Linux.'
       }
     };
     
@@ -458,14 +459,15 @@ const SubmitTask = () => {
               {(allInstances.length > 0 ? allInstances : instances)
                 .slice()
                 .sort((a, b) => {
-                  // Sort by status: healthy first, then others
+                  // Sort by status: healthy (reachable without auth) first, then others
+                  // Note: Backend marks instances requiring auth as 'unhealthy'
                   if (a.status === 'healthy' && b.status !== 'healthy') return -1;
                   if (a.status !== 'healthy' && b.status === 'healthy') return 1;
                   return 0;
                 })
-                .map((instance, index) => (
+                .map((instance) => (
                   <option 
-                    key={index} 
+                    key={instance.url} 
                     value={instance.url}
                   >
                     {getStatusBadge(instance.status)} {instance.name}
