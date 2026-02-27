@@ -842,62 +842,6 @@ const Dashboard = () => {
                         </>
                       )}
                   </HealthSummary>
-
-                  <InstanceList>
-                    {apiHealth.services.map((instance, index) => (
-                      <InstanceItem key={instance.id || index}>
-                        <InstanceMain>
-                          <InstanceName>
-                            <Server
-                              size={14}
-                              color={
-                                instance.status === "healthy"
-                                  ? "#28a745"
-                                  : "#dc3545"
-                              }
-                            />
-                            {instance.name}
-                          </InstanceName>
-                          <HealthStatusBadge
-                            status={
-                              instance.status === "healthy"
-                                ? "healthy"
-                                : "error"
-                            }
-                            style={{ padding: "2px 8px", fontSize: "11px" }}
-                          >
-                            {instance.status === "healthy"
-                              ? "Healthy"
-                              : instance.status || "Unhealthy"}
-                          </HealthStatusBadge>
-                        </InstanceMain>
-                        <InstanceDetails>
-                          <DetailItem title="Latency">
-                            <Activity size={12} />{" "}
-                            {instance.latency ? `${instance.latency}ms` : "N/A"}
-                          </DetailItem>
-                          <DetailItem title="Tasks">
-                            <PlayCircle size={12} /> {instance.tasks || 0} Tasks
-                          </DetailItem>
-                          <DetailItem title="Version">
-                            <Clock size={12} /> v{instance.version || "1.0"}
-                          </DetailItem>
-                          <DetailItem
-                            title="URL"
-                            style={{
-                              gridColumn: "span 2",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            <ArrowRight size={12} /> {instance.url}
-                          </DetailItem>
-                        </InstanceDetails>
-                      </InstanceItem>
-                    ))}
-                  </InstanceList>
-
                   {apiHealth?.lastUpdated && (
                     <div
                       style={{
