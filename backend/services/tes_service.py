@@ -6,17 +6,96 @@ from utils.auth_utils import get_instance_credentials
 from services.task_service import get_submitted_tasks
 
 def get_healthy_instances():
-    from datetime import datetime, timezone
-    instances = []
-    tes_instances = load_tes_instances()
-    for tes_instance in tes_instances:
-        instances.append({
-            "name": tes_instance["name"],
-            "url": tes_instance["url"],
-            "status": "healthy",
-            "last_checked": datetime.now(timezone.utc).isoformat()
-        })
-    return instances
+    """Get ONLY instances that are actually responding AND can accept tasks (with caching)"""
+    import json
+    from pathlib import Path
+    import requests
+    import time
+    
+    # Load all configured instances
+    tes_locations_file = Path(__file__).parent.parent / 'tes_instance_locations.json'
+    if not tes_locations_file.exists():
+        return []
+    
+    with open(tes_locations_file, 'r') as f:
+        instances = json.load(f)
+    
+   
+    healthy_instances = []
+    
+    for instance in instances:
+        url = instance.get('url', '').rstrip('/')
+        instance_id = instance.get('id', url)
+        instance_name = instance.get('name', '')
+        
+        
+        service_info_endpoints = [
+            f"{url}/ga4gh/tes/v1/service-info",
+            f"{url}/service-info",
+            f"{url}/v1/service-info"
+        ]
+        
+        service_info_ok = False
+        for endpoint in service_info_endpoints:
+            try:
+                response = requests.get(
+                    endpoint,
+                    timeout=5,
+                    headers={'Accept': 'application/json'}
+                )
+                if response.status_code == 200:
+                    service_info_ok = True
+                    break
+            except:
+                continue
+        
+       
+        if not service_info_ok:
+            continue
+        
+        
+        credentials = get_instance_credentials(instance_name, url)
+        
+        headers = {'Accept': 'application/json'}
+        auth = None
+        has_credentials = False
+        
+        if credentials.get('token'):
+            headers['Authorization'] = f"Bearer {credentials['token']}"
+            has_credentials = True
+        elif credentials.get('user') and credentials.get('password'):
+            auth = (credentials['user'], credentials['password'])
+            has_credentials = True
+        
+        
+        tasks_endpoints = [
+            f"{url}/ga4gh/tes/v1/tasks?view=MINIMAL",
+            f"{url}/v1/tasks?view=MINIMAL"
+        ]
+        
+        tasks_ok = False
+        for tasks_endpoint in tasks_endpoints:
+            try:
+                tasks_response = requests.get(
+                    tasks_endpoint,
+                    headers=headers,
+                    auth=auth,
+                    timeout=5
+                )
+                
+                if tasks_response.status_code == 200:
+                    tasks_ok = True
+                    break
+            except:
+                continue
+        
+        
+        if tasks_ok:
+            instance['status'] = 'healthy'
+            instance['last_checked'] = datetime.now().isoformat()
+            healthy_instances.append(instance)
+    
+    return healthy_instances
 
 def fetch_tes_status(instance):
     try:
@@ -24,11 +103,102 @@ def fetch_tes_status(instance):
         if not tes_base_url:
             return {**instance, "status": "unreachable"}
 
+        # Try multiple service-info endpoint paths
+        endpoints = [
+            f"{tes_base_url}/ga4gh/tes/v1/service-info",
+            f"{tes_base_url}/v1/service-info",
+            f"{tes_base_url}/service-info"
+        ]
+        
+        r = None
+        latency_ms = 0
         start_time = time.time()
-        r = requests.get(f"{tes_base_url}/ga4gh/tes/v1/service-info", timeout=5)
-        latency_ms = int((time.time() - start_time) * 1000)
+        
+        for endpoint in endpoints:
+            try:
+                r = requests.get(endpoint, timeout=5, headers={'Accept': 'application/json'})
+                latency_ms = int((time.time() - start_time) * 1000)
+                if r.status_code in [200, 401, 403]:
+                    # Found the right endpoint
+                    break
+            except:
+                continue
+        
+        if r is None or r.status_code not in [200, 401, 403]:
+            # No working endpoint found
+            return {**instance, "status": "unreachable"}
 
-        status = "healthy" if r.status_code == 200 else "unhealthy"
+        # First check service-info endpoint
+        if r.status_code in [401, 403]:
+            status = "unhealthy"  # Authentication required but not available
+        elif r.status_code != 200:
+            status = "unhealthy"
+        else:
+            
+            try:
+                instance_name = instance.get("name", "")
+                credentials = get_instance_credentials(instance_name, tes_base_url)
+                
+                
+                headers = {'Accept': 'application/json'}
+                auth = None
+                has_credentials = False
+                
+                if credentials.get('token'):
+                    headers['Authorization'] = f"Bearer {credentials['token']}"
+                    has_credentials = True
+                elif credentials.get('user') and credentials.get('password'):
+                    auth = (credentials['user'], credentials['password'])
+                    has_credentials = True
+                
+                
+                tasks_endpoints = [
+                    f"{tes_base_url}/ga4gh/tes/v1/tasks?view=MINIMAL",
+                    f"{tes_base_url}/v1/tasks?view=MINIMAL"
+                ]
+                
+                tasks_response = None
+                for tasks_endpoint in tasks_endpoints:
+                    try:
+                        tasks_response = requests.get(
+                            tasks_endpoint,
+                            headers=headers,
+                            auth=auth,
+                            timeout=5
+                        )
+                        if tasks_response.status_code not in [404]:
+                            
+                            break
+                    except:
+                        continue
+                
+                
+                if tasks_response is None:
+                    
+                    print(f"⚠️ {instance.get('name')}: No tasks endpoint found")
+                    status = "unhealthy"
+                elif tasks_response.status_code in [401, 403]:
+                    
+                    print(f"⚠️ {instance.get('name')}: Authentication required (status {tasks_response.status_code})")
+                    if not has_credentials:
+                        print(f"   ❌ No credentials configured for this instance")
+                    else:
+                        print(f"   ❌ Credentials invalid or insufficient")
+                    status = "unhealthy"
+                elif tasks_response.status_code == 200:
+                    
+                    print(f"✅ {instance.get('name')}: Tasks endpoint accessible")
+                    status = "healthy"
+                else:
+                   
+                    print(f"⚠️ {instance.get('name')}: Tasks endpoint returned {tasks_response.status_code}")
+                    status = "healthy"
+                    
+            except Exception as tasks_error:
+                print(f"⚠️ Could not check tasks endpoint for {instance.get('name')}: {tasks_error}")
+                
+                status = "unhealthy"
+        
         version = ""
         try:
             version = r.json().get("version", "")
@@ -81,8 +251,8 @@ def get_service_info(tes_url):
     """Get service info from a TES instance with multiple endpoint attempts"""
     try: 
         endpoints_to_try = [
+            f"{tes_url}/v1/service-info",
             f"{tes_url}/ga4gh/tes/v1/service-info",
-            f"{tes_url}/v1/tasks",
             f"{tes_url}/service-info",
             f"{tes_url}/api/service-info",
             f"{tes_url}/api/v1/service-info",
@@ -147,48 +317,106 @@ def get_service_info(tes_url):
                 last_error = str(e)
                 continue
          
+        # Get instance name from config
+        instance_name = tes_url
+        try:
+            instances = load_tes_location_data()
+            for instance in instances:
+                if instance.get('url', '').rstrip('/') == tes_url.rstrip('/'):
+                    instance_name = instance.get('name', tes_url)
+                    break
+        except:
+            pass
+        
         if auth_required:
             print(f"✅ Service is running but requires authentication")
             return {
-                'name': 'TES Service (Authentication Required)',
+                'name': instance_name,
                 'id': tes_url,
                 'organization': {
-                    'name': 'Authentication Required',
+                    'name': 'GA4GH TES',
                     'url': tes_url
                 },
-                'description': 'This TES instance requires authentication to view service information.',
+                'description': 'This TES instance requires authentication to view detailed service information.',
                 'type': {
                     'group': 'ga4gh',
                     'artifact': 'tes',
-                    'version': 'Unknown (requires auth)'
+                    'version': '1.0'
                 },
-                'contactUrl': 'Unknown',
-                'documentationUrl': 'Unknown',
+                'contactUrl': 'Authentication Required',
+                'documentationUrl': 'Authentication Required',
+                'createdAt': 'Unknown',
                 'storage': ['Unknown'],
-                'version': 'Unknown',
+                'version': '1.0',
+                'environment': 'production',
                 'auth_required': True,
-                'message': 'Service is operational but requires authentication',
+                'message': 'Service is operational but requires authentication for detailed info',
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
          
         error_message = f"Could not retrieve service info from {tes_url}. Reason: {last_error}"
         print(f"❌ All endpoints failed: {error_message}")
         
+        # Return a proper service info structure even for errors
         return {
-            'error': 'Service Unavailable',
-            'message': error_message,
-            'reason': last_error or 'All service-info endpoints failed',
-            'error_code': 'SERVICE_INFO_UNAVAILABLE',
-            'error_type': 'service_unavailable',
+            'name': instance_name,
+            'id': tes_url,
+            'organization': {
+                'name': 'GA4GH TES',
+                'url': tes_url
+            },
+            'description': f'Service information unavailable: {last_error}',
+            'type': {
+                'group': 'ga4gh',
+                'artifact': 'tes',
+                'version': '1.0'
+            },
+            'contactUrl': 'Unknown',
+            'documentationUrl': 'Unknown',
+            'createdAt': 'Unknown',
+            'storage': ['Unknown'],
+            'version': '1.0',
+            'environment': 'production',
+            'error': True,
+            'error_message': error_message,
+            'error_reason': last_error or 'All service-info endpoints failed',
             'timestamp': datetime.now(timezone.utc).isoformat()
-        }, 503
+        }
         
     except Exception as e:
         print(f"❌ Unexpected error: {type(e).__name__}: {e}")
+        
+        # Get instance name from config
+        instance_name = tes_url
+        try:
+            instances = load_tes_location_data()
+            for instance in instances:
+                if instance.get('url', '').rstrip('/') == tes_url.rstrip('/'):
+                    instance_name = instance.get('name', tes_url)
+                    break
+        except:
+            pass
+        
         return {
-            'error': 'Internal Server Error',
-            'message': f'Unexpected error: {str(e)}',
-            'error_code': 'INTERNAL_ERROR',
-            'error_type': 'server_error',
+            'name': instance_name,
+            'id': tes_url,
+            'organization': {
+                'name': 'GA4GH TES',
+                'url': tes_url
+            },
+            'description': f'Unexpected error: {str(e)}',
+            'type': {
+                'group': 'ga4gh',
+                'artifact': 'tes',
+                'version': '1.0'
+            },
+            'contactUrl': 'Unknown',
+            'documentationUrl': 'Unknown',
+            'createdAt': 'Unknown',
+            'storage': ['Unknown'],
+            'version': '1.0',
+            'environment': 'production',
+            'error': True,
+            'error_message': f'Unexpected error: {str(e)}',
             'timestamp': datetime.now(timezone.utc).isoformat()
-        }, 500
+        }

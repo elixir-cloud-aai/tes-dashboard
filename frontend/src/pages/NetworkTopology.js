@@ -214,16 +214,7 @@ const QuickStats = styled.div`
 `;
 
 const Controls = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 6px;
-  }
+  display: none;
 `;
 
 const ControlButton = styled.button`
@@ -786,39 +777,38 @@ const NetworkTopology = () => {
     lastUpdated: new Date()
   });
 
+  // Load all instances from config, not just healthy
   const loadNetworkTopology = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      const [locationsResponse, dashboardResponse] = await Promise.all([
-        api.get('/api/tes_locations'),
-        api.get('/api/dashboard_data')
-      ]);
-
+      // Get all locations from config
+      const locationsResponse = await api.get('/api/tes_locations');
       const locations = Array.isArray(locationsResponse.data) ? locationsResponse.data : [];
-      const dashboardData = dashboardResponse.data || {};
-      
-      const enhancedInstances = locations.map((loc, idx) => ({
-        id: loc.id || `instance-${idx}`,
-        name: loc.name || loc.tes_name || loc.url || `Instance ${idx + 1}`,
-        country: loc.country || 'Unknown',
-        status: loc.status || 'unreachable',
-        lat: loc.lat,
-        lng: loc.lng,
-        url: loc.url,
-        region: loc.region || 'Unknown',
-        instanceType: loc.instanceType || 'compute',
-        version: loc.version || 'unknown',
-        taskCount: loc.taskCount != null ? loc.taskCount : (loc.tasks || 0),
-        cpuUsage: loc.cpuUsage != null ? loc.cpuUsage : 0,
-        memoryUsage: loc.memoryUsage != null ? loc.memoryUsage : 0,
-        latency: loc.latency != null ? loc.latency : 0,
-        throughput: loc.throughput || 'N/A',
-        uptime: loc.uptime || 'N/A',
-      }));
 
-setInstances(enhancedInstances);
+      // Get dashboard data for status, tasks, etc.
+      const dashboardResponse = await api.get('/api/dashboard_data');
+      const dashboardData = dashboardResponse.data || {};
+
+      // Merge config and dashboard info
+      const mergedInstances = locations.map(loc => {
+        const dash = (dashboardData.tes_instances || []).find(inst => inst.url === loc.url) || {};
+        const isHealthy = dash.status === 'healthy';
+        return {
+          ...loc,
+          status: dash.status || 'offline',
+          tasks: dash.tasks ?? 0,
+          cpu: dash.cpu ?? 0,
+          memory: dash.memory ?? 0,
+          latency: dash.latency ?? 'Not Available',
+          uptime: isHealthy ? (dash.uptime ?? 'Not Available') : 'Offline',
+          version: dash.version ?? loc.version ?? 'Not Available',
+          throughput: isHealthy ? (dash.throughput ?? 'Not Available') : 'Offline',
+          region: loc.country ?? 'Not Available',
+        };
+      });
+      setInstances(mergedInstances);
       
       const batchRuns = Array.isArray(dashboardData.batch_runs) ? dashboardData.batch_runs : [];
       const workflowRuns = Array.isArray(dashboardData.workflow_runs) ? dashboardData.workflow_runs : [];
@@ -853,18 +843,18 @@ setInstances(enhancedInstances);
       }, 0);
 
       setRealTimeData({
-        activeInstances: enhancedInstances.filter(i => i.status === 'healthy').length,
-        totalTasks: enhancedInstances.reduce((sum, inst) => sum + (inst.taskCount || 0), 0),
+        activeInstances: mergedInstances.filter(i => i.status === 'healthy').length,
+        totalTasks: mergedInstances.reduce((sum, inst) => sum + (inst.taskCount || 0), 0),
         totalWorkflows: allWorkflows.length,
         totalStorage: totalStorage,
         lastUpdated: new Date()
       });
 
       setLastRefresh(new Date());
-      setNetworkStatus(enhancedInstances.every(i => i.status === 'healthy') ? 'success' : 'warning');
+      setNetworkStatus(mergedInstances.every(i => i.status === 'healthy') ? 'success' : 'warning');
 
     } catch (err) {
-      setError('Failed to load network topology: ' + err.message);
+      setError('Failed to load network topology');
       setNetworkStatus('error');
     } finally {
       setLoading(false);

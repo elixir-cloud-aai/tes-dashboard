@@ -60,15 +60,27 @@ const RefreshButton = styled.button`
   align-items: center;
   gap: 0.5rem;
   transition: all 0.2s;
-  margin-left: 1rem;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #1d4ed8;
   }
 
   &:disabled {
     background: #9ca3af;
     cursor: not-allowed;
+  }
+
+  svg.spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -177,46 +189,83 @@ const ServiceInfo = () => {
       setSelectedInstance(tesInstances[0].url);
     }
   }, [tesInstances, selectedInstance]);
+
+  // Auto-load service info when instance is selected
+  useEffect(() => {
+    if (selectedInstance) {
+      loadServiceInfo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedInstance]);
  
   const loadTesInstances = async () => {
     try {
-      setLoadingInstances(true); 
-      const response = await serviceInfoService.getHealthyInstances();
-      if (response && response.instances && response.instances.length > 0) {
-        setTesInstances(response.instances);
-      } else { 
+      setLoadingInstances(true);
+      
+      // Get only healthy/working instances
+      const healthyResponse = await serviceInfoService.getHealthyInstances();
+      const healthyInstances = healthyResponse.instances || [];
+      
+      if (healthyInstances && healthyInstances.length > 0) {
+        // Map to the format we need
+        const instances = healthyInstances.map(instance => ({
+          name: instance.name,
+          url: instance.url,
+          id: instance.url.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+        }));
+        setTesInstances(instances);
+      } else {
+        // Fallback to all instances if no healthy instances found
         const allInstances = await serviceInfoService.getTesInstances();
-        setTesInstances(allInstances);
+        if (allInstances && allInstances.length > 0) {
+          setTesInstances(allInstances);
+        } else {
+          setTesInstances(TES_INSTANCES);
+        }
       }
     } catch (err) {
-      console.error('Failed to load TES instances:', err); 
-      setTesInstances(TES_INSTANCES);
+      console.error('Failed to load healthy instances:', err);
+      
+      // Fallback to all instances
+      try {
+        const allInstances = await serviceInfoService.getTesInstances();
+        setTesInstances(allInstances || TES_INSTANCES);
+      } catch {
+        setTesInstances(TES_INSTANCES);
+      }
     } finally {
       setLoadingInstances(false);
     }
   };
 
   const loadServiceInfo = async () => {
-  if (!selectedInstance) return;
+    if (!selectedInstance) return;
 
-  try {
-    setLoading(true);
-    setError('');
-    const info = await serviceInfoService.getServiceInfo(selectedInstance);
-     
-    if (info.error) { 
-      setError(`⚠️ ${info.errorStatus}: ${info.errorMessage}`);
+    try {
+      setLoading(true);
+      setError('');
+      const info = await serviceInfoService.getServiceInfo(selectedInstance);
+       
+      // Show a warning if there's an error flag, but still display the info
+      if (info.error || info.auth_required) { 
+        if (info.auth_required) {
+          setError(`ℹ️ Authentication Required: This TES instance requires authentication for detailed service information.`);
+        } else if (info.error_message) {
+          setError(`⚠️ Limited Information: ${info.error_message}`);
+        } else {
+          setError(`⚠️ Could not retrieve complete service information.`);
+        }
+      }
+      
+      setServiceInfo(info);
+    } catch (err) {
+      console.error('Unexpected error fetching service info:', err);
+      setError('❌ An unexpected error occurred while fetching service information. Please try again.');
+      setServiceInfo(null);
+    } finally {
+      setLoading(false);
     }
-    
-    setServiceInfo(info);
-  } catch (err) {
-    console.error('Unexpected error fetching service info:', err);
-    setError('❌ An unexpected error occurred while fetching service information. Please try again.');
-    setServiceInfo(null);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const formatServiceInfo = (info) => {
     if (!info) return null;
@@ -257,21 +306,27 @@ const ServiceInfo = () => {
           <Title>Service Information</Title>
           <Subtitle>View detailed information about TES service instances</Subtitle>
         </HeaderLeft>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <InstanceSelector
             value={selectedInstance}
             onChange={(e) => setSelectedInstance(e.target.value)}
             disabled={loadingInstances}
           >
-            <option value="">{loadingInstances ? 'Loading instances...' : 'Select TES Instance'}</option>
-            {tesInstances.map((instance, idx) => (
-              <option key={idx} value={instance.url}>
-                {instance.name} ({instance.url})
-              </option>
-            ))}
+            {loadingInstances ? (
+              <option value="">Loading instances...</option>
+            ) : (
+              <>
+                <option value="">Select TES Instance</option>
+                {tesInstances.map((instance, idx) => (
+                  <option key={idx} value={instance.url}>
+                    {instance.name}
+                  </option>
+                ))}
+              </>
+            )}
           </InstanceSelector>
-          <RefreshButton onClick={loadServiceInfo} disabled={loading || !selectedInstance}>
-            <RefreshCw size={16} />
+          <RefreshButton onClick={loadServiceInfo} disabled={loading || !selectedInstance} title="Refresh service information">
+            <RefreshCw size={16} className={loading ? 'spinning' : ''} />
             Refresh
           </RefreshButton>
         </div>

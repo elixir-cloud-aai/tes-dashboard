@@ -5,14 +5,11 @@ import {
   Home, 
   Play, 
   GitBranch, 
-  Layers, 
   Activity, 
-  Settings, 
   Server,
   FileText,
   BarChart3,
-  Wrench,
-  Shield
+  Wrench
 } from 'lucide-react';
 
 const SidebarContainer = styled.nav`
@@ -87,12 +84,7 @@ const Sidebar = () => {
         
         <NavItem to="/workflows" $isActive={isActive('/workflows')}>
           <NavIcon><GitBranch size={18} /></NavIcon>
-          <NavText>Workflows</NavText>
-        </NavItem>
-        
-        <NavItem to="/batch" $isActive={isActive('/batch')}>
-          <NavIcon><Layers size={18} /></NavIcon>
-          <NavText>Batch Processing</NavText>
+          <NavText>Workflows (Snakemake)</NavText>
         </NavItem>
       </NavSection>
 
@@ -126,22 +118,9 @@ const Sidebar = () => {
           <NavText>API Test</NavText>
         </NavItem>
         
-        {/* <NavItem to="/middleware" $isActive={isActive('/middleware')}>
-          <NavIcon><Shield size={18} /></NavIcon>
-          <NavText>Middleware Manager</NavText>
-        </NavItem> */}
         <NavItem to="/middleware" $isActive={isActive('/middleware')}>
           <NavIcon><Server size={18} /></NavIcon>
           <NavText>Middleware</NavText>
-        </NavItem>
-      </NavSection>
-
-
-      <NavSection>
-        <SectionTitle>Settings</SectionTitle>
-        <NavItem to="/settings" $isActive={isActive('/settings')}>
-          <NavIcon><Settings size={18} /></NavIcon>
-          <NavText>Settings</NavText>
         </NavItem>
       </NavSection>
     </SidebarContainer>

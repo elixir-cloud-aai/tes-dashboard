@@ -27,17 +27,6 @@ export const serviceInfoService = {
   },
 
   getServiceInfo: async (tesUrl) => {
-    const getInstanceName = async () => {
-      try {
-        const dashboardResponse = await apiClient.get('/api/dashboard_data');
-        const tesInstances = dashboardResponse.data.tes_instances || [];
-        const instanceInfo = tesInstances.find(instance => instance.url === tesUrl);
-        return instanceInfo?.name || tesUrl;
-      } catch {
-        return tesUrl;
-      }
-    };
-
     try {
       console.log('Fetching service info for:', tesUrl);
       
@@ -46,71 +35,61 @@ export const serviceInfoService = {
       });
       
       console.log('Got service info response:', response.data);
+      
+      // Backend now always returns proper structure, even for errors
+      // Just check if there's an error flag and show a warning if needed
+      if (response.data.error) {
+        console.warn('Service info returned with error flag:', response.data.error_message || response.data.description);
+      }
+      
       return response.data;
       
     } catch (error) {
-      console.log('Caught error, formatting response...', error.response?.status);
+      console.error('Error fetching service info:', error);
+      
+      // Fallback for network errors or other exceptions
+      const getInstanceName = async () => {
+        try {
+          const dashboardResponse = await apiClient.get('/api/dashboard_data');
+          const tesInstances = dashboardResponse.data.tes_instances || [];
+          const instanceInfo = tesInstances.find(instance => instance.url === tesUrl);
+          return instanceInfo?.name || tesUrl;
+        } catch {
+          return tesUrl;
+        }
+      };
       
       const instanceName = await getInstanceName();
-      let errorStatus = 'Service Error';
-      let errorMessage = error.message;
+      let errorMessage = 'Unable to retrieve service information.';
       
-      if (error.response) {
-        const status = error.response.status;
-        const errorData = error.response.data || {};
-        
-        switch (status) {
-          case 503:
-            errorStatus = 'Service Unavailable';
-            errorMessage = 'The TES instance is currently offline or not responding. It may be down for maintenance or experiencing connectivity issues.';
-            break;
-          case 404:
-            errorStatus = 'Not Found';
-            errorMessage = 'The service-info endpoint was not found. This instance may not support the GA4GH TES API standard.';
-            break;
-          case 403:
-            errorStatus = 'Authentication Required';
-            errorMessage = 'This TES instance requires authentication. The service is running but cannot provide information without proper credentials.';
-            break;
-          case 500:
-            errorStatus = 'Server Error';
-            errorMessage = 'The TES instance encountered an internal error while processing the request.';
-            break;
-          default:
-            errorStatus = `HTTP Error (${status})`;
-            errorMessage = errorData.message || errorData.error || error.message;
-        }
-      } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        errorStatus = 'Connection Timeout';
-        errorMessage = 'The TES instance did not respond within the expected time. It may be overloaded or experiencing network issues.';
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        errorMessage = 'The TES instance did not respond within the expected time.';
       } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        errorStatus = 'Network Error';
-        errorMessage = 'Unable to connect to the TES instance. Please check your internet connection.';
+        errorMessage = 'Unable to connect to the TES instance.';
+      } else if (error.response) {
+        errorMessage = error.response.data?.message || error.message;
       }
       
-      console.log('Returning formatted error response');
       return {
         name: instanceName,
-        url: tesUrl,
-        id: 'error',
-        description: errorMessage,
+        id: tesUrl,
         organization: {
-          name: errorStatus,
+          name: 'GA4GH TES',
           url: tesUrl
         },
-        contactUrl: 'N/A',
-        documentationUrl: 'N/A',
-        createdAt: 'N/A',
+        description: errorMessage,
         type: {
           group: 'ga4gh',
           artifact: 'tes',
-          version: 'Unknown'
+          version: '1.0'
         },
+        contactUrl: 'Unknown',
+        documentationUrl: 'Unknown',
+        createdAt: 'Unknown',
         storage: ['Unknown'],
-        environment: 'Unavailable',
-        version: 'Unknown',
+        environment: 'Unknown',
+        version: '1.0',
         error: true,
-        errorStatus: errorStatus,
         errorMessage: errorMessage,
         timestamp: new Date().toISOString()
       };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { testConnection } from '../services/api';
@@ -61,45 +61,48 @@ const Label = styled.label`
 const Select = styled.select`
   width: 100%;
   padding: 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
   background: white;
+  transition: all 0.2s ease;
   
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
   }
 `;
 
 const Input = styled.input`
   width: 100%;
   padding: 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
+  transition: all 0.2s ease;
   
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
   }
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
   padding: 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
   min-height: 100px;
   resize: vertical;
+  transition: all 0.2s ease;
   
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
   }
 `;
 
@@ -111,9 +114,9 @@ const ButtonGroup = styled.div`
 
 const Button = styled.button`
   background: ${props => 
-    props.variant === 'primary' ? '#007bff' : 
-    props.variant === 'demo' ? '#28a745' :
-    '#6c757d'};
+    props.variant === 'primary' ? '#3182ce' : 
+    props.variant === 'demo' ? '#10b981' :
+    '#64748b'};
   color: white;
   border: none;
   border-radius: 8px;
@@ -122,10 +125,17 @@ const Button = styled.button`
   display: flex;
   align-items: center;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
-  &:hover {
-    opacity: 0.9;
+  &:hover:not(:disabled) {
+    background: ${props => 
+      props.variant === 'primary' ? '#2c5282' : 
+      props.variant === 'demo' ? '#059669' :
+      '#475569'};
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
   
   &:disabled {
@@ -196,10 +206,31 @@ const SubmitTask = () => {
  
   const { 
     instances, 
+    allInstances,
     loading: instancesLoading, 
     error: instancesError,
     refresh: refreshInstances 
   } = useInstances();
+
+  // Helper function to get status badge
+  const getStatusBadge = (status) => {
+    return status === 'healthy' ? '✅' : '❌';
+  };
+
+  useEffect(() => {
+    // Auto-select first healthy instance if no instance is selected
+    if (instances.length > 0 && !formData.tes_instance) {
+      // Try to find a healthy instance from allInstances (if available)
+      const healthyInstance = (allInstances.length > 0 ? allInstances : instances).find(
+        instance => instance.status === 'healthy'
+      );
+      
+      // Only set default if a healthy instance exists
+      if (healthyInstance) {
+        setFormData(prev => ({ ...prev, tes_instance: healthyInstance.url }));
+      }
+    }
+  }, [instances, allInstances, formData.tes_instance]);
 
   const handleTestConnection = async () => {
     try {
@@ -238,48 +269,56 @@ const SubmitTask = () => {
   };
  
   const getDemoTaskData = (demoType = 'basic') => { 
-    const defaultTesInstance = instances.length > 0 
-      ? instances[0].url 
-      : 'https://csc-tesk-noauth.rahtiapp.fi/v1/tasks';
+    // Use first healthy instance as default for demos
+    let defaultTesInstance = '';
     
-    const demoTasks = {
+    if (instances.length > 0) {
+      const healthyInstance = (allInstances.length > 0 ? allInstances : instances).find(
+        instance => instance.status === 'healthy'
+      );
+      // Only use an instance if it's healthy, otherwise leave empty
+      defaultTesInstance = healthyInstance ? healthyInstance.url : '';
+    }
+    
+     const demoTasks = {
       basic: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo Hello World Task',
-        docker_image: 'ubuntu:20.04',
-        command: 'echo "Hello from TES Demo Task!" && echo "Current time: $(date)" && echo "System info: $(uname -a)" && echo "Task completed successfully"',
+        docker_image: 'alpine:latest',
+        command: 'echo "Hello from TES!" && date && uname -a',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A simple demo task that prints system information and a hello message. Safe to run and completes quickly for testing purposes.'
+        disk_gb: '1',
+        description: 'A simple demo task that prints system information. Uses Alpine Linux for fast execution.'
       },
       python: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo Python Script Task',
-        docker_image: 'python:3.9-slim',
-        command: 'python3 -c "import sys; import datetime; print(f\'Hello from Python {sys.version}\'); print(f\'Current time: {datetime.datetime.now()}\'); print(\'Demo task completed successfully!\')"',
+        docker_image: 'python:3.11-alpine',
+        command: 'python3 -c "import sys; import datetime; print(sys.version); print(datetime.datetime.now())"',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A Python demo task that prints version info and timestamp using a Python container.'
+        disk_gb: '1',
+        description: 'A Python demo task using Alpine-based Python image for faster execution.'
       },
       fileops: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo File Operations Task',
-        docker_image: 'ubuntu:20.04',
-        command: 'echo "Creating demo files..." && echo "Hello World" > /tmp/output.txt && echo "File contents:" && cat /tmp/output.txt && ls -la /tmp/',
+        docker_image: 'alpine:latest',
+        command: 'echo "Hello World" > /tmp/demo.txt && cat /tmp/demo.txt && ls -lh /tmp/demo.txt',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A demo task that creates and reads files, demonstrating basic file operations within the container.'
+        disk_gb: '1',
+        description: 'Demonstrates file operations using Alpine Linux.'
       }
     };
+    
     
     return demoTasks[demoType] || demoTasks.basic;
   };
@@ -287,15 +326,7 @@ const SubmitTask = () => {
   const handleRunDemo = (demoType = 'basic') => {
     const demoData = getDemoTaskData(demoType);
     setFormData(demoData);
-    setError(null);  
-     
-    const taskNames = {
-      basic: 'Basic Hello World',
-      python: 'Python Script',
-      fileops: 'File Operations'
-    };
-    
-    alert(`${taskNames[demoType] || 'Demo'} task data loaded! Review the form and click "Submit Task" when ready.`);
+    setError(null);
   };
 
   const handleSubmit = async (e) => {
@@ -329,12 +360,7 @@ const SubmitTask = () => {
       const result = await taskService.submitTask(submitData);
       
       console.log('Task submission result:', result);
-       
-      if (result && result.message) {
-        alert(`Success: ${result.message}`);
-      } else {
-        alert('Task submitted successfully!');
-      }
+      
       navigate('/tasks');
     } catch (err) {
       console.error('Task submission error:', err);
@@ -440,11 +466,22 @@ const SubmitTask = () => {
               required
             >
               <option value="">Select TES Instance</option>
-              {instances.map((instance, index) => (
-                <option key={index} value={instance.url}>
-                  {instance.name} 
-                </option>
-              ))}
+              {(allInstances.length > 0 ? allInstances : instances)
+                .slice()
+                .sort((a, b) => {
+                  // Sort by status: healthy first, then others
+                  if (a.status === 'healthy' && b.status !== 'healthy') return -1;
+                  if (a.status !== 'healthy' && b.status === 'healthy') return 1;
+                  return 0;
+                })
+                .map((instance, index) => (
+                  <option 
+                    key={index} 
+                    value={instance.url}
+                  >
+                    {getStatusBadge(instance.status)} {instance.name}
+                  </option>
+                ))}
             </Select>
           </FormGroup>
 

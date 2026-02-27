@@ -1,24 +1,25 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-import api, { testConnection } from '../services/api';
-import { taskService } from '../services/taskService';
-import usePolling from '../hooks/usePolling';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import ErrorMessage from '../components/common/ErrorMessage';
-import { formatDate, formatTaskStatus } from '../utils/formatters';
-import { TASK_STATE_COLORS } from '../utils/constants';
-import { 
-  Activity, 
-  Server, 
-  PlayCircle, 
-  CheckCircle, 
-  XCircle, 
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+import api, { testConnection } from "../services/api";
+import { taskService } from "../services/taskService";
+import usePolling from "../hooks/usePolling";
+import useInstances from "../hooks/useInstances";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import ErrorMessage from "../components/common/ErrorMessage";
+import { formatDate, formatTaskStatus } from "../utils/formatters";
+import { TASK_STATE_COLORS } from "../utils/constants";
+import {
+  Activity,
+  Server,
+  PlayCircle,
+  CheckCircle,
+  XCircle,
   Clock,
   RefreshCw,
   ArrowRight,
-  AlertTriangle
-} from 'lucide-react';
+  AlertTriangle,
+} from "lucide-react";
 
 const DashboardContainer = styled.div`
   padding: 20px;
@@ -37,16 +38,18 @@ const StatCard = styled.div`
   background: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  border-left: 4px solid ${props => props.color || '#007bff'};
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid ${(props) => props.color || "#007bff"};
   transition: all 0.2s ease;
-  cursor: ${props => props.clickable ? 'pointer' : 'default'};
+  cursor: ${(props) => (props.clickable ? "pointer" : "default")};
   position: relative;
-  
+
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    ${props => props.clickable && `
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    ${(props) =>
+      props.clickable &&
+      `
       border-left-width: 6px;
     `}
   }
@@ -60,7 +63,7 @@ const StatHeader = styled.div`
 
 const StatIcon = styled.div`
   margin-right: 12px;
-  color: ${props => props.color || '#007bff'};
+  color: ${(props) => props.color || "#007bff"};
 `;
 
 const StatTitle = styled.h3`
@@ -73,7 +76,7 @@ const StatTitle = styled.h3`
 const StatValue = styled.div`
   font-size: 32px;
   font-weight: bold;
-  color: ${props => props.color || '#333'};
+  color: ${(props) => props.color || "#333"};
   margin-bottom: 5px;
 `;
 
@@ -89,10 +92,10 @@ const ClickableHint = styled.div`
   display: flex;
   align-items: center;
   font-size: 12px;
-  color: ${props => props.color || '#007bff'};
+  color: ${(props) => props.color || "#007bff"};
   opacity: 0.7;
   transition: opacity 0.2s ease;
-  
+
   ${StatCard}:hover & {
     opacity: 1;
   }
@@ -102,7 +105,7 @@ const ContentCard = styled.div`
   background: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 `;
 
 const HealthCard = styled(ContentCard)`
@@ -134,15 +137,15 @@ const HealthStatusBadge = styled.div`
   border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
-  background: ${props => {
-    if (props.status === 'healthy') return '#d4edda';
-    if (props.status === 'warning') return '#fff3cd';
-    return '#f8d7da';
+  background: ${(props) => {
+    if (props.status === "healthy") return "#d4edda";
+    if (props.status === "warning") return "#fff3cd";
+    return "#f8d7da";
   }};
-  color: ${props => {
-    if (props.status === 'healthy') return '#155724';
-    if (props.status === 'warning') return '#856404';
-    return '#721c24';
+  color: ${(props) => {
+    if (props.status === "healthy") return "#155724";
+    if (props.status === "warning") return "#856404";
+    return "#721c24";
   }};
 `;
 
@@ -151,7 +154,7 @@ const HealthContent = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 30px;
   align-items: center;
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
@@ -179,7 +182,7 @@ const ChartLabel = styled.div`
 const ChartPercentage = styled.div`
   font-size: 32px;
   font-weight: bold;
-  color: ${props => props.color || '#333'};
+  color: ${(props) => props.color || "#333"};
 `;
 
 const ChartText = styled.div`
@@ -201,7 +204,7 @@ const HealthStatRow = styled.div`
   padding: 12px;
   background: #f8f9fa;
   border-radius: 8px;
-  border-left: 4px solid ${props => props.color || '#6c757d'};
+  border-left: 4px solid ${(props) => props.color || "#6c757d"};
 `;
 
 const HealthStatLabel = styled.div`
@@ -215,27 +218,28 @@ const HealthStatLabel = styled.div`
 const HealthStatValue = styled.div`
   font-size: 18px;
   font-weight: bold;
-  color: ${props => props.color || '#333'};
+  color: ${(props) => props.color || "#333"};
 `;
 
 const HealthSummary = styled.div`
   margin-top: 15px;
   padding: 15px;
-  background: ${props => {
-    if (props.status === 'healthy') return '#d4edda';
-    if (props.status === 'warning') return '#fff3cd';
-    return '#f8d7da';
+  background: ${(props) => {
+    if (props.status === "healthy") return "#d4edda";
+    if (props.status === "warning") return "#fff3cd";
+    return "#f8d7da";
   }};
   border-radius: 8px;
-  border-left: 4px solid ${props => {
-    if (props.status === 'healthy') return '#28a745';
-    if (props.status === 'warning') return '#ffc107';
-    return '#dc3545';
-  }};
-  color: ${props => {
-    if (props.status === 'healthy') return '#155724';
-    if (props.status === 'warning') return '#856404';
-    return '#721c24';
+  border-left: 4px solid
+    ${(props) => {
+      if (props.status === "healthy") return "#28a745";
+      if (props.status === "warning") return "#ffc107";
+      return "#dc3545";
+    }};
+  color: ${(props) => {
+    if (props.status === "healthy") return "#155724";
+    if (props.status === "warning") return "#856404";
+    return "#721c24";
   }};
   font-size: 14px;
   line-height: 1.6;
@@ -245,7 +249,7 @@ const ContentGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
@@ -277,11 +281,11 @@ const RefreshButton = styled.button`
   display: flex;
   align-items: center;
   font-size: 12px;
-  
+
   &:hover {
     background: #0056b3;
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -300,11 +304,11 @@ const TaskItem = styled.div`
   padding: 12px;
   border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.2s ease;
-  
+
   &:hover {
     background-color: #f8f9fa;
   }
-  
+
   &:last-child {
     border-bottom: none;
   }
@@ -332,7 +336,7 @@ const TaskStatus = styled.div`
   font-size: 12px;
   font-weight: 600;
   color: white;
-  background-color: ${props => TASK_STATE_COLORS[props.status] || '#6c757d'};
+  background-color: ${(props) => TASK_STATE_COLORS[props.status] || "#6c757d"};
 `;
 
 const EmptyState = styled.div`
@@ -346,151 +350,113 @@ const Dashboard = () => {
   const [connectionTest, setConnectionTest] = useState(null);
   const [testLoading, setTestLoading] = useState(false);
 
+  // ✅ USE VERIFIED HEALTHY INSTANCES ONLY
+  const [allInstances, setAllInstances] = useState([]);
+  const [instancesLoading, setInstancesLoading] = useState(true);
+  const [instancesError, setInstancesError] = useState(null);
+
+  const loadAllInstances = useCallback(async () => {
+    try {
+      setInstancesLoading(true);
+      setInstancesError(null);
+
+      const response = await api.get("/api/instances-with-status");
+
+      const instancesData = Array.isArray(response.data)
+        ? response.data
+        : response.data.instances || [];
+
+      setAllInstances(instancesData);
+    } catch (error) {
+      console.error("Failed to load instances:", error);
+      setInstancesError("Failed to load instances");
+      setAllInstances([]);
+    } finally {
+      setInstancesLoading(false);
+    }
+  }, []);
+
   const [apiHealth, setApiHealth] = useState({
     loading: true,
     healthy: 0,
     unhealthy: 0,
     total: 0,
-    percentage: 0,
-    status: 'unknown',
+    percentage: 100,
+    status: "healthy",
     services: [],
     error: null,
     lastUpdated: null,
-    loaded: false
+    loaded: false,
   });
 
-  const fetchApiHealthRef = useRef(null);
-  
-  const fetchApiHealth = useCallback(async () => {
-  try {
-    setApiHealth(prev => ({ ...prev, loading: true }));
-    
-    const dashboardResponse = await api.get('/api/dashboard_data');
-    const allInstances = dashboardResponse.data.tes_instances || [];
-    
-    console.log('📋 Checking health for', allInstances.length, 'instances');
-    
-    const healthCheckPromises = allInstances.map(async (instance) => {
-      try {
-        const startTime = Date.now();
-        await api.get('/api/service_info', {
-          params: { tes_url: instance.url },
-          timeout: 5000 
-        });
-        
-        const responseTime = Date.now() - startTime;
-        
-        return {
-          name: instance.name,
-          url: instance.url,
-          status: 'online',
-          health: 'healthy',
-          response_time: responseTime,
-          last_checked: new Date().toISOString()
-        };
-      } catch (error) {
-        return {
-          name: instance.name,
-          url: instance.url,
-          status: 'offline',
-          health: 'unhealthy',
-          response_time: null,
-          last_checked: new Date().toISOString(),
-          error: error.message
-        };
-      }
-    });
-    
-    const healthResults = await Promise.all(healthCheckPromises);
-    
-    const total = healthResults.length;
-    const healthy = healthResults.filter(r => r.health === 'healthy').length;
-    const unhealthy = total - healthy;
-    const percentage = total > 0 ? Math.round((healthy / total) * 100) : 0;
-    
-    let status = 'unknown';
-    if (total === 0) {
-      status = 'unknown';
-    } else if (percentage >= 80) {
-      status = 'healthy';
-    } else if (percentage >= 50) {
-      status = 'warning';
-    } else {
-      status = 'error';
-    }
-    
-    console.log('📈 Health check results:', {
-      total,
-      healthy,
-      unhealthy,
-      percentage,
-      status
-    });
-    
-    setApiHealth({
-      loading: false,
-      loaded: true,
-      healthy: healthy || 0,
-      unhealthy: unhealthy || 0,
-      total: total || 0,
-      percentage: percentage || 0,
-      status,
-      services: healthResults,
-      lastUpdated: new Date().toISOString(),
-      error: null
-    });
-    
-  } catch (error) {
-    console.error('❌ Error fetching API health status:', error);
-    
-    const errorMessage = error.response?.data?.error || error.message || 'Unable to connect to health monitoring service';
-    
-    setApiHealth(prev => ({
-      ...prev,
-      loading: false,
-      loaded: true,
-      status: 'error',
-      error: errorMessage,
-      healthy: 0,
-      unhealthy: 0,
-      total: 0,
-      percentage: 0
-    }));
-  }
-}, []);
-  
-  fetchApiHealthRef.current = fetchApiHealth;
-
   useEffect(() => {
-    if (fetchApiHealthRef.current) {
-      fetchApiHealthRef.current();
+    if (!instancesLoading) {
+      const total = allInstances.length;
+      const healthy = allInstances.filter(
+        (inst) => inst.status === "healthy",
+      ).length;
+      const unhealthy = total - healthy;
+      const percentage = total > 0 ? Math.round((healthy / total) * 100) : 0;
+
+      let status = "healthy";
+      if (total === 0) {
+        status = "unknown";
+      } else if (unhealthy === total) {
+        status = "error";
+      } else if (unhealthy > 0) {
+        status = "warning";
+      }
+
+      setApiHealth({
+        loading: false,
+        loaded: true,
+        healthy,
+        unhealthy,
+        total,
+        percentage,
+        status,
+        services: allInstances,
+        lastUpdated: new Date().toISOString(),
+        error: instancesError,
+      });
+    } else {
+      setApiHealth((prev) => ({ ...prev, loading: true }));
     }
-  }, []);
+  }, [allInstances, instancesLoading, instancesError]);
+
+  // ✅ Load instances on mount
+  useEffect(() => {
+    loadAllInstances();
+
+    // Refresh every hour
+    const interval = setInterval(loadAllInstances, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [loadAllInstances]);
 
   const refetchDashboardRef = useRef(null);
 
-  const { 
-    data: combinedData, 
-    loading: dashboardLoading, 
+  const {
+    data: combinedData,
+    loading: dashboardLoading,
     error: dashboardError,
-    refetch: refetchDashboard 
+    refetch: refetchDashboard,
   } = usePolling(() => taskService.listTasks(), 3600000);
 
   refetchDashboardRef.current = refetchDashboard;
 
   let tasksData, dashboardData;
-  
+
   if (Array.isArray(combinedData)) {
     tasksData = combinedData;
     dashboardData = null;
-  } else if (combinedData && typeof combinedData === 'object') {
+  } else if (combinedData && typeof combinedData === "object") {
     tasksData = combinedData.tasks || [];
     dashboardData = combinedData.dashboardData || null;
   } else {
     tasksData = [];
     dashboardData = null;
   }
-  
+
   const tasksLoading = dashboardLoading;
   const tasksError = dashboardError;
   const refetchTasks = refetchDashboard;
@@ -499,31 +465,30 @@ const Dashboard = () => {
     if (refetchDashboardRef.current) {
       refetchDashboardRef.current();
     }
-    if (fetchApiHealthRef.current) {
-      fetchApiHealthRef.current();
-    }
-  }, []);
+    loadAllInstances(); // ✅ Refresh ALL instances
+  }, [loadAllInstances]);
 
   const [directDashboardData, setDirectDashboardData] = React.useState(null);
-  
+
   React.useEffect(() => {
     const fetchDirectDashboardData = async () => {
       try {
-        const apiBaseUrl = process.env.REACT_APP_API_URL || '';
-        const url = apiBaseUrl ? `${apiBaseUrl}/api/dashboard_data` : '/api/dashboard_data';
+        const apiBaseUrl = process.env.REACT_APP_API_URL || "";
+        const url = apiBaseUrl
+          ? `${apiBaseUrl}/api/dashboard_data`
+          : "/api/dashboard_data";
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
           setDirectDashboardData(data);
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
-    
+
     const timer = setTimeout(() => {
       fetchDirectDashboardData();
     }, 3600000);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -539,20 +504,27 @@ const Dashboard = () => {
     }
   };
 
-
-
-
   const tasksArray = Array.isArray(tasksData) ? tasksData : [];
   const stats = {
     totalTasks: tasksArray.length || 0,
-    runningTasks: tasksArray.filter(task => task.state === 'RUNNING').length || 0,
-    completedTasks: tasksArray.filter(task => task.state === 'COMPLETE').length || 0,
-    failedTasks: tasksArray.filter(task => 
-      task.state === 'EXECUTOR_ERROR' || task.state === 'SYSTEM_ERROR'
-    ).length || 0,
-    tesInstances: dashboardData?.instances_count || directDashboardData?.instances_count || dashboardData?.tes_instances?.length || directDashboardData?.tes_instances?.length || dashboardData?.healthy_instances?.length || 9,
+    runningTasks:
+      tasksArray.filter((task) => task.state === "RUNNING").length || 0,
+    completedTasks:
+      tasksArray.filter((task) => task.state === "COMPLETE").length || 0,
+    failedTasks:
+      tasksArray.filter(
+        (task) =>
+          task.state === "EXECUTOR_ERROR" || task.state === "SYSTEM_ERROR",
+      ).length || 0,
+    tesInstances:
+      dashboardData?.instances_count ||
+      directDashboardData?.instances_count ||
+      dashboardData?.tes_instances?.length ||
+      directDashboardData?.tes_instances?.length ||
+      dashboardData?.healthy_instances?.length ||
+      9,
     workflowRuns: dashboardData?.workflow_runs?.length || 0,
-    batchRuns: dashboardData?.batch_runs?.length || 0
+    batchRuns: dashboardData?.batch_runs?.length || 0,
   };
 
   if (dashboardLoading && !dashboardData) {
@@ -560,9 +532,9 @@ const Dashboard = () => {
   }
 
   const getHealthColor = (status) => {
-    if (status === 'healthy') return '#28a745';
-    if (status === 'warning') return '#ffc107';
-    return '#dc3545';
+    if (status === "healthy") return "#28a745";
+    if (status === "warning") return "#ffc107";
+    return "#dc3545";
   };
 
   const renderDonutChart = () => {
@@ -574,15 +546,15 @@ const Dashboard = () => {
       const total = apiHealth?.total || 0;
       const healthy = apiHealth?.healthy || 0;
       const unhealthy = apiHealth?.unhealthy || 0;
-      const healthyPercentage = total > 0 ? (healthy / total) : 0;
-      const unhealthyPercentage = total > 0 ? (unhealthy / total) : 0;
-      
+      const healthyPercentage = total > 0 ? healthy / total : 0;
+      const unhealthyPercentage = total > 0 ? unhealthy / total : 0;
+
       const healthyLength = Math.max(0, healthyPercentage * circumference);
       const unhealthyLength = Math.max(0, unhealthyPercentage * circumference);
-      
+
       return (
         <ChartContainer>
-          <div style={{ position: 'relative', width: size, height: size }}>
+          <div style={{ position: "relative", width: size, height: size }}>
             <DonutChart width={size} height={size}>
               <circle
                 cx={size / 2}
@@ -620,7 +592,9 @@ const Dashboard = () => {
               )}
             </DonutChart>
             <ChartLabel>
-              <ChartPercentage color={getHealthColor(apiHealth?.status || 'unknown')}>
+              <ChartPercentage
+                color={getHealthColor(apiHealth?.status || "unknown")}
+              >
                 {apiHealth?.percentage || 0}%
               </ChartPercentage>
               <ChartText>Healthy</ChartText>
@@ -629,10 +603,10 @@ const Dashboard = () => {
         </ChartContainer>
       );
     } catch (error) {
-      console.error('Error rendering donut chart:', error);
+      console.error("Error rendering donut chart:", error);
       return (
         <ChartContainer>
-          <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+          <div style={{ textAlign: "center", padding: "20px", color: "#666" }}>
             Chart unavailable
           </div>
         </ChartContainer>
@@ -643,11 +617,7 @@ const Dashboard = () => {
   return (
     <DashboardContainer>
       <StatsGrid>
-        <StatCard 
-          color="#007bff" 
-          clickable 
-          onClick={() => navigate('/tasks')}
-        >
+        <StatCard color="#007bff" clickable onClick={() => navigate("/tasks")}>
           <StatHeader>
             <StatIcon color="#007bff">
               <Activity size={24} />
@@ -658,16 +628,12 @@ const Dashboard = () => {
           <StatSubtext>
             <span>Across all TES instances</span>
             <ClickableHint color="#007bff">
-              View all <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+              View all <ArrowRight size={14} style={{ marginLeft: "4px" }} />
             </ClickableHint>
           </StatSubtext>
         </StatCard>
 
-        <StatCard 
-          color="#28a745" 
-          clickable 
-          onClick={() => navigate('/tasks')}
-        >
+        <StatCard color="#28a745" clickable onClick={() => navigate("/tasks")}>
           <StatHeader>
             <StatIcon color="#28a745">
               <PlayCircle size={24} />
@@ -678,16 +644,12 @@ const Dashboard = () => {
           <StatSubtext>
             <span>Currently executing</span>
             <ClickableHint color="#28a745">
-              View tasks <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+              View tasks <ArrowRight size={14} style={{ marginLeft: "4px" }} />
             </ClickableHint>
           </StatSubtext>
         </StatCard>
 
-        <StatCard 
-          color="#28a745" 
-          clickable 
-          onClick={() => navigate('/tasks')}
-        >
+        <StatCard color="#28a745" clickable onClick={() => navigate("/tasks")}>
           <StatHeader>
             <StatIcon color="#28a745">
               <CheckCircle size={24} />
@@ -698,16 +660,12 @@ const Dashboard = () => {
           <StatSubtext>
             <span>Successfully finished</span>
             <ClickableHint color="#28a745">
-              View tasks <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+              View tasks <ArrowRight size={14} style={{ marginLeft: "4px" }} />
             </ClickableHint>
           </StatSubtext>
         </StatCard>
 
-        <StatCard 
-          color="#dc3545" 
-          clickable 
-          onClick={() => navigate('/tasks')}
-        >
+        <StatCard color="#dc3545" clickable onClick={() => navigate("/tasks")}>
           <StatHeader>
             <StatIcon color="#dc3545">
               <XCircle size={24} />
@@ -718,15 +676,15 @@ const Dashboard = () => {
           <StatSubtext>
             <span>Execution errors</span>
             <ClickableHint color="#dc3545">
-              View tasks <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+              View tasks <ArrowRight size={14} style={{ marginLeft: "4px" }} />
             </ClickableHint>
           </StatSubtext>
         </StatCard>
 
-        <StatCard 
-          color="#17a2b8" 
-          clickable 
-          onClick={() => navigate('/utilities')}
+        <StatCard
+          color="#17a2b8"
+          clickable
+          onClick={() => navigate("/utilities")}
         >
           <StatHeader>
             <StatIcon color="#17a2b8">
@@ -738,16 +696,12 @@ const Dashboard = () => {
           <StatSubtext>
             <span>Available services</span>
             <ClickableHint color="#17a2b8">
-              Manage <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+              Manage <ArrowRight size={14} style={{ marginLeft: "4px" }} />
             </ClickableHint>
           </StatSubtext>
         </StatCard>
 
-        <StatCard 
-          color="#ffc107" 
-          clickable 
-          onClick={() => navigate('/batch')}
-        >
+        <StatCard color="#ffc107" clickable onClick={() => navigate("/batch")}>
           <StatHeader>
             <StatIcon color="#ffc107">
               <Clock size={24} />
@@ -758,171 +712,263 @@ const Dashboard = () => {
           <StatSubtext>
             <span>Batch executions</span>
             <ClickableHint color="#ffc107">
-              View batch <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+              View batch <ArrowRight size={14} style={{ marginLeft: "4px" }} />
             </ClickableHint>
           </StatSubtext>
         </StatCard>
       </StatsGrid>
 
       <HealthCard>
-  <HealthHeader>
-    <HealthTitle>
-      <Server size={24} />
-      API Health Status
-    </HealthTitle>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      {apiHealth.loading ? (
-        <LoadingSpinner size="small" />
-      ) : (
-        <HealthStatusBadge status={apiHealth?.status || 'unknown'}>
-          {apiHealth?.status === 'healthy' && <CheckCircle size={16} />}
-          {apiHealth?.status === 'warning' && <AlertTriangle size={16} />}
-          {apiHealth?.status === 'error' && <XCircle size={16} />}
-          {apiHealth?.status === 'healthy' ? 'All Systems Operational' : 
-           apiHealth?.status === 'warning' ? 'Degraded Performance' : 
-           apiHealth?.status === 'error' ? 'Service Issues Detected' : 'Status Unknown'}
-        </HealthStatusBadge>
-      )}
-      <RefreshButton 
-        onClick={() => {
-          if (fetchApiHealthRef.current) {
-            fetchApiHealthRef.current();
-          }
-        }} 
-        disabled={apiHealth.loading}
-        title="Refresh API health status"
-      >
-        <RefreshCw size={14} style={{ marginRight: '5px' }} />
-        {apiHealth.loading ? 'Checking...' : 'Refresh'}
-      </RefreshButton>
-    </div>
-  </HealthHeader>
-  
-  {apiHealth.loading && (
-    <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-      <LoadingSpinner size="small" text="Checking API health status..." />
-    </div>
-  )}
-  {!apiHealth.loading && apiHealth.loaded && (
-    <>
-      {apiHealth.error ? (
-        <div style={{ padding: '20px' }}>
-          <ErrorMessage message={apiHealth.error} />
-          <div style={{ marginTop: '15px', textAlign: 'center' }}>
-            <RefreshButton 
-              onClick={() => {
-                if (fetchApiHealthRef.current) {
-                  fetchApiHealthRef.current();
-                }
-              }}
+        <HealthHeader>
+          <HealthTitle>
+            <Server size={24} />
+            API Health Status
+          </HealthTitle>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {apiHealth.loading ? (
+              <LoadingSpinner size="small" />
+            ) : (
+              <HealthStatusBadge status={apiHealth?.status || "unknown"}>
+                {apiHealth?.status === "healthy" && <CheckCircle size={16} />}
+                {apiHealth?.status === "warning" && <AlertTriangle size={16} />}
+                {apiHealth?.status === "error" && <XCircle size={16} />}
+                {apiHealth?.status === "healthy"
+                  ? "All Systems Operational"
+                  : apiHealth?.status === "warning"
+                    ? "Degraded Performance"
+                    : apiHealth?.status === "error"
+                      ? "Service Issues Detected"
+                      : "Status Unknown"}
+              </HealthStatusBadge>
+            )}
+            <RefreshButton
+              onClick={loadAllInstances} // ✅ Change this
+              disabled={instancesLoading}
+              title="Refresh API health status"
             >
-              <RefreshCw size={14} style={{ marginRight: '5px' }} />
-              Retry
+              <RefreshCw size={14} style={{ marginRight: "5px" }} />
+              {instancesLoading ? "Checking..." : "Refresh"}
             </RefreshButton>
           </div>
-        </div>
-      ) : (
-        <HealthContent>
-          {renderDonutChart()}
-          <HealthStats>
-            <HealthStatRow color="#28a745">
-              <HealthStatLabel>
-                <CheckCircle size={18} color="#28a745" />
-                Healthy Services
-              </HealthStatLabel>
-              <HealthStatValue color="#28a745">
-                {apiHealth.healthy} / {apiHealth.total}
-              </HealthStatValue>
-            </HealthStatRow>
-            
-            <HealthStatRow color="#dc3545">
-              <HealthStatLabel>
-                <XCircle size={18} color="#dc3545" />
-                Unhealthy Services
-              </HealthStatLabel>
-              <HealthStatValue color="#dc3545">
-                {apiHealth.unhealthy} / {apiHealth.total}
-              </HealthStatValue>
-            </HealthStatRow>
-            
-            <HealthStatRow color="#17a2b8">
-              <HealthStatLabel>
-                <Server size={18} color="#17a2b8" />
-                Total Services
-              </HealthStatLabel>
-              <HealthStatValue color="#17a2b8">
-                {apiHealth.total}
-              </HealthStatValue>
-            </HealthStatRow>
-            
-            <HealthSummary status={apiHealth?.status || 'unknown'}>
-              {apiHealth?.status === 'healthy' && (
-                <>
-                  <strong>✓ All Systems Operational</strong><br />
-                  All {apiHealth.total} TES service instances are online and responding normally. System health is optimal.
-                </>
-              )}
-              {apiHealth?.status === 'warning' && (
-                <>
-                  <strong>⚠ Degraded Performance</strong><br />
-                  {apiHealth.unhealthy} of {apiHealth.total} TES instances are currently unavailable. {apiHealth.healthy} instances remain operational. Some services may experience delays.
-                </>
-              )}
-              {apiHealth?.status === 'error' && (
-                <>
-                  <strong>✗ Service Issues Detected</strong><br />
-                  {apiHealth.unhealthy} of {apiHealth.total} TES instances are currently unavailable. Only {apiHealth.healthy} instances are operational. Please check the System Status page for detailed information.
-                </>
-              )}
-              {apiHealth?.status === 'unknown' && apiHealth.total === 0 && (
-                <>
-                  <strong>⚠️ No Services Configured</strong><br />
-                  No TES instances are currently configured or available. Please check the backend configuration or add TES instances in the Utilities section.
-                </>
-              )}
-            </HealthSummary>
-            {apiHealth?.lastUpdated && (
-              <div style={{ marginTop: '15px', fontSize: '12px', color: '#999', textAlign: 'right' }}>
-                Last updated: {formatDate(new Date(apiHealth.lastUpdated))}
-              </div>
-            )}
-          </HealthStats>
-        </HealthContent>
-      )}
-    </>
-  )}
-</HealthCard>
+        </HealthHeader>
 
-      <ContentCard style={{ marginBottom: '20px' }}>
+        {apiHealth.loading && (
+          <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+            <LoadingSpinner size="small" text="Checking API health status..." />
+          </div>
+        )}
+        {!apiHealth.loading && apiHealth.loaded && (
+          <>
+            {apiHealth.error ? (
+              <div style={{ padding: "20px" }}>
+                <ErrorMessage message={apiHealth.error} />
+                <div style={{ marginTop: "15px", textAlign: "center" }}>
+                  <RefreshButton
+                    onClick={loadAllInstances}
+                    disabled={instancesLoading}
+                  >
+                    <RefreshCw size={14} style={{ marginRight: "5px" }} />
+                    Retry
+                  </RefreshButton>
+                </div>
+              </div>
+            ) : (
+              <HealthContent>
+                {renderDonutChart()}
+                <HealthStats>
+                  <HealthStatRow color="#28a745">
+                    <HealthStatLabel>
+                      <CheckCircle size={18} color="#28a745" />
+                      Healthy Services
+                    </HealthStatLabel>
+                    <HealthStatValue color="#28a745">
+                      {apiHealth.healthy} / {apiHealth.total}
+                    </HealthStatValue>
+                  </HealthStatRow>
+
+                  <HealthStatRow color="#dc3545">
+                    <HealthStatLabel>
+                      <XCircle size={18} color="#dc3545" />
+                      Unhealthy Services
+                    </HealthStatLabel>
+                    <HealthStatValue color="#dc3545">
+                      {apiHealth.unhealthy} / {apiHealth.total}
+                    </HealthStatValue>
+                  </HealthStatRow>
+
+                  <HealthStatRow color="#17a2b8">
+                    <HealthStatLabel>
+                      <Server size={18} color="#17a2b8" />
+                      Total Services
+                    </HealthStatLabel>
+                    <HealthStatValue color="#17a2b8">
+                      {apiHealth.total}
+                    </HealthStatValue>
+                  </HealthStatRow>
+
+                  <HealthSummary status={apiHealth?.status || "unknown"}>
+                    {apiHealth?.status === "healthy" && (
+                      <>
+                        <strong>✓ All Systems Operational</strong>
+                        <br />
+                        All {apiHealth.total} TES service instances are online
+                        and responding normally. System health is optimal.
+                      </>
+                    )}
+                    {apiHealth?.status === "warning" && (
+                      <>
+                        <strong>⚠ Degraded Performance</strong>
+                        <br />
+                        {apiHealth.unhealthy} of {apiHealth.total} TES instances
+                        are currently unavailable. {apiHealth.healthy} instances
+                        remain operational.
+                      </>
+                    )}
+                    {apiHealth?.status === "error" && (
+                      <>
+                        <strong>✗ Service Issues Detected</strong>
+                        <br />
+                        All {apiHealth.total} TES instances are currently
+                        unavailable or unreachable. Please check the
+                        infrastructure status.
+                      </>
+                    )}
+                    {apiHealth?.status === "unknown" &&
+                      apiHealth.total === 0 && (
+                        <>
+                          <strong>⚠️ No Services Configured</strong>
+                          <br />
+                          No TES instances are currently configured.
+                        </>
+                      )}
+                  </HealthSummary>
+
+                  <InstanceList>
+                    {apiHealth.services.map((instance, index) => (
+                      <InstanceItem key={instance.id || index}>
+                        <InstanceMain>
+                          <InstanceName>
+                            <Server
+                              size={14}
+                              color={
+                                instance.status === "healthy"
+                                  ? "#28a745"
+                                  : "#dc3545"
+                              }
+                            />
+                            {instance.name}
+                          </InstanceName>
+                          <HealthStatusBadge
+                            status={
+                              instance.status === "healthy"
+                                ? "healthy"
+                                : "error"
+                            }
+                            style={{ padding: "2px 8px", fontSize: "11px" }}
+                          >
+                            {instance.status === "healthy"
+                              ? "Healthy"
+                              : instance.status || "Unhealthy"}
+                          </HealthStatusBadge>
+                        </InstanceMain>
+                        <InstanceDetails>
+                          <DetailItem title="Latency">
+                            <Activity size={12} />{" "}
+                            {instance.latency ? `${instance.latency}ms` : "N/A"}
+                          </DetailItem>
+                          <DetailItem title="Tasks">
+                            <PlayCircle size={12} /> {instance.tasks || 0} Tasks
+                          </DetailItem>
+                          <DetailItem title="Version">
+                            <Clock size={12} /> v{instance.version || "1.0"}
+                          </DetailItem>
+                          <DetailItem
+                            title="URL"
+                            style={{
+                              gridColumn: "span 2",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            <ArrowRight size={12} /> {instance.url}
+                          </DetailItem>
+                        </InstanceDetails>
+                      </InstanceItem>
+                    ))}
+                  </InstanceList>
+
+                  {apiHealth?.lastUpdated && (
+                    <div
+                      style={{
+                        marginTop: "15px",
+                        fontSize: "12px",
+                        color: "#999",
+                        textAlign: "right",
+                      }}
+                    >
+                      Last updated:{" "}
+                      {formatDate(new Date(apiHealth.lastUpdated))}
+                    </div>
+                  )}
+                </HealthStats>
+              </HealthContent>
+            )}
+          </>
+        )}
+      </HealthCard>
+
+      <ContentCard style={{ marginBottom: "20px" }}>
         <CardHeader>
           <CardTitle>🔗 Connection Status</CardTitle>
           <RefreshButton onClick={handleTestConnection} disabled={testLoading}>
-            <RefreshCw size={14} style={{ marginRight: '5px' }} />
+            <RefreshCw size={14} style={{ marginRight: "5px" }} />
             Test Connection
           </RefreshButton>
         </CardHeader>
-        
-        {testLoading && <LoadingSpinner size="small" text="Testing connection..." />}
-        
+
+        {testLoading && (
+          <LoadingSpinner size="small" text="Testing connection..." />
+        )}
+
         {connectionTest && !testLoading && (
           <div>
             {connectionTest.error ? (
               <div>
-                <ErrorMessage message={`Connection test failed: ${connectionTest.error}`} />
-                <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-                  Please verify that the backend API is running and accessible. Check the API URL configuration if the issue persists.
+                <ErrorMessage
+                  message={`Connection test failed: ${connectionTest.error}`}
+                />
+                <div
+                  style={{ marginTop: "10px", fontSize: "14px", color: "#666" }}
+                >
+                  Please verify that the backend API is running and accessible.
+                  Check the API URL configuration if the issue persists.
                 </div>
               </div>
             ) : (
-              <div style={{ color: '#28a745', fontWeight: '600' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ color: "#28a745", fontWeight: "600" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginBottom: "8px",
+                  }}
+                >
                   <CheckCircle size={20} />
                   <span>Backend API Connection Successful</span>
                 </div>
-                <div style={{ fontSize: '14px', color: '#666', fontWeight: '400', marginLeft: '28px' }}>
-                  {connectionTest.message || 'API is responding normally'}
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#666",
+                    fontWeight: "400",
+                    marginLeft: "28px",
+                  }}
+                >
+                  {connectionTest.message || "API is responding normally"}
                   {connectionTest.timestamp && (
-                    <span style={{ display: 'block', marginTop: '4px' }}>
+                    <span style={{ display: "block", marginTop: "4px" }}>
                       Test ID: {connectionTest.timestamp}
                     </span>
                   )}
@@ -931,14 +977,12 @@ const Dashboard = () => {
             )}
           </div>
         )}
-        
+
         {!connectionTest && !testLoading && (
-          <div style={{ color: '#666', fontSize: '14px' }}>
+          <div style={{ color: "#666", fontSize: "14px" }}>
             Click "Test Connection" to verify backend API connectivity.
           </div>
         )}
-        
-
       </ContentCard>
 
       <ContentGrid>
@@ -946,15 +990,17 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>Recent Tasks</CardTitle>
             <RefreshButton onClick={refetchTasks} disabled={tasksLoading}>
-              <RefreshCw size={14} style={{ marginRight: '5px' }} />
+              <RefreshCw size={14} style={{ marginRight: "5px" }} />
               Refresh
             </RefreshButton>
           </CardHeader>
 
           {tasksError && <ErrorMessage error={tasksError} />}
-          
-          {tasksLoading && <LoadingSpinner size="small" text="Loading tasks..." />}
-          
+
+          {tasksLoading && (
+            <LoadingSpinner size="small" text="Loading tasks..." />
+          )}
+
           {tasksArray && tasksArray.length > 0 ? (
             <TasksList>
               {tasksArray.slice(0, 10).map((task, index) => (
@@ -962,8 +1008,8 @@ const Dashboard = () => {
                   <TaskInfo>
                     <TaskId>{task.id || `Task ${index + 1}`}</TaskId>
                     <TaskMeta>
-                      Created: {formatDate(task.creation_time)} | 
-                      TES: {task.tes_url || 'Unknown'}
+                      Created: {formatDate(task.creation_time)} | TES:{" "}
+                      {task.tes_url || "Unknown"}
                     </TaskMeta>
                   </TaskInfo>
                   <TaskStatus status={task.state}>
@@ -980,29 +1026,32 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>System Overview</CardTitle>
             <RefreshButton onClick={handleRefresh}>
-              <RefreshCw size={14} style={{ marginRight: '5px' }} />
+              <RefreshCw size={14} style={{ marginRight: "5px" }} />
               Refresh
             </RefreshButton>
           </CardHeader>
 
           {dashboardError && <ErrorMessage error={dashboardError} />}
-          
+
           {dashboardData && (
             <div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: "15px" }}>
                 <strong>TES Instances Available:</strong> {stats.tesInstances}
               </div>
-              <div style={{ marginBottom: '15px' }}>
-                <strong>TES Gateway:</strong> {dashboardData.tes_gateway || 'Not configured'}
+              <div style={{ marginBottom: "15px" }}>
+                <strong>TES Gateway:</strong>{" "}
+                {dashboardData.tes_gateway || "Not configured"}
               </div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: "15px" }}>
                 <strong>Workflow Runs:</strong> {stats.workflowRuns}
               </div>
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Latest Path:</strong> {dashboardData.latest_path?.join(', ') || 'None'}
+              <div style={{ marginBottom: "15px" }}>
+                <strong>Latest Path:</strong>{" "}
+                {dashboardData.latest_path?.join(", ") || "None"}
               </div>
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Instance Source:</strong> Dashboard Data with Fresh Instances
+              <div style={{ marginBottom: "15px" }}>
+                <strong>Instance Source:</strong> Dashboard Data with Fresh
+                Instances
               </div>
               <div>
                 <strong>Last Updated:</strong> {formatDate(new Date())}

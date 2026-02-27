@@ -220,13 +220,18 @@ const Logs = () => {
   useEffect(() => {
     const typeParam = searchParams.get('type');
     const taskIdParam = searchParams.get('taskId');
+    const runIdParam = searchParams.get('runId');
     
     if (typeParam === 'task') {
       setLogType('task');
+    } else if (typeParam === 'workflow') {
+      setLogType('workflow');
     }
     
     if (taskIdParam) {
       setSearchTerm(taskIdParam);
+    } else if (runIdParam) {
+      setSearchTerm(runIdParam);
     }
   }, [searchParams]);
 
@@ -247,8 +252,60 @@ const Logs = () => {
     
     const taskIdParam = searchParams.get('taskId');
     const tesUrlParam = searchParams.get('tesUrl');
+    const runIdParam = searchParams.get('runId');
+    const typeParam = searchParams.get('type');
     
-    if (taskIdParam) {
+    // Handle specific workflow runId
+    if (runIdParam && typeParam === 'workflow') {
+      try {
+        console.log('Loading log for specific workflow:', runIdParam);
+        const logContent = await logService.getWorkflowLogs(runIdParam);
+        
+        if (logContent) {
+          allLogs.push({
+            id: runIdParam,
+            type: 'workflow',
+            title: `Workflow - ${runIdParam}`,
+            content: logContent,
+            timestamp: new Date().toISOString(),
+            metadata: {
+              status: 'Running',
+              tesInstance: 'Multiple',
+              workflowType: 'snakemake'
+            }
+          });
+        } else {
+          allLogs.push({
+            id: runIdParam,
+            type: 'workflow',
+            title: `Workflow - ${runIdParam}`,
+            content: 'No log content available yet. The workflow may still be initializing.',
+            timestamp: new Date().toISOString(),
+            metadata: {
+              status: 'Unknown',
+              tesInstance: 'Unknown',
+              workflowType: 'snakemake'
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error loading specific workflow log:', err);
+        allLogs.push({
+          id: runIdParam,
+          type: 'workflow',
+          title: `Workflow - ${runIdParam}`,
+          content: `Failed to load workflow log: ${err.message}`,
+          timestamp: new Date().toISOString(),
+          metadata: {
+            status: 'Error',
+            tesInstance: 'Unknown',
+            workflowType: 'snakemake'
+          }
+        });
+      }
+    }
+    // Handle specific task ID
+    else if (taskIdParam) {
       try {
         console.log('Loading log for specific task:', taskIdParam, 'from:', tesUrlParam);
         const logResponse = await logService.getTaskLogs(taskIdParam, tesUrlParam);
@@ -296,13 +353,14 @@ const Logs = () => {
       const dashboardData = await taskService.getDashboardData();
 
       console.log('Dashboard data for logs:', dashboardData);
-      console.log('Submitted tasks found:', dashboardData.submitted_tasks?.length || 0);
+      console.log('Tasks found:', dashboardData.tasks?.length || 0);
 
-      if (Array.isArray(dashboardData.submitted_tasks)) {
-        for (const task of dashboardData.submitted_tasks.slice(-10)) { 
+      if (Array.isArray(dashboardData.tasks)) {
+        for (const task of dashboardData.tasks.slice(-20)) {  // Get last 20 tasks 
           try {
-            console.log('Loading log for task:', task.task_id, 'from:', task.tes_url);
-            const logResponse = await logService.getTaskLogs(task.task_id, task.tes_url);
+            console.log('Loading log for task:', task.task_id || task.id, 'from:', task.tes_url);
+            const taskId = task.task_id || task.id;
+            const logResponse = await logService.getTaskLogs(taskId, task.tes_url);
             let content = 'No log content available';
             
             console.log('Task log response:', logResponse);
@@ -312,30 +370,31 @@ const Logs = () => {
             } else if (logResponse && logResponse.log) {
               content = logResponse.log;
             } else {
-              content = `Task Log for ${task.task_id}\n\nTask Details:\n- Status: ${task.status}\n- TES Instance: ${task.tes_name}\n- Submitted: ${task.submitted_at}\n- Type: ${task.type || 'Unknown'}\n\nNote: Full log details not available (task may still be running)`;
+              content = `Task Log for ${taskId}\n\nTask Details:\n- Name: ${task.name || task.task_name || 'Unnamed'}\n- Status: ${task.status || task.state}\n- TES Instance: ${task.tes_name || 'Unknown'}\n- Submitted: ${task.submitted_at || task.creation_time}\n- Type: ${task.type || 'Task Submission'}\n\nNote: Full log details not available (task may still be running or logs not yet generated)`;
             }
             
             allLogs.push({
-              id: task.task_id,
+              id: taskId,
               type: 'task',
-              title: `Task ${task.task_id} (${task.tes_name})`,
+              title: `Task ${taskId} (${task.tes_name || 'Unknown'})`,
               content: content,
-              timestamp: task.submitted_at || new Date().toISOString(),
+              timestamp: task.submitted_at || task.creation_time || new Date().toISOString(),
               metadata: {
-                status: task.status,
+                status: task.status || task.state,
                 tesInstance: task.tes_name || 'Unknown'
               }
             });
           } catch (err) {
-            console.error('Error loading task log for', task.task_id, ':', err);
+            console.error('Error loading task log for', task.task_id || task.id, ':', err);
+            const taskId = task.task_id || task.id;
             allLogs.push({
-              id: task.task_id,
+              id: taskId,
               type: 'task',
-              title: `Task ${task.task_id} (${task.tes_name})`,
-              content: `Task Log for ${task.task_id}\n\nError: ${err.message}\n\nTask Details:\n- Status: ${task.status}\n- TES Instance: ${task.tes_name}\n- Submitted: ${task.submitted_at}\n- Type: ${task.type || 'Unknown'}\n\nNote: This task exists but logs couldn't be fetched.`,
-              timestamp: task.submitted_at || new Date().toISOString(),
+              title: `Task ${taskId} (${task.tes_name || 'Unknown'})`,
+              content: `Task Log for ${taskId}\n\nError: ${err.message}\n\nTask Details:\n- Name: ${task.name || task.task_name || 'Unnamed'}\n- Status: ${task.status || task.state}\n- TES Instance: ${task.tes_name || 'Unknown'}\n- Submitted: ${task.submitted_at || task.creation_time}\n- Type: ${task.type || 'Task Submission'}\n\nNote: This task exists but logs couldn't be fetched.`,
+              timestamp: task.submitted_at || task.creation_time || new Date().toISOString(),
               metadata: {
-                status: task.status,
+                status: task.status || task.state,
                 tesInstance: task.tes_name || 'Unknown'
               }
             });

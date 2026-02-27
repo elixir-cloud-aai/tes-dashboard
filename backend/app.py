@@ -1,5 +1,6 @@
+from datetime import datetime, timezone
+from flask import Flask, g, request, jsonify
 import os
-from flask import Flask, g, request
 from flask_cors import CORS
 from config import CORS_ORIGINS, SECRET_KEY, UPLOAD_FOLDER
 from services.task_service import start_task_status_updater
@@ -191,8 +192,39 @@ if MIDDLEWARE_AVAILABLE and middleware_manager:
         
         return response
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint for Kubernetes probes"""
+    try:
+        # Check MongoDB if configured
+        mongo_status = 'not_configured'
+        if os.getenv('MONGODB_URI'):
+            try:
+                from pymongo import MongoClient
+                client = MongoClient(
+                    os.getenv('MONGODB_URI', 'mongodb://localhost:27017/protes_db'),
+                    serverSelectionTimeoutMS=2000
+                )
+                client.server_info()
+                mongo_status = 'connected'
+            except Exception as mongo_err:
+                mongo_status = f'error: {str(mongo_err)}'
+        
+        return jsonify({
+            'status': 'healthy',
+            'mongodb': mongo_status,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'version': '1.0.0',
+            'environment': os.getenv('FLASK_ENV', 'unknown')
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }), 503
+
 if __name__ == '__main__':
-    from datetime import datetime
     
     port = int(os.getenv('PORT', '8000'))
     debug_mode = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'

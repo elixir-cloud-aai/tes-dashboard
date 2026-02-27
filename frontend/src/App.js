@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { AuthProvider } from './contexts/AuthContext';
+import { AuthConfigProvider } from './contexts/AuthConfigContext';
 import Header from './components/common/Header';
 import Sidebar from './components/common/Sidebar';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -10,14 +11,12 @@ import Tasks from './pages/Tasks';
 import TaskDetails from './pages/TaskDetails';
 import SubmitTask from './pages/SubmitTask';
 import Workflows from './pages/Workflows';
-import BatchProcessing from './pages/BatchProcessing';
 import ServiceInfo from './pages/ServiceInfo';
 import Logs from './pages/Logs';
 import NetworkTopology from './pages/NetworkTopology';
 import NodeManagement from './pages/NodeManagement';
 import Utilities from './pages/Utilities';
 import ApiTest from './pages/ApiTest';
-import Settings from './pages/Settings';
 import { testConnection } from './services/api';
 import MiddlewareManager from './components/MiddlewareManager';
 
@@ -56,42 +55,42 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <AppContainer>
-          <Header 
-            connectionStatus={connectionStatus} 
-            isConnected={isConnected} 
-          />
-          <MainLayout>
-            <Sidebar />
-            <ContentArea>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/tasks" element={<Tasks />} />
-                <Route path="/task-details" element={<TaskDetails />} />
-                <Route path="/submit-task" element={<SubmitTask />} />
-                <Route path="/workflows" element={<Workflows />} />
-                <Route path="/batch" element={<BatchProcessing />} />
-                <Route path="/api/service-info" element={<ServiceInfo />} />
-                <Route path="/logs" element={<Logs />} />
-                <Route path="/topology" element={<NetworkTopology />} />
-                <Route path="/utilities" element={<Utilities />} />
-                <Route path="/instances" element={<Navigate to="/utilities" replace />} />
-                <Route path="/api-test" element={<ApiTest />} />
-                <Route path="/middleware" element={<MiddlewareManager />} />
-                <Route path="/nodes" element={
-                  <ProtectedRoute>
-                    <NodeManagement />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </ContentArea>
-          </MainLayout>
-        </AppContainer>
-      </Router>
+      <AuthConfigProvider>
+        <Router>
+          <AppContainer>
+            <Header 
+              connectionStatus={connectionStatus} 
+              isConnected={isConnected} 
+            />
+            <MainLayout>
+              <Sidebar />
+              <ContentArea>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/task-details" element={<TaskDetails />} />
+                  <Route path="/submit-task" element={<SubmitTask />} />
+                  <Route path="/workflows" element={<Workflows />} />
+                  <Route path="/api/service-info" element={<ServiceInfo />} />
+                  <Route path="/logs" element={<Logs />} />
+                  <Route path="/topology" element={<NetworkTopology />} />
+                  <Route path="/utilities" element={<Utilities />} />
+                  <Route path="/instances" element={<Navigate to="/utilities" replace />} />
+                  <Route path="/api-test" element={<ApiTest />} />
+                  <Route path="/middleware" element={<MiddlewareManager />} />
+                  <Route path="/nodes" element={
+                    <ProtectedRoute>
+                      <NodeManagement />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </ContentArea>
+            </MainLayout>
+          </AppContainer>
+        </Router>
+      </AuthConfigProvider>
     </AuthProvider>
   );
 }

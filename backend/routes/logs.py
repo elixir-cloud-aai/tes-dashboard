@@ -166,13 +166,62 @@ def get_workflow_log(run_id):
     if not workflow:
         return jsonify({'success': False, 'error': 'Workflow not found'}), 404
     
+    # Build comprehensive log content
     log_content = f"""=== {workflow['type'].upper()} Workflow Log ===
 Run ID: {decoded_run_id}
 TES Instance: {workflow['tes_name']}
 TES URL: {workflow.get('tes_url', 'Unknown')}
 Status: {workflow['status']}
 Submitted: {workflow['submitted_at']}
+
+{'='*60}
+WORKFLOW EXECUTION DETAILS
+{'='*60}
+
+Workflow Type: {workflow['type']}
+Distribution Logic: {workflow.get('distribution_logic', 'Not specified')}
 """
+    
+    # Add file information if available
+    if 'files' in workflow and workflow['files']:
+        log_content += f"\n{'='*60}\nUPLOADED FILES\n{'='*60}\n"
+        for file_info in workflow['files']:
+            log_content += f"\n- {file_info['key']}: {file_info['filename']}"
+            if file_info.get('path'):
+                log_content += f"\n  Path: {file_info['path']}"
+    
+    # Add workflow steps/tasks information
+    log_content += f"\n\n{'='*60}\nWORKFLOW EXECUTION STATUS\n{'='*60}\n"
+    
+    if workflow['type'].lower() == 'snakemake':
+        log_content += """
+Snakemake Workflow Steps:
+1. Step 1: Data Preparation - Initializing data on TES instance
+2. Step 2: Processing - Processing data across distributed nodes
+3. Step 3: Analysis - Analyzing results
+4. Step 4: Summary - Generating final summary
+
+Note: This workflow is distributed across multiple TES instances.
+Each step may be executed on a different TES endpoint for load balancing.
+"""
+    
+    # Add status updates
+    log_content += f"\n\n{'='*60}\nSTATUS UPDATES\n{'='*60}\n"
+    log_content += f"\nCurrent Status: {workflow['status']}"
+    log_content += f"\nLast Updated: {workflow.get('updated_at', workflow['submitted_at'])}"
+    
+    if workflow['status'] == 'RUNNING':
+        log_content += "\n\n⚠️ Workflow is currently executing. Real-time logs from TES instances will appear here."
+        log_content += "\n   Check the Network Topology page to see live execution across instances."
+    elif workflow['status'] == 'COMPLETED':
+        log_content += "\n\n✅ Workflow completed successfully!"
+    elif workflow['status'] == 'FAILED':
+        log_content += "\n\n❌ Workflow execution failed. Check individual task logs for details."
+    
+    # Add footer
+    log_content += f"\n\n{'='*60}\nEND OF LOG\n{'='*60}\n"
+    log_content += f"\nFor real-time execution visualization, visit the Network Topology page."
+    log_content += f"\nWorkflow Run ID: {decoded_run_id}"
     
     return jsonify({
         'success': True,
