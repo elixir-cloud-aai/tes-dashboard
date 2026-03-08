@@ -81,6 +81,17 @@ export const workflowService = {
       
       throw error;
     }
+  },
+
+  getWorkflowRun: async (runId) => {
+    try {
+      const response = await api.get('/api/dashboard_data');
+      const workflowRuns = response.data.workflow_runs || [];
+      return workflowRuns.find(run => run.run_id === runId) || null;
+    } catch (error) {
+      console.error('Error fetching workflow run:', error);
+      throw error;
+    }
   }
 };
 

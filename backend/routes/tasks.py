@@ -43,8 +43,8 @@ def build_failed_task(tes_task, tes_url, tes_name, tes_endpoint=None,
         'name': tes_task['name'],
         'task_name': tes_task['name'],
         'description': tes_task['description'],
-        'state': 'SUBMISSION_FAILED',
-        'status': 'SUBMISSION_FAILED',
+        'state': 'SUBMISSION_ERROR',
+        'status': 'SUBMISSION_ERROR',
         'creation_time': now_iso,
         'submitted_at': now_iso,
         'start_time': None,
@@ -519,3 +519,63 @@ def submit_task():
             'error_type': 'unknown_error',
             'error_code': 'UNKNOWN_ERROR'
         }), 500
+
+@tasks_bp.route('/api/cancel_task', methods=['POST'])
+def cancel_task():
+    """
+    Cancel a TES task on a given TES instance.
+    Expects JSON: { 'tes_url': ..., 'task_id': ... }
+    """
+    try:
+        data = request.get_json()
+        tes_url = data.get('tes_url')
+        task_id = data.get('task_id')
+        if not tes_url or not task_id:
+            return jsonify({'success': False, 'error': 'tes_url and task_id are required'}), 400
+
+        # Try common TES cancel endpoints (GA4GH TES v1)
+        base_url = tes_url.rstrip('/')
+        cancel_endpoints = [
+            f"{base_url}/ga4gh/tes/v1/tasks/{task_id}:cancel",
+            f"{base_url}/v1/tasks/{task_id}:cancel",
+            f"{base_url}/tasks/{task_id}:cancel"
+        ]
+
+        # Auth if needed
+        tes_name = 'Unknown TES Instance'
+        tes_instances = load_tes_instances()
+        for inst in tes_instances:
+            if inst['url'].rstrip('/') == tes_url.rstrip('/'):
+                tes_name = inst['name']
+                break
+        credentials = get_instance_credentials(tes_name, tes_url)
+        headers = {'Accept': 'application/json'}
+        auth = None
+        if credentials.get('token'):
+            headers['Authorization'] = f"Bearer {credentials['token']}"
+        elif credentials.get('user') and credentials.get('password'):
+            auth = (credentials['user'], credentials['password'])
+
+        # Try each endpoint until one works
+        for endpoint in cancel_endpoints:
+            try:
+                resp = requests.post(endpoint, headers=headers, auth=auth, timeout=10)
+                if resp.status_code in [200, 202, 204]:
+                    return jsonify({'success': True, 'message': f'Task {task_id} canceled on {tes_url}'}), 200
+                elif resp.status_code == 404:
+                    continue  # Try next endpoint
+                else:
+                    # Return error from TES
+                    try:
+                        err = resp.json()
+                    except Exception:
+                        err = resp.text
+                    return jsonify({'success': False, 'error': f'TES error: {err}', 'status_code': resp.status_code}), resp.status_code
+            except Exception as e:
+                continue  # Try next endpoint
+
+        return jsonify({'success': False, 'error': f'Could not cancel task {task_id} on {tes_url}. No endpoint succeeded.'}), 404
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Cancel task failed: {str(e)}'}), 500

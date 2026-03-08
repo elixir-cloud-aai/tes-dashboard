@@ -67,13 +67,12 @@ export const taskService = {
 
   cancelTask: async (tesUrl, taskId) => {
     try {
-      const formData = new FormData();
-      formData.append('tes_url', tesUrl);
-      formData.append('task_id', taskId);
-      
-      const response = await api.post('/api/cancel_task', formData, {
+      const response = await api.post('/api/cancel_task', {
+        tes_url: tesUrl,
+        task_id: taskId
+      }, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
       });
       return response.data;

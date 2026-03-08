@@ -3,6 +3,8 @@ from datetime import datetime
 import random
 from utils.tes_utils import load_tes_location_data
 from services.workflow_service import get_workflow_runs
+from services.tes_service import fetch_tes_status
+from concurrent.futures import ThreadPoolExecutor
 
 network_bp = Blueprint('network', __name__)
 
@@ -10,15 +12,32 @@ network_bp = Blueprint('network', __name__)
 def get_network_topology():
     try:
         current_tes_locations = load_tes_location_data()
-        
+
+        # Ensure all instances have consistent status for the UI
+        for loc in current_tes_locations:
+            if 'status' not in loc:
+                loc['status'] = 'healthy' if loc.get('lat') != 0 else 'unknown'
+
+        # Fetch status for all instances in parallel
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(fetch_tes_status, current_tes_locations))
+
+        # Overwrite status in each instance with the real-time checked status
+        instance_status_map = {r['url']: r['status'] for r in results if 'url' in r and 'status' in r}
+        for loc in current_tes_locations:
+            if loc['url'] in instance_status_map:
+                loc['status'] = instance_status_map[loc['url']]
+            else:
+                loc['status'] = 'unreachable'
+
         active_instances = len([loc for loc in current_tes_locations if loc.get('status') == 'healthy'])
         total_tasks = sum(loc.get('tasks', 0) for loc in current_tes_locations)
         total_workflows = sum(loc.get('workflows', 0) for loc in current_tes_locations)
-        
+
         connections = []
         for i, instance in enumerate(current_tes_locations):
             for j, target in enumerate(current_tes_locations):
-                if i != j:
+                if i != j and instance.get('lat') != 0 and target.get('lat') != 0:
                     connections.append({
                         'source': instance.get('id', f'instance-{i}'),
                         'target': target.get('id', f'instance-{j}'),
@@ -26,22 +45,29 @@ def get_network_topology():
                         'bandwidth': '10Gbps',
                         'status': 'active' if instance.get('status') == 'healthy' and target.get('status') == 'healthy' else 'inactive'
                     })
-        
+
         data_flows = []
         workflow_runs = get_workflow_runs()
-        for workflow in workflow_runs[-5:]:
-            source_instance = next((loc for loc in current_tes_locations if loc.get('name') == workflow.get('tes_name')), None)
+
+        # Populate data flows for all active workflows to ensure logical map works
+        for workflow in workflow_runs:
+            source_instance = next((loc for loc in current_tes_locations if
+                                  loc.get('name') == workflow.get('tes_name') or
+                                  loc.get('url') == workflow.get('tes_url')), None)
+
             if source_instance:
+                # Add flow from workflow root to executing instance
                 data_flows.append({
                     'workflow_id': workflow['run_id'],
-                    'type': workflow.get('type', 'unknown'),
+                    'type': workflow.get('type', 'execution'),
                     'source': source_instance.get('id', 'unknown'),
+                    'target': 'workflow-root',
                     'path': [source_instance.get('id', 'unknown')],
                     'data_size': f"{random.randint(10, 500)}MB",
                     'transfer_rate': f"{random.randint(50, 200)}MB/s",
                     'status': workflow.get('status', 'RUNNING')
                 })
-        
+
         topology_data = {
             'instances': current_tes_locations,
             'connections': connections,
@@ -66,9 +92,9 @@ def get_network_topology():
                 }
             }
         }
-        
+
         return jsonify(topology_data)
-        
+
     except Exception as e:
         return jsonify({'error': 'Failed to retrieve network topology data'}), 500
 
@@ -76,11 +102,11 @@ def get_network_topology():
 def get_network_status():
     try:
         current_tes_locations = load_tes_location_data()
-        
+
         healthy_instances = [loc for loc in current_tes_locations if loc.get('status') == 'healthy']
         processing_instances = [loc for loc in current_tes_locations if loc.get('status') == 'processing']
         unhealthy_instances = [loc for loc in current_tes_locations if loc.get('status') not in ['healthy', 'processing']]
-        
+
         return jsonify({
             'overall_status': 'healthy' if len(unhealthy_instances) == 0 else 'degraded',
             'instances': {
@@ -107,7 +133,7 @@ def get_network_status():
             },
             'last_updated': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         return jsonify({'error': 'Failed to retrieve network status'}), 500
 
@@ -118,7 +144,7 @@ def get_instance_metrics(instance_id):
         instance = next((loc for loc in current_tes_locations if loc.get('id') == instance_id), None)
         if not instance:
             return jsonify({'error': 'Instance not found'}), 404
-        
+
         metrics = {
             'instance_info': instance,
             'performance': {
@@ -147,9 +173,9 @@ def get_instance_metrics(instance_id):
                 'peer_instances': [loc.get('id', '') for loc in current_tes_locations if loc.get('id') != instance_id][:3]
             }
         }
-        
+
         return jsonify(metrics)
-        
+
     except Exception as e:
         return jsonify({'error': 'Failed to retrieve instance metrics'}), 500
 
@@ -157,7 +183,7 @@ def get_instance_metrics(instance_id):
 def get_data_transfers():
     from datetime import timedelta
     from utils.tes_utils import load_tes_location_data
-    
+
     transfers = []
     storage_endpoints = [
         {'id': 'storage-eu-central', 'name': 'EU Central Storage', 'location': 'Frankfurt'},
@@ -165,12 +191,12 @@ def get_data_transfers():
         {'id': 'storage-na-east', 'name': 'NA East Storage', 'location': 'Virginia'},
         {'id': 'storage-global', 'name': 'Global Cache Hub', 'location': 'London'}
     ]
-    
+
     tes_locations = load_tes_location_data()
     for i in range(random.randint(3, 8)):
         source = random.choice(tes_locations)
         target = random.choice(storage_endpoints)
-        
+
         transfers.append({
             'id': f'transfer-{i}',
             'source': {
@@ -189,7 +215,7 @@ def get_data_transfers():
             'start_time': (datetime.now() - timedelta(minutes=random.randint(5, 60))).isoformat(),
             'estimated_completion': (datetime.now() + timedelta(minutes=random.randint(2, 30))).isoformat()
         })
-    
+
     return jsonify({
         'transfers': transfers,
         'total_active': len([t for t in transfers if t['status'] == 'active']),
@@ -199,7 +225,7 @@ def get_data_transfers():
 @network_bp.route('/api/network_metrics', methods=['GET'])
 def get_network_metrics():
     tes_locations = load_tes_location_data()
-    
+
     metrics = {
         'timestamp': datetime.now().isoformat(),
         'network_health': random.randint(85, 98),
@@ -209,7 +235,7 @@ def get_network_metrics():
         'connection_count': random.randint(150, 300),
         'instance_metrics': []
     }
-    
+
     for instance in tes_locations:
         metrics['instance_metrics'].append({
             'id': instance.get('id', instance.get('name', '').replace(' ', '-').lower()),
@@ -222,7 +248,7 @@ def get_network_metrics():
             'active_connections': random.randint(5, 25),
             'uptime': f"{random.randint(95, 100)}%"
         })
-    
+
     return jsonify(metrics)
 
 @network_bp.route('/api/storage_locations', methods=['GET'])
@@ -277,5 +303,5 @@ def get_storage_locations():
             'status': 'healthy'
         }
     ]
-    
+
     return jsonify(storage_locations)

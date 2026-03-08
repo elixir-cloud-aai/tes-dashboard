@@ -1,22 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-import { taskService } from '../services/taskService';
-import usePolling from '../hooks/usePolling';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import ErrorMessage from '../components/common/ErrorMessage';
-import { formatDate, formatTaskStatus, formatDuration } from '../utils/formatters';
-import { TASK_STATE_COLORS, POLLING_INTERVALS } from '../utils/constants';
-import { 
-  StopCircle, 
-  RefreshCw, 
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+import { taskService } from "../services/taskService";
+import usePolling from "../hooks/usePolling";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import ErrorMessage from "../components/common/ErrorMessage";
+import {
+  formatDate,
+  formatTaskStatus,
+  formatDuration,
+} from "../utils/formatters";
+import { TASK_STATE_COLORS, POLLING_INTERVALS } from "../utils/constants";
+import {
+  StopCircle,
+  RefreshCw,
   Plus,
-  Eye, 
-  FileText,
+  Eye,
   Search,
   ChevronUp,
-  ChevronDown
-} from 'lucide-react';
+  ChevronDown,
+} from "lucide-react";
 
 const PageContainer = styled.div`
   padding: 20px;
@@ -32,7 +35,7 @@ const PageHeader = styled.div`
   background: white;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 `;
 
 const Title = styled.h1`
@@ -48,7 +51,12 @@ const ButtonGroup = styled.div`
 `;
 
 const Button = styled.button`
-  background: ${props => props.variant === 'primary' ? '#3182ce' : props.variant === 'success' ? '#10b981' : '#64748b'};
+  background: ${(props) =>
+    props.variant === "primary"
+      ? "#3182ce"
+      : props.variant === "success"
+        ? "#10b981"
+        : "#64748b"};
   color: white;
   border: none;
   border-radius: 8px;
@@ -60,13 +68,18 @@ const Button = styled.button`
   font-weight: 500;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  
+
   &:hover:not(:disabled) {
-    background: ${props => props.variant === 'primary' ? '#2c5282' : props.variant === 'success' ? '#059669' : '#475569'};
+    background: ${(props) =>
+      props.variant === "primary"
+        ? "#2c5282"
+        : props.variant === "success"
+          ? "#059669"
+          : "#475569"};
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -84,7 +97,7 @@ const ContentCard = styled.div`
   background: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 `;
 
@@ -117,7 +130,7 @@ const StatusNotification = styled.div`
   font-size: 14px;
   display: flex;
   align-items: center;
-  
+
   &:before {
     content: "ℹ️";
     margin-right: 8px;
@@ -137,12 +150,12 @@ const TableHeader = styled.th`
   font-weight: 600;
   color: #495057;
   font-size: 14px;
-  cursor: ${props => props.sortable ? 'pointer' : 'default'};
+  cursor: ${(props) => (props.sortable ? "pointer" : "default")};
   user-select: none;
   position: relative;
-  
+
   &:hover {
-    background: ${props => props.sortable ? '#e9ecef' : '#f8f9fa'};
+    background: ${(props) => (props.sortable ? "#e9ecef" : "#f8f9fa")};
   }
 `;
 
@@ -150,7 +163,7 @@ const SortIndicator = styled.span`
   display: inline-flex;
   align-items: center;
   margin-left: 4px;
-  opacity: ${props => props.active ? '1' : '0.3'};
+  opacity: ${(props) => (props.active ? "1" : "0.3")};
   transition: opacity 0.2s;
 `;
 
@@ -158,7 +171,7 @@ const TableRow = styled.tr`
   &:hover {
     background-color: #f8f9fa;
   }
-  
+
   &:nth-child(even) {
     background-color: #fdfdfd;
   }
@@ -177,11 +190,12 @@ const TaskStatus = styled.span`
   font-size: 12px;
   font-weight: 600;
   color: white;
-  background-color: ${props => TASK_STATE_COLORS[props.status] || '#6c757d'};
+  background-color: ${(props) => TASK_STATE_COLORS[props.status] || "#6c757d"};
 `;
 
 const ActionButton = styled.button`
-  background: ${props => props.variant === 'danger' ? '#ef4444' : '#3182ce'};
+  background: ${(props) =>
+    props.variant === "danger" ? "#ef4444" : "#3182ce"};
   color: white;
   border: none;
   border-radius: 6px;
@@ -194,12 +208,13 @@ const ActionButton = styled.button`
   align-items: center;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  
+
   &:hover:not(:disabled) {
-    background: ${props => props.variant === 'danger' ? '#dc2626' : '#2c5282'};
+    background: ${(props) =>
+      props.variant === "danger" ? "#dc2626" : "#2c5282"};
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -214,28 +229,28 @@ const EmptyState = styled.div`
 
 const Tasks = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filteredTasks, setFilteredTasks] = useState([]);
-  const [sortColumn, setSortColumn] = useState('creation_time');
-  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
- 
-  const { 
-    data: tasksData, 
-    loading, 
+  const [sortColumn, setSortColumn] = useState("creation_time");
+  const [sortDirection, setSortDirection] = useState("desc"); // 'asc' or 'desc'
+
+  const {
+    data: tasksData,
+    loading,
     error,
-    refetch 
+    refetch,
   } = usePolling(taskService.listTasks, POLLING_INTERVALS.NORMAL);
 
   const handleSort = (column) => {
     if (sortColumn === column) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       // Set new column with ascending as default
       setSortColumn(column);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
-  
+
   const getSortIndicator = (column) => {
     if (sortColumn !== column) {
       return (
@@ -246,96 +261,110 @@ const Tasks = () => {
     }
     return (
       <SortIndicator active={true}>
-        {sortDirection === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        {sortDirection === "asc" ? (
+          <ChevronUp size={14} />
+        ) : (
+          <ChevronDown size={14} />
+        )}
       </SortIndicator>
     );
   };
-  
-  const sortTasks = useCallback((tasks) => {
-    const sorted = [...tasks].sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortColumn) {
-        case 'id':
-          aValue = a.id || '';
-          bValue = b.id || '';
-          break;
-        case 'name':
-          aValue = (a.name || '').toLowerCase();
-          bValue = (b.name || '').toLowerCase();
-          break;
-        case 'state':
-          aValue = a.state || '';
-          bValue = b.state || '';
-          break;
-        case 'tes_name':
-          aValue = (a.tes_name || a.tes_url || '').toLowerCase();
-          bValue = (b.tes_name || b.tes_url || '').toLowerCase();
-          break;
-        case 'creation_time':
-          // Parse dates for comparison
-          aValue = a.creation_time ? new Date(a.creation_time).getTime() : 0;
-          bValue = b.creation_time ? new Date(b.creation_time).getTime() : 0;
-          break;
-        default:
-          return 0;
-      }
-      
-      // Handle comparison
-      if (aValue < bValue) {
-        return sortDirection === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortDirection === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-    
-    return sorted;
-  }, [sortColumn, sortDirection]);
-  
+
+  const sortTasks = useCallback(
+    (tasks) => {
+      const sorted = [...tasks].sort((a, b) => {
+        let aValue, bValue;
+
+        switch (sortColumn) {
+          case "id":
+            aValue = a.id || "";
+            bValue = b.id || "";
+            break;
+          case "name":
+            aValue = (a.name || "").toLowerCase();
+            bValue = (b.name || "").toLowerCase();
+            break;
+          case "state":
+            aValue = a.state || "";
+            bValue = b.state || "";
+            break;
+          case "tes_name":
+            aValue = (a.tes_name || a.tes_url || "").toLowerCase();
+            bValue = (b.tes_name || b.tes_url || "").toLowerCase();
+            break;
+          case "creation_time":
+            // Parse dates for comparison
+            aValue = a.creation_time ? new Date(a.creation_time).getTime() : 0;
+            bValue = b.creation_time ? new Date(b.creation_time).getTime() : 0;
+            break;
+          default:
+            return 0;
+        }
+
+        // Handle comparison
+        if (aValue < bValue) {
+          return sortDirection === "asc" ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortDirection === "asc" ? 1 : -1;
+        }
+        return 0;
+      });
+
+      return sorted;
+    },
+    [sortColumn, sortDirection],
+  );
+
   const handleCancelTask = async (tesUrl, taskId) => {
-    if (window.confirm('Are you sure you want to cancel this task?')) {
+    if (window.confirm("Are you sure you want to cancel this task?")) {
       try {
         await taskService.cancelTask(tesUrl, taskId);
-        refetch(); 
+        refetch();
       } catch (error) {
-        console.error('Error canceling task:', error);
-        alert('Failed to cancel task: ' + error.message);
+        console.error("Error canceling task:", error);
+        let msg = "Failed to cancel task: ";
+        if (error?.response?.status === 404) {
+          msg += "Task not found or cancel not supported by this TES instance.";
+        } else if (error?.response?.data?.error) {
+          msg += error.response.data.error;
+        } else if (error?.message) {
+          msg += error.message;
+        } else {
+          msg += "Unknown error.";
+        }
+        alert(msg);
       }
     }
   };
- 
+
   const handleViewDetails = (tesUrl, taskId) => {
-    navigate(`/task-details?tes_url=${encodeURIComponent(tesUrl)}&task_id=${encodeURIComponent(taskId)}`);
+    navigate(
+      `/task-details?tes_url=${encodeURIComponent(tesUrl)}&task_id=${encodeURIComponent(taskId)}`,
+    );
   };
- 
-  const handleViewLogs = (taskId) => {
-    navigate(`/logs?type=task&taskId=${taskId}`);
-  }; 
+
   useEffect(() => {
-    let allTasks = []; 
+    let allTasks = [];
     if (tasksData?.tasks && Array.isArray(tasksData.tasks)) {
       allTasks = tasksData.tasks;
     } else if (Array.isArray(tasksData)) {
       allTasks = tasksData;
-    } 
-    const healthyTasks = allTasks.filter(task => { 
-      return task && 
-             task.id && 
-             task.tes_url && 
-             task.state;
+    }
+    const healthyTasks = allTasks.filter((task) => {
+      return task && task.id && task.tes_url && task.state;
     });
 
     // Apply search filter
     let tasksToDisplay = healthyTasks;
     if (searchTerm) {
-      tasksToDisplay = healthyTasks.filter(task => 
-        task.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.state?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.tes_url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.tes_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      tasksToDisplay = healthyTasks.filter(
+        (task) =>
+          task.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.state?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.tes_url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.tes_name?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
     // Apply sorting
@@ -343,28 +372,29 @@ const Tasks = () => {
     setFilteredTasks(sortedTasks);
   }, [tasksData, searchTerm, sortTasks]);
 
-
   return (
     <PageContainer>
       <PageHeader>
         <Title>Task Management</Title>
         <ButtonGroup>
-          <Button 
-            variant="success" 
-            onClick={() => navigate('/submit-task')}
-          >
-            <ButtonIcon><Plus size={16} /></ButtonIcon>
+          <Button variant="success" onClick={() => navigate("/submit-task")}>
+            <ButtonIcon>
+              <Plus size={16} />
+            </ButtonIcon>
             Submit Task
           </Button>
-          
-          <Button 
-            variant="primary" 
-            onClick={refetch}
-            disabled={loading}
-          >
-            <ButtonIcon><RefreshCw size={16} /></ButtonIcon>
+          <Button variant="primary" onClick={refetch} disabled={loading}>
+            <ButtonIcon>
+              <RefreshCw size={16} className={loading ? "spin" : ""} />
+            </ButtonIcon>
             Refresh
           </Button>
+          {loading && (
+            <span style={{ marginLeft: 12, color: '#64748b', fontSize: 14, display: 'flex', alignItems: 'center' }}>
+              <LoadingSpinner size={18} text="" />
+              <span style={{ marginLeft: 6 }}>Refreshing…</span>
+            </span>
+          )}
         </ButtonGroup>
       </PageHeader>
 
@@ -380,43 +410,51 @@ const Tasks = () => {
           />
         </SearchBar>
 
-        {error && !error.message.includes('responding slowly') && !error.message.includes('temporarily unavailable') && <ErrorMessage error={error} />}
-        
-        {error && (error.message.includes('responding slowly') || error.message.includes('temporarily unavailable')) && (
-          <StatusNotification>
-            {error.message}
-          </StatusNotification>
-        )}
-        
-        {loading && <LoadingSpinner text="Loading tasks..." />}
-        
-        {!loading && filteredTasks.length === 0 ? (
+        {error &&
+          !error.message.includes("responding slowly") &&
+          !error.message.includes("temporarily unavailable") && (
+            <ErrorMessage error={error} />
+          )}
+
+        {error &&
+          (error.message.includes("responding slowly") ||
+            error.message.includes("temporarily unavailable")) && (
+            <StatusNotification>{error.message}</StatusNotification>
+          )}
+
+        {/* Remove loading check here; always show table/empty state */}
+        {filteredTasks.length === 0 ? (
           <EmptyState>
-            {searchTerm ? 'No tasks found matching your search.' : 'No tasks found.'}
+            {searchTerm
+              ? "No tasks found matching your search."
+              : "No tasks found."}
           </EmptyState>
         ) : (
           <Table>
             <thead>
               <tr>
-                   <TableHeader sortable onClick={() => handleSort('id')}>
+                <TableHeader sortable onClick={() => handleSort("id")}>
                   Task ID
-                  {getSortIndicator('id')}
+                  {getSortIndicator("id")}
                 </TableHeader>
-                <TableHeader sortable onClick={() => handleSort('name')}>
+                <TableHeader sortable onClick={() => handleSort("name")}>
                   Name
-                  {getSortIndicator('name')}
+                  {getSortIndicator("name")}
                 </TableHeader>
-                <TableHeader sortable onClick={() => handleSort('state')}>
+                <TableHeader sortable onClick={() => handleSort("state")}>
                   Status
-                  {getSortIndicator('state')}
+                  {getSortIndicator("state")}
                 </TableHeader>
-                <TableHeader sortable onClick={() => handleSort('tes_name')}>
+                <TableHeader sortable onClick={() => handleSort("tes_name")}>
                   TES Instance
-                  {getSortIndicator('tes_name')}
+                  {getSortIndicator("tes_name")}
                 </TableHeader>
-                <TableHeader sortable onClick={() => handleSort('creation_time')}>
+                <TableHeader
+                  sortable
+                  onClick={() => handleSort("creation_time")}
+                >
                   Created
-                  {getSortIndicator('creation_time')}
+                  {getSortIndicator("creation_time")}
                 </TableHeader>
                 <TableHeader>Actions</TableHeader>
               </tr>
@@ -425,40 +463,40 @@ const Tasks = () => {
               {filteredTasks.map((task, index) => (
                 <TableRow key={task.id || index}>
                   <TableCell>
-                    <code style={{ fontSize: '12px', background: '#f8f9fa', padding: '2px 4px', borderRadius: '3px' }}>
+                    <code
+                      style={{
+                        fontSize: "12px",
+                        background: "#f8f9fa",
+                        padding: "2px 4px",
+                        borderRadius: "3px",
+                      }}
+                    >
                       {task.id || `Task ${index + 1}`}
                     </code>
                   </TableCell>
-                  <TableCell>{task.name || 'Unnamed Task'}</TableCell>
+                  <TableCell>{task.name || "Unnamed Task"}</TableCell>
                   <TableCell>
                     <TaskStatus status={task.state}>
                       {formatTaskStatus(task.state)}
                     </TaskStatus>
                   </TableCell>
-                  <TableCell>{task.tes_url || 'Unknown'}</TableCell>
+                  <TableCell>{task.tes_url || "Unknown"}</TableCell>
                   <TableCell>{formatDate(task.creation_time)}</TableCell>
-                 
+
                   <TableCell>
-                    <ActionButton 
+                    <ActionButton
                       onClick={() => handleViewDetails(task.tes_url, task.id)}
                     >
-                      <Eye size={12} style={{ marginRight: '4px' }} />
+                      <Eye size={12} style={{ marginRight: "4px" }} />
                       Details
                     </ActionButton>
-                    
-                    <ActionButton 
-                      onClick={() => handleViewLogs(task.id)}
-                    >
-                      <FileText size={12} style={{ marginRight: '4px' }} />
-                      Logs
-                    </ActionButton>
-                    
-                    {(task.state === 'RUNNING' || task.state === 'QUEUED') && (
-                      <ActionButton 
+
+                    {(task.state === "RUNNING" || task.state === "QUEUED") && (
+                      <ActionButton
                         variant="danger"
                         onClick={() => handleCancelTask(task.tes_url, task.id)}
                       >
-                        <StopCircle size={12} style={{ marginRight: '4px' }} />
+                        <StopCircle size={12} style={{ marginRight: "4px" }} />
                         Cancel
                       </ActionButton>
                     )}

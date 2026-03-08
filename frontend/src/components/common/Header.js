@@ -41,10 +41,29 @@ const Subtitle = styled.span`
 const StatusIndicator = styled.div`
   display: flex;
   align-items: center;
-  background: rgba(255,255,255,0.1);
-  padding: 8px 15px;
-  border-radius: 20px;
-  margin-left: auto;
+  position: relative;
+`;
+
+const Tooltip = styled.div`
+  visibility: hidden;
+  background: #222;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 6px 12px;
+  position: absolute;
+  z-index: 1;
+  bottom: -40px;
+  right: 0;
+  font-size: 13px;
+  width: 200px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  ${StatusIndicator}:hover & {
+    visibility: visible;
+    opacity: 1;
+  }
 `;
 
 const StatusDot = styled.div`
@@ -149,6 +168,11 @@ const Header = ({ connectionStatus = 'Connected', isConnected = true }) => {
         <StatusIndicator>
           <StatusDot $connected={isConnected} />
           <StatusText>{connectionStatus}</StatusText>
+          <Tooltip>
+            {connectionStatus === 'Connected' && 'The dashboard is connected to the backend API.'}
+            {connectionStatus === 'Connection Failed' && 'The dashboard could not connect to the backend API. Some features may not work.'}
+            {connectionStatus === 'Checking...' && 'Checking backend API connection...'}
+          </Tooltip>
         </StatusIndicator>
       </HeaderActions>
     </HeaderContainer>

@@ -118,7 +118,7 @@ const ApiTest = () => {
 
     // Test 9: All logs
     try {
-      const logs = await logService.getAllLogs();
+      const logs = await logService.getTopologyLogs();
       addResult('logs', true, `Logs loaded: ${logs.length} log sources`);
     } catch (error) {
       addResult('logs', false, `Logs failed: ${error.message}`);
@@ -186,3 +186,4 @@ const ApiTest = () => {
 };
 
 export default ApiTest;
+// Unify ApiTest.js and Utilities.js into 'Dashboard API Test' if not already done. Remove or redirect legacy routes/components. Fix xm.getAllLogs bug if present.

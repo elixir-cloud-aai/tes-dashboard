@@ -36,7 +36,6 @@ const FormCard = styled.div`
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  max-width: 800px;
 `;
 
 const Title = styled.h1`
@@ -217,17 +216,24 @@ const SubmitTask = () => {
     return status === 'healthy' ? '✅' : '❌';
   };
 
+  const getRandomHealthyInstance = () => {
+    const healthyInstances = (allInstances.length > 0 ? allInstances : instances).filter(
+      instance => instance.status === 'healthy'
+    );
+    if (healthyInstances.length === 0) return '';
+    const idx = Math.floor(Math.random() * healthyInstances.length);
+    return healthyInstances[idx].url;
+  };
+
   useEffect(() => {
-    // Auto-select first healthy instance if no instance is selected
+    // Auto-select random healthy instance if no instance is selected
     if (instances.length > 0 && !formData.tes_instance) {
-      // Try to find a healthy instance from allInstances (if available)
-      const healthyInstance = (allInstances.length > 0 ? allInstances : instances).find(
+      const healthyInstances = (allInstances.length > 0 ? allInstances : instances).filter(
         instance => instance.status === 'healthy'
       );
-      
-      // Only set default if a healthy instance exists
-      if (healthyInstance) {
-        setFormData(prev => ({ ...prev, tes_instance: healthyInstance.url }));
+      if (healthyInstances.length > 0) {
+        const idx = Math.floor(Math.random() * healthyInstances.length);
+        setFormData(prev => ({ ...prev, tes_instance: healthyInstances[idx].url }));
       }
     }
   }, [instances, allInstances, formData.tes_instance]);
@@ -269,17 +275,9 @@ const SubmitTask = () => {
   };
  
   const getDemoTaskData = (demoType = 'basic') => { 
-    // Use first healthy instance as default for demos
-    let defaultTesInstance = '';
-    
-    if (instances.length > 0) {
-      const healthyInstance = (allInstances.length > 0 ? allInstances : instances).find(
-        instance => instance.status === 'healthy'
-      );
-      // Only use an instance if it's healthy, otherwise leave empty
-      defaultTesInstance = healthyInstance ? healthyInstance.url : '';
-    }
-    
+    // Use random healthy instance as default for demos
+    let defaultTesInstance = getRandomHealthyInstance();
+   
      const demoTasks = {
       basic: {
         tes_instance: defaultTesInstance,
@@ -309,16 +307,44 @@ const SubmitTask = () => {
         tes_instance: defaultTesInstance,
         task_name: 'Demo File Operations Task',
         docker_image: 'alpine:latest',
-        command: 'echo "Hello World" > /tmp/demo.txt && cat /tmp/demo.txt && ls -lh /tmp/demo.txt',
-        input_url: '',
+        command: 'cat /tmp/input.txt && wc -c /tmp/input.txt > /tmp/output.txt && ls -lh /tmp/input.txt /tmp/output.txt',
+        input_url: 'https://speed.hetzner.de/5MB.bin',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
         disk_gb: '1',
-        description: 'Demonstrates file operations using Alpine Linux.'
+        description: 'Demonstrates file input and output operations using Alpine Linux. Downloads a 5MB file from HTTP, prints its contents, and writes the byte count to output.'
+      },
+      multiExec: {
+        tes_instance: getRandomHealthyInstance(),
+        task_name: 'Demo Multi-Executor Task',
+        docker_image: 'alpine:latest', // Set to first executor's image for form validation
+        command: '', 
+        input_url: 'https://speed.hetzner.de/1MB.bin',
+        output_url: '',
+        cpu_cores: '1',
+        ram_gb: '1',
+        disk_gb: '1',
+        description: 'A demo task with multiple executors to test UI rendering. Each executor runs a different command.',
+        executors: [
+          {
+            image: 'alpine:latest',
+            command: ['echo', 'Executor 1: Hello from Alpine!'],
+            workdir: '/tmp'
+          },
+          {
+            image: 'ubuntu:latest',
+            command: ['echo', 'Executor 2: Hello from Ubuntu!'],
+            workdir: '/tmp'
+          },
+          {
+            image: 'python:3.11-alpine',
+            command: ['python3', '-c', 'print(\'Executor 3: Hello from Python!\')'],
+            workdir: '/tmp'
+          }
+        ]
       }
     };
-    
     
     return demoTasks[demoType] || demoTasks.basic;
   };
@@ -331,7 +357,16 @@ const SubmitTask = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // Multi-Executor validation: every executor must have an image
+    if (formData.executors && Array.isArray(formData.executors)) {
+      const missingImage = formData.executors.some(exec => !exec.image || exec.image.trim() === '');
+      if (missingImage) {
+        setError(new Error('Docker Image is required for every executor in Multi-Executor Demo.'));
+        return;
+      }
+    }
+
     if (!formData.tes_instance || !formData.docker_image) {
       setError(new Error('TES instance and Docker image are required'));
       return;
@@ -352,7 +387,8 @@ const SubmitTask = () => {
         cpu_cores: formData.cpu_cores,
         ram_gb: formData.ram_gb,
         disk_gb: formData.disk_gb,
-        description: formData.description
+        description: formData.description,
+        ...(formData.executors ? { executors: formData.executors } : {})
       };
       
       console.log('Submitting task with data:', submitData);
@@ -438,6 +474,10 @@ const SubmitTask = () => {
             <Button type="button" variant="demo" onClick={() => handleRunDemo('fileops')}>
               <Zap size={16} style={{ marginRight: '8px' }} />
               File Operations
+            </Button>
+            <Button type="button" variant="demo" onClick={() => handleRunDemo('multiExec')}>
+              <Zap size={16} style={{ marginRight: '8px' }} />
+              Multi-Executor Demo
             </Button>
           </div>
         </DemoButtonGroup>

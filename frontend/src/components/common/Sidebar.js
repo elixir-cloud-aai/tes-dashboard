@@ -1,128 +1,191 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
-import { 
-  Home, 
-  Play, 
-  GitBranch, 
-  Activity, 
-  Server,
-  FileText,
-  BarChart3,
-  Wrench
-} from 'lucide-react';
+import React from "react";
+import { NavLink, Link } from "react-router-dom";
+import styled from "styled-components";
+import {
+  ListTodo,
+  Workflow,
+  Network,
+  Activity,
+  ChevronRight,
+  ShieldCheck,
+} from "lucide-react";
 
-const SidebarContainer = styled.nav`
-  width: 250px;
-  min-height: calc(100vh - 80px);
-  background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-  color: white;
-  padding: 20px 0;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+const SidebarContainer = styled.div`
+  width: 260px;
+  background-color: #ffffff;
+  height: 100vh;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 `;
 
-const NavSection = styled.div`
-  margin-bottom: 30px;
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #bdc3c7;
-  margin: 0 20px 15px 20px;
-  font-weight: 600;
-`;
-
-const NavItem = styled(Link)`
+const LogoContainer = styled(Link)`
+  padding: 24px;
   display: flex;
   align-items: center;
-  padding: 12px 20px;
-  color: ${props => props.$isActive ? '#ffffff' : '#bdc3c7'};
+  gap: 12px;
   text-decoration: none;
-  transition: all 0.3s ease;
-  background: ${props => props.$isActive ? 'rgba(52, 152, 219, 0.3)' : 'transparent'};
-  border-right: ${props => props.$isActive ? '3px solid #3498db' : '3px solid transparent'};
-  
-  &:hover {
-    background: rgba(52, 152, 219, 0.2);
-    color: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+`;
+
+const LogoIcon = styled.div`
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+`;
+
+const LogoText = styled.span`
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+`;
+
+const NavContent = styled.div`
+  flex: 1;
+  padding: 24px 16px;
+  overflow-y: auto;
+`;
+
+const SectionLabel = styled.div`
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 24px 0 12px 12px;
+
+  &:first-child {
+    margin-top: 0;
   }
 `;
 
-const NavIcon = styled.div`
-  margin-right: 12px;
+const StyledNavLink = styled(NavLink)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  color: #64748b;
+  text-decoration: none;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 14px;
+
+  & svg {
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+  }
+
+  &.active {
+    background-color: #eff6ff;
+    color: #3b82f6;
+    font-weight: 600;
+
+    & svg {
+      color: #3b82f6;
+    }
+
+    & .chevron {
+      opacity: 1;
+    }
+  }
+`;
+
+const NavItemContent = styled.div`
   display: flex;
   align-items: center;
 `;
 
-const NavText = styled.span`
-  font-size: 14px;
-  font-weight: 500;
+const ChevronIcon = styled(ChevronRight)`
+  width: 14px !important;
+  height: 14px !important;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+`;
+
+const Footer = styled.div`
+  padding: 20px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
 `;
 
 const Sidebar = () => {
-  const location = useLocation();
-  
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
-
   return (
     <SidebarContainer>
-      <NavSection>
-        <SectionTitle>Main</SectionTitle>
-        <NavItem to="/" $isActive={isActive('/')}>
-          <NavIcon><Home size={18} /></NavIcon>
-          <NavText>Dashboard</NavText>
-        </NavItem>
-        
-        <NavItem to="/tasks" $isActive={isActive('/tasks')}>
-          <NavIcon><Play size={18} /></NavIcon>
-          <NavText>Tasks</NavText>
-        </NavItem>
-        
-        <NavItem to="/workflows" $isActive={isActive('/workflows')}>
-          <NavIcon><GitBranch size={18} /></NavIcon>
-          <NavText>Workflows (Snakemake)</NavText>
-        </NavItem>
-      </NavSection>
+      <LogoContainer to="/">
+        <LogoIcon>
+          <Activity size={20} />
+        </LogoIcon>
+        <LogoText>Fedarated Analytics</LogoText>
+      </LogoContainer>
 
-      <NavSection>
-        <SectionTitle>Monitoring</SectionTitle>
-        <NavItem to="/api/service-info" $isActive={isActive('/api/service-info')}>
-          <NavIcon><Server size={18} /></NavIcon>
-          <NavText>Service Info</NavText>
-        </NavItem>
-        
-        <NavItem to="/logs" $isActive={isActive('/logs')}>
-          <NavIcon><FileText size={18} /></NavIcon>
-          <NavText>Logs</NavText>
-        </NavItem>
-        
-        <NavItem to="/topology" $isActive={isActive('/topology')}>
-          <NavIcon><BarChart3 size={18} /></NavIcon>
-          <NavText>Network Topology</NavText>
-        </NavItem>
-      </NavSection>
+      <NavContent>
+        <SectionLabel>Execution</SectionLabel>
+        <StyledNavLink to="/tasks">
+          <NavItemContent>
+            <ListTodo />
+            Tasks
+          </NavItemContent>
+          <ChevronIcon className="chevron" />
+        </StyledNavLink>
 
-      <NavSection>
-        <SectionTitle>Utilities</SectionTitle>
-        <NavItem to="/utilities" $isActive={isActive('/utilities') || isActive('/instances')}>
-          <NavIcon><Wrench size={18} /></NavIcon>
-          <NavText>Utilities & Instances</NavText>
-        </NavItem>
-        
-        <NavItem to="/api-test" $isActive={isActive('/api-test')}>
-          <NavIcon><Activity size={18} /></NavIcon>
-          <NavText>API Test</NavText>
-        </NavItem>
-        
-        <NavItem to="/middleware" $isActive={isActive('/middleware')}>
-          <NavIcon><Server size={18} /></NavIcon>
-          <NavText>Middleware</NavText>
-        </NavItem>
-      </NavSection>
+        <StyledNavLink to="/workflows">
+          <NavItemContent>
+            <Workflow />
+            Workflows
+          </NavItemContent>
+          <ChevronIcon className="chevron" />
+        </StyledNavLink>
+
+        <SectionLabel>Setup</SectionLabel>
+        <StyledNavLink to="/api/service-info">
+          <NavItemContent>
+            <Network />
+            TES Network
+          </NavItemContent>
+          <ChevronIcon className="chevron" />
+        </StyledNavLink>
+
+        <StyledNavLink
+          to="/middleware"
+          style={{ opacity: 0.5, pointerEvents: "none" }}
+        >
+          <NavItemContent>
+            <ShieldCheck />
+            Gateway & Middleware
+          </NavItemContent>
+          <ChevronIcon className="chevron" />
+        </StyledNavLink>
+
+        <SectionLabel>Diagnostics</SectionLabel>
+        <StyledNavLink to="/utilities">
+          <NavItemContent>
+            <Activity />
+            Dashboard API Test
+          </NavItemContent>
+          <ChevronIcon className="chevron" />
+        </StyledNavLink>
+      </NavContent>
+
+      <Footer>proTES v1.0.0</Footer>
     </SidebarContainer>
   );
 };

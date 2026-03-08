@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import api from '../services/api';
+import api, { testConnection, fetchDashboardData } from '../services/api';
+import { taskService } from '../services/taskService';
+import { serviceInfoService } from '../services/serviceInfoService';
+import { workflowService } from '../services/workflowService';
+import { batchService } from '../services/batchService';
+import { mapService } from '../services/mapService';
+import { logService } from '../services/logService';
 import useInstances from '../hooks/useInstances';
 import AuthConfigModal from '../components/auth/AuthConfigModal';
 import { 
@@ -30,7 +36,7 @@ const PageSubtitle = styled.p`
   font-size: 1rem;
 `;
 
-const ServiceStatusSection = styled.div`
+const DiagnosticsSection = styled.div`
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -285,6 +291,16 @@ const ServiceStatus = styled.div`
   text-transform: uppercase;
 `;
 
+const TestResult = styled.div`
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  background: ${props => props.$success ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)'};
+  color: ${props => props.$success ? '#059669' : '#dc2626'};
+  border: 1px solid ${props => props.$success ? 'rgba(5, 150, 105, 0.3)' : 'rgba(220, 38, 38, 0.3)'};
+`;
+
 const Utilities = () => { 
   const [services, setServices] = useState([
     { name: 'Backend API', status: 'healthy', url: '/api/dashboard_data' },
@@ -302,6 +318,10 @@ const Utilities = () => {
   const [instancesError, setInstancesError] = useState(null);
   const [lastStatusUpdate, setLastStatusUpdate] = useState(null);
  
+  // API Test state
+  const [apiTestResults, setApiTestResults] = useState({});
+  const [apiTesting, setApiTesting] = useState(false);
+
   // ✅ NEW: Fetch ALL instances with status
   const loadInstancesWithStatus = useCallback(async () => {
     try {
@@ -360,6 +380,83 @@ const Utilities = () => {
     }
   }, []);
  
+  // Unified API test suite
+  const runApiTests = useCallback(async () => {
+    setApiTesting(true);
+    setApiTestResults({});
+    // Test 1: Basic connection
+    try {
+      await testConnection();
+      setApiTestResults(prev => ({ ...prev, connection: { success: true, message: 'Backend connection successful' } }));
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, connection: { success: false, message: `Connection failed: ${error.message}` } }));
+    }
+    // Test 2: Dashboard data
+    try {
+      const data = await fetchDashboardData();
+      setApiTestResults(prev => ({ ...prev, dashboardData: { success: true, message: `Dashboard data loaded: ${Object.keys(data).join(', ')}`, data } }));
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, dashboardData: { success: false, message: `Dashboard data failed: ${error.message}` } }));
+    }
+    // Test 3: Task service
+    try {
+      const tasks = await taskService.listTasks();
+      setApiTestResults(prev => ({ ...prev, tasks: { success: true, message: `Tasks loaded: ${tasks.length} tasks found` } }));
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, tasks: { success: false, message: `Tasks failed: ${error.message}` } }));
+    }
+    // Test 4: Service info
+    try {
+      const dashboardData = await fetchDashboardData();
+      const tesInstances = dashboardData.tes_instances || [];
+      if (tesInstances.length > 0) {
+        const testUrl = tesInstances[0].url;
+        await serviceInfoService.getServiceInfo(testUrl);
+        setApiTestResults(prev => ({ ...prev, serviceInfo: { success: true, message: 'Service info loaded successfully' } }));
+      } else {
+        setApiTestResults(prev => ({ ...prev, serviceInfo: { success: false, message: 'No TES instances available to test' } }));
+      }
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, serviceInfo: { success: false, message: `Service info failed: ${error.message}` } }));
+    }
+    // Test 5: TES locations
+    try {
+      const locations = await mapService.getTesLocations();
+      setApiTestResults(prev => ({ ...prev, tesLocations: { success: true, message: `TES locations loaded: ${locations.length} locations` } }));
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, tesLocations: { success: false, message: `TES locations failed: ${error.message}` } }));
+    }
+    // Test 6: Batch runs
+    try {
+      const runs = await batchService.getBatchRuns();
+      setApiTestResults(prev => ({ ...prev, batchRuns: { success: true, message: `Batch runs loaded: ${runs.length} runs` } }));
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, batchRuns: { success: false, message: `Batch runs failed: ${error.message}` } }));
+    }
+    // Test 7: Workflow runs
+    try {
+      const runs = await workflowService.getWorkflowRuns();
+      setApiTestResults(prev => ({ ...prev, workflowRuns: { success: true, message: `Workflow runs loaded: ${runs.length} runs` } }));
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, workflowRuns: { success: false, message: `Workflow runs failed: ${error.message}` } }));
+    }
+    // Test 8: All logs
+    try {
+      const logs = await logService.getTopologyLogs();
+      setApiTestResults(prev => ({ ...prev, logs: { success: true, message: `Logs loaded: ${logs.length} log sources` } }));
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, logs: { success: false, message: `Logs failed: ${error.message}` } }));
+    }
+    // Test 9: Nodes
+    try {
+      const response = await api.get('/api/nodes');
+      setApiTestResults(prev => ({ ...prev, nodes: { success: true, message: `Nodes loaded: ${response.data.length} nodes` } }));
+    } catch (error) {
+      setApiTestResults(prev => ({ ...prev, nodes: { success: false, message: `Nodes failed: ${error.message}` } }));
+    }
+    setApiTesting(false);
+  }, []);
+
   const testInstanceConnection = async (url) => {
     const instance = tesInstances.find(inst => inst.url === url);
     const instanceName = instance?.name || url;
@@ -423,25 +520,33 @@ const Utilities = () => {
     return () => clearInterval(interval); 
   }, [checkServiceStatus, loadInstancesWithStatus]); 
 
+  useEffect(() => {
+    runApiTests();
+  }, [runApiTests]);
+
   return (
     <UtilitiesContainer>
       <PageHeader>
-        <PageTitle>Utilities & Instance Management</PageTitle>
-        <PageSubtitle>System monitoring and TES instance management with real-time status checking</PageSubtitle>
+        <PageTitle>Diagnostics</PageTitle>
+        <PageSubtitle>System diagnostics and API endpoint testing</PageSubtitle>
       </PageHeader>
  
-      <ServiceStatusSection>
+      <DiagnosticsSection>
         <SectionHeader>
           <div>
-            <SectionTitle>Service Status</SectionTitle>
+            <SectionTitle>API Diagnostics</SectionTitle>
             <SectionDescription>
-              Current status of core system services
+              Current status of core system services and API endpoints
             </SectionDescription>
           </div>
           <HeaderActions>
             <ActionButton onClick={checkServiceStatus}>
               <RotateCcw size={16} />
-              Refresh
+              Refresh Service Status
+            </ActionButton>
+            <ActionButton onClick={runApiTests} disabled={apiTesting}>
+              <Play size={16} />
+              {apiTesting ? 'Testing...' : 'Run API Tests'}
             </ActionButton>
             {lastChecked && (
               <LastUpdateIndicator>
@@ -452,6 +557,7 @@ const Utilities = () => {
           </HeaderActions>
         </SectionHeader>
 
+        {/* Service Status Results */}
         {servicesLoading ? (
           <LoadingState>Checking service status...</LoadingState>
         ) : servicesError ? (
@@ -469,7 +575,7 @@ const Utilities = () => {
             ))}
           </ServiceGrid>
         )}
-      </ServiceStatusSection>
+      </DiagnosticsSection>
  
       <TESInstancesSection>
         <SectionHeader>
@@ -573,6 +679,25 @@ const Utilities = () => {
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
       />
+      {/* API Test Results */}
+        <div style={{ marginTop: '2rem' }}>
+          <SectionTitle>API Endpoint Checks</SectionTitle>
+          {Object.entries(apiTestResults).map(([test, result]) => (
+            <div key={test} style={{ marginBottom: '1rem' }}>
+              <TestResult $success={result.success} $error={!result.success}>
+                <strong>{result.success ? '✅' : '❌'} {test.charAt(0).toUpperCase() + test.slice(1)}:</strong> {result.message}
+                {result.data && (
+                  <details>
+                    <summary>Show Data</summary>
+                    <pre style={{ background: '#f5f5f5', padding: '10px', borderRadius: '4px', fontSize: '12px' }}>
+                      {JSON.stringify(result.data, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </TestResult>
+            </div>
+          ))}
+        </div>
     </UtilitiesContainer>
   );
 };

@@ -6,19 +6,20 @@ import { AuthConfigProvider } from './contexts/AuthConfigContext';
 import Header from './components/common/Header';
 import Sidebar from './components/common/Sidebar';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import TaskDetails from './pages/TaskDetails';
 import SubmitTask from './pages/SubmitTask';
 import Workflows from './pages/Workflows';
 import ServiceInfo from './pages/ServiceInfo';
-import Logs from './pages/Logs';
 import NetworkTopology from './pages/NetworkTopology';
 import NodeManagement from './pages/NodeManagement';
 import Utilities from './pages/Utilities';
 import ApiTest from './pages/ApiTest';
 import { testConnection } from './services/api';
 import MiddlewareManager from './components/MiddlewareManager';
+import WorkflowDetails from './pages/WorkflowDetails';
+import Dashboard from './pages/Dashboard';
+import SubmitWorkflow from './pages/SubmitWorkflow';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -67,13 +68,13 @@ function App() {
               <ContentArea>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/task-details" element={<TaskDetails />} />
                   <Route path="/submit-task" element={<SubmitTask />} />
                   <Route path="/workflows" element={<Workflows />} />
+                  <Route path="/workflows/details/:runId" element={<WorkflowDetails />} />
+                  <Route path="/submit-workflow" element={<SubmitWorkflow />} />
                   <Route path="/api/service-info" element={<ServiceInfo />} />
-                  <Route path="/logs" element={<Logs />} />
                   <Route path="/topology" element={<NetworkTopology />} />
                   <Route path="/utilities" element={<Utilities />} />
                   <Route path="/instances" element={<Navigate to="/utilities" replace />} />
