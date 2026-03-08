@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { taskService } from "../services/taskService";
-import usePolling from "../hooks/usePolling";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import ErrorMessage from "../components/common/ErrorMessage";
 import {
@@ -10,7 +9,7 @@ import {
   formatTaskStatus,
   formatDuration,
 } from "../utils/formatters";
-import { TASK_STATE_COLORS, POLLING_INTERVALS } from "../utils/constants";
+import { TASK_STATE_COLORS } from "../utils/constants";
 import {
   StopCircle,
   RefreshCw,
@@ -227,25 +226,102 @@ const EmptyState = styled.div`
   color: #666;
 `;
 
+const sortTasks = (tasks, sortColumn, sortDirection) => {
+  const sorted = [...tasks].sort((a, b) => {
+    let aValue, bValue;
+    switch (sortColumn) {
+      case "id":
+        aValue = a.id || "";
+        bValue = b.id || "";
+        break;
+      case "name":
+        aValue = (a.name || "").toLowerCase();
+        bValue = (b.name || "").toLowerCase();
+        break;
+      case "state":
+        aValue = a.state || "";
+        bValue = b.state || "";
+        break;
+      case "tes_name":
+        aValue = (a.tes_name || a.tes_url || "").toLowerCase();
+        bValue = (b.tes_name || b.tes_url || "").toLowerCase();
+        break;
+      case "creation_time":
+        aValue = a.creation_time ? new Date(a.creation_time).getTime() : 0;
+        bValue = b.creation_time ? new Date(b.creation_time).getTime() : 0;
+        break;
+      default:
+        return 0;
+    }
+    if (aValue < bValue) {
+      return sortDirection === "asc" ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortDirection === "asc" ? 1 : -1;
+    }
+    return 0;
+  });
+  return sorted;
+};
+
 const Tasks = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [sortColumn, setSortColumn] = useState("creation_time");
   const [sortDirection, setSortDirection] = useState("desc"); // 'asc' or 'desc'
+  const [tasksData, setTasksData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const {
-    data: tasksData,
-    loading,
-    error,
-    refetch,
-  } = usePolling(taskService.listTasks, POLLING_INTERVALS.NORMAL);
+  const fetchTasks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await taskService.listTasks();
+      setTasksData(data?.tasks || data || []);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  useEffect(() => {
+    let allTasks = [];
+    if (tasksData && Array.isArray(tasksData)) {
+      allTasks = tasksData;
+    } else if (tasksData?.tasks && Array.isArray(tasksData.tasks)) {
+      allTasks = tasksData.tasks;
+    }
+    const healthyTasks = allTasks.filter((task) => {
+      return task && task.id && task.tes_url && task.state;
+    });
+    // Apply search filter
+    let tasksToDisplay = healthyTasks;
+    if (searchTerm) {
+      tasksToDisplay = healthyTasks.filter(
+        (task) =>
+          task.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.state?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.tes_url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.tes_name?.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+    // Apply sorting
+    const sorted = sortTasks(tasksToDisplay, sortColumn, sortDirection);
+    setFilteredTasks(sorted);
+  }, [tasksData, searchTerm, sortColumn, sortDirection]);
 
   const handleSort = (column) => {
     if (sortColumn === column) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
-      // Set new column with ascending as default
       setSortColumn(column);
       setSortDirection("asc");
     }
@@ -270,57 +346,11 @@ const Tasks = () => {
     );
   };
 
-  const sortTasks = useCallback(
-    (tasks) => {
-      const sorted = [...tasks].sort((a, b) => {
-        let aValue, bValue;
-
-        switch (sortColumn) {
-          case "id":
-            aValue = a.id || "";
-            bValue = b.id || "";
-            break;
-          case "name":
-            aValue = (a.name || "").toLowerCase();
-            bValue = (b.name || "").toLowerCase();
-            break;
-          case "state":
-            aValue = a.state || "";
-            bValue = b.state || "";
-            break;
-          case "tes_name":
-            aValue = (a.tes_name || a.tes_url || "").toLowerCase();
-            bValue = (b.tes_name || b.tes_url || "").toLowerCase();
-            break;
-          case "creation_time":
-            // Parse dates for comparison
-            aValue = a.creation_time ? new Date(a.creation_time).getTime() : 0;
-            bValue = b.creation_time ? new Date(b.creation_time).getTime() : 0;
-            break;
-          default:
-            return 0;
-        }
-
-        // Handle comparison
-        if (aValue < bValue) {
-          return sortDirection === "asc" ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortDirection === "asc" ? 1 : -1;
-        }
-        return 0;
-      });
-
-      return sorted;
-    },
-    [sortColumn, sortDirection],
-  );
-
   const handleCancelTask = async (tesUrl, taskId) => {
     if (window.confirm("Are you sure you want to cancel this task?")) {
       try {
         await taskService.cancelTask(tesUrl, taskId);
-        refetch();
+        fetchTasks();
       } catch (error) {
         console.error("Error canceling task:", error);
         let msg = "Failed to cancel task: ";
@@ -344,34 +374,6 @@ const Tasks = () => {
     );
   };
 
-  useEffect(() => {
-    let allTasks = [];
-    if (tasksData?.tasks && Array.isArray(tasksData.tasks)) {
-      allTasks = tasksData.tasks;
-    } else if (Array.isArray(tasksData)) {
-      allTasks = tasksData;
-    }
-    const healthyTasks = allTasks.filter((task) => {
-      return task && task.id && task.tes_url && task.state;
-    });
-
-    // Apply search filter
-    let tasksToDisplay = healthyTasks;
-    if (searchTerm) {
-      tasksToDisplay = healthyTasks.filter(
-        (task) =>
-          task.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          task.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          task.state?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          task.tes_url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          task.tes_name?.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-    }
-    // Apply sorting
-    const sortedTasks = sortTasks(tasksToDisplay);
-    setFilteredTasks(sortedTasks);
-  }, [tasksData, searchTerm, sortTasks]);
-
   return (
     <PageContainer>
       <PageHeader>
@@ -383,18 +385,12 @@ const Tasks = () => {
             </ButtonIcon>
             Submit Task
           </Button>
-          <Button variant="primary" onClick={refetch} disabled={loading}>
+          <Button variant="primary" onClick={fetchTasks} disabled={loading}>
             <ButtonIcon>
               <RefreshCw size={16} className={loading ? "spin" : ""} />
             </ButtonIcon>
             Refresh
           </Button>
-          {loading && (
-            <span style={{ marginLeft: 12, color: '#64748b', fontSize: 14, display: 'flex', alignItems: 'center' }}>
-              <LoadingSpinner size={18} text="" />
-              <span style={{ marginLeft: 6 }}>Refreshing…</span>
-            </span>
-          )}
         </ButtonGroup>
       </PageHeader>
 
