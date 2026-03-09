@@ -81,34 +81,34 @@ def update_single_task_status(task):
         return False
     
     new_state = task_data.get('state', 'UNKNOWN')
+    terminal_states_with_end = ['COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED', 'SUBMISSION_ERROR']
+    now_iso = datetime.now(timezone.utc).isoformat()
     
     with task_update_lock:
         for t in submitted_tasks:
             if (t.get('task_id') == task_id or t.get('id') == task_id) and t.get('tes_url') == tes_url:
                 old_state = t.get('state') or t.get('status', 'UNKNOWN')
-                
                 t['state'] = new_state
                 t['status'] = new_state
-                
                 if task_data.get('creation_time'):
                     t['creation_time'] = task_data['creation_time']
                 if task_data.get('start_time'):
                     t['start_time'] = task_data['start_time']
-                if task_data.get('end_time'):
-                    t['end_time'] = task_data['end_time']
-                
+                # Set end_time if in terminal state and not already set
+                if new_state in terminal_states_with_end:
+                    if not task_data.get('end_time') and not t.get('end_time'):
+                        t['end_time'] = now_iso
+                    elif task_data.get('end_time'):
+                        t['end_time'] = task_data['end_time']
                 if task_data.get('logs'):
                     t['logs'] = task_data['logs']
-                
                 if new_state != old_state:
                     print(f"Updated task {task_id}: {old_state} -> {new_state}")
                     return True
-                elif new_state in ['COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED']:
+                elif new_state in terminal_states_with_end:
                     print(f"Verified task {task_id} in terminal state: {new_state}")
                     return True
-                
                 return False
-                
     return False
 
 def update_task_statuses():

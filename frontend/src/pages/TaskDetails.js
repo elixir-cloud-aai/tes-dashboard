@@ -443,7 +443,19 @@ const TaskDetails = () => {
             <InfoRow>
               <InfoLabel>End Time:</InfoLabel>
               <InfoValue>
-                {formatDate(taskJson.end_time || taskDetails.task?.end_time) || "N/A"}
+                {(() => {
+                  const endTimeRaw = taskJson.end_time || taskDetails.task?.end_time;
+                  const state = (taskJson.state || taskDetails.task?.status || taskDetails.task?.state || "").toUpperCase();
+                  const completedStates = ["COMPLETE", "CANCELED", "CANCELLED", "EXECUTOR_ERROR", "SYSTEM_ERROR", "UNKNOWN", "FAILED", "ERROR"]; // add more as needed
+                  if (endTimeRaw && endTimeRaw !== null && endTimeRaw !== undefined && endTimeRaw !== "") {
+                    return formatDate(endTimeRaw);
+                  } else if (completedStates.includes(state)) {
+                    // fallback: show last fetched time as end time if task is completed but end_time is missing
+                    return formatDate(taskDetails.fetch_timestamp) + " (inferred)";
+                  } else {
+                    return "N/A";
+                  }
+                })()}
               </InfoValue>
             </InfoRow>
             {taskDetails.comprehensive_metadata?.duration_seconds && (
@@ -470,26 +482,44 @@ const TaskDetails = () => {
           </ContentCard>
           {/* Full JSON view only in Full view */}
           {viewLevel === "Full" && (
-            <LogsSection>
-              <ContentCard>
-                <CardTitle>
-                  Complete Task JSON [{jsonKeyCount}]
-                </CardTitle>
-                <div style={{ marginBottom: "15px", display: "flex", gap: "10px", alignItems: "center" }}>
-                  <Badge color={taskDetails.source === "tes_instance" ? "#28a745" : "#6f42c1"}>
-                    {taskDetails.source === "tes_instance" ? "TES Instance API" : "Dashboard Submission"}
-                  </Badge>
-                  {taskDetails.tes_endpoint && (
-                    <span style={{ fontSize: "12px", color: "#999" }}>
-                      Endpoint: {taskDetails.tes_endpoint}
-                    </span>
+            <>
+              <LogsSection>
+                <ContentCard>
+                  <CardTitle>
+                    Complete Task JSON [{jsonKeyCount}]
+                  </CardTitle>
+                  <div style={{ marginBottom: "15px", display: "flex", gap: "10px", alignItems: "center" }}>
+                    <Badge color={taskDetails.source === "tes_instance" ? "#28a745" : "#6f42c1"}>
+                      {taskDetails.source === "tes_instance" ? "TES Instance API" : "Dashboard Submission"}
+                    </Badge>
+                    {taskDetails.tes_endpoint && (
+                      <span style={{ fontSize: "12px", color: "#999" }}>
+                        Endpoint: {taskDetails.tes_endpoint}
+                      </span>
+                    )}
+                  </div>
+                  <JsonContainer>
+                    {JSON.stringify(taskJson, null, 2)}
+                  </JsonContainer>
+                </ContentCard>
+              </LogsSection>
+              {/* Logs section below JSON */}
+              <LogsSection>
+                <ContentCard>
+                  <CardTitle>Task Logs</CardTitle>
+                  {Array.isArray(logs) && logs.length > 0 ? (
+                    logs.map((log, idx) => (
+                      <div key={idx} style={{ marginBottom: 16 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Log #{idx + 1}</div>
+                        <JsonContainer>{JSON.stringify(log, null, 2)}</JsonContainer>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: '#888', fontSize: 14 }}>No logs available for this task.</div>
                   )}
-                </div>
-                <JsonContainer>
-                  {JSON.stringify(taskJson, null, 2)}
-                </JsonContainer>
-              </ContentCard>
-            </LogsSection>
+                </ContentCard>
+              </LogsSection>
+            </>
           )}
         </ContentGrid>
       )}
