@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Info, Server, Database, Code, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Info, Server, Database, Code, AlertTriangle, CheckCircle, AlertCircle, Play, ExternalLink, Globe, Clock, RotateCcw, Shield } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { serviceInfoService } from '../services/serviceInfoService';
-import { TES_INSTANCES } from '../utils/constants';
+import api from '../services/api';
+import AuthConfigModal from '../components/auth/AuthConfigModal';
+import useInstances from '../hooks/useInstances';
 
 const ServiceInfoContainer = styled.div`
   padding: 2rem;
@@ -13,12 +15,7 @@ const ServiceInfoContainer = styled.div`
 
 const Header = styled.div`
   margin-bottom: 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
-
-const HeaderLeft = styled.div``;
 
 const Title = styled.h1`
   font-size: 2rem;
@@ -30,58 +27,6 @@ const Title = styled.h1`
 const Subtitle = styled.p`
   color: #4b5563;
   font-size: 1rem;
-`;
-
-const InstanceSelector = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
-  background: white;
-  color: #374151;
-  min-width: 300px;
-
-  &:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  }
-`;
-
-const RefreshButton = styled.button`
-  background: #2563eb;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #1d4ed8;
-  }
-
-  &:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-  }
-
-  svg.spinning {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
 `;
 
 const ServiceInfoCard = styled.div`
@@ -152,14 +97,6 @@ const InfoValue = styled.span`
   word-break: break-all;
 `;
 
-
-
-const NoDataMessage = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: #6b7280;
-`;
-
 const ErrorCard = styled.div`
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -172,98 +109,130 @@ const ErrorCard = styled.div`
   color: #dc2626;
 `;
 
+const InstanceList = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const InstanceItem = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+  border-left: 4px solid transparent;
+  background: ${({ $status }) =>
+    $status === 'healthy' ? 'rgba(16, 185, 129, 0.06)' :
+    $status === 'unreachable' ? 'rgba(251, 191, 36, 0.08)' :
+    $status === 'error' ? 'rgba(254, 202, 202, 0.12)' :
+    '#fff'};
+  border-left-color: ${({ $status }) =>
+    $status === 'healthy' ? '#059669' :
+    $status === 'unreachable' ? '#f59e42' :
+    $status === 'error' ? '#dc2626' :
+    'transparent'};
+  &:last-child { border-bottom: none; }
+  &:hover { background-color: #f3f4f6; }
+`;
+
+const InstanceInfo = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const InstanceHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const InstanceName = styled.h3`
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+`;
+
+const StatusBadge = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: ${({ $status }) =>
+    $status === 'healthy' ? 'rgba(16, 185, 129, 0.15)' :
+    $status === 'unreachable' ? 'rgba(251, 191, 36, 0.18)' :
+    $status === 'error' ? 'rgba(254, 202, 202, 0.18)' :
+    '#f3f4f6'};
+  color: ${({ $status }) =>
+    $status === 'healthy' ? '#059669' :
+    $status === 'unreachable' ? '#b45309' :
+    $status === 'error' ? '#dc2626' :
+    '#6b7280'};
+  border: 1px solid
+    ${({ $status }) =>
+      $status === 'healthy' ? 'rgba(16, 185, 129, 0.3)' :
+      $status === 'unreachable' ? 'rgba(251, 191, 36, 0.4)' :
+      $status === 'error' ? 'rgba(254, 202, 202, 0.4)' :
+      '#e5e7eb'};
+`;
+
+const SectionHeader = styled.div`
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const LastUpdateIndicator = styled.div`
+  font-size: 0.875rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
 const ServiceInfo = () => {
-  const [selectedInstance, setSelectedInstance] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [serviceInfo, setServiceInfo] = useState(null);
-  const [tesInstances, setTesInstances] = useState([]);
-  const [loadingInstances, setLoadingInstances] = useState(true);
- 
-  useEffect(() => {
-    loadTesInstances();
-  }, []);
- 
-  useEffect(() => {
-    if (tesInstances.length > 0 && !selectedInstance) {
-      setSelectedInstance(tesInstances[0].url);
-    }
-  }, [tesInstances, selectedInstance]);
+  // Use the custom hook for instance state and refresh
+  const {
+    allInstances: tesInstances,
+    loading,
+    error: instancesError,
+    lastUpdate,
+    refresh
+  } = useInstances();
+  const [detailsInstance, setDetailsInstance] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
+  const [detailsInfo, setDetailsInfo] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Auto-load service info when instance is selected
-  useEffect(() => {
-    if (selectedInstance) {
-      loadServiceInfo();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedInstance]);
- 
-  const loadTesInstances = async () => {
+  const handleShowDetails = async (instance) => {
+    setDetailsInstance(instance);
+    setDetailsLoading(true);
+    setDetailsError("");
+    setDetailsInfo(null);
     try {
-      setLoadingInstances(true);
-      
-      // Get only healthy/working instances
-      const healthyResponse = await serviceInfoService.getHealthyInstances();
-      const healthyInstances = healthyResponse.instances || [];
-      
-      if (healthyInstances && healthyInstances.length > 0) {
-        // Map to the format we need
-        const instances = healthyInstances.map(instance => ({
-          name: instance.name,
-          url: instance.url,
-          id: instance.url.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
-        }));
-        setTesInstances(instances);
-      } else {
-        // Fallback to all instances if no healthy instances found
-        const allInstances = await serviceInfoService.getTesInstances();
-        if (allInstances && allInstances.length > 0) {
-          setTesInstances(allInstances);
-        } else {
-          setTesInstances(TES_INSTANCES);
-        }
-      }
+      const info = await serviceInfoService.getServiceInfo(instance.url);
+      setDetailsInfo(info);
     } catch (err) {
-      console.error('Failed to load healthy instances:', err);
-      
-      // Fallback to all instances
-      try {
-        const allInstances = await serviceInfoService.getTesInstances();
-        setTesInstances(allInstances || TES_INSTANCES);
-      } catch {
-        setTesInstances(TES_INSTANCES);
-      }
+      setDetailsError("Failed to load service info");
     } finally {
-      setLoadingInstances(false);
-    }
-  };
-
-  const loadServiceInfo = async () => {
-    if (!selectedInstance) return;
-
-    try {
-      setLoading(true);
-      setError('');
-      const info = await serviceInfoService.getServiceInfo(selectedInstance);
-       
-      // Show a warning if there's an error flag, but still display the info
-      if (info.error || info.auth_required) { 
-        if (info.auth_required) {
-          setError(`ℹ️ Authentication Required: This TES instance requires authentication for detailed service information.`);
-        } else if (info.error_message) {
-          setError(`⚠️ Limited Information: ${info.error_message}`);
-        } else {
-          setError(`⚠️ Could not retrieve complete service information.`);
-        }
-      }
-      
-      setServiceInfo(info);
-    } catch (err) {
-      console.error('Unexpected error fetching service info:', err);
-      setError('❌ An unexpected error occurred while fetching service information. Please try again.');
-      setServiceInfo(null);
-    } finally {
-      setLoading(false);
+      setDetailsLoading(false);
     }
   };
 
@@ -297,111 +266,135 @@ const ServiceInfo = () => {
     return { basicInfo, apiInfo, storageInfo };
   };
 
-  const selectedInstanceName = tesInstances.find(i => i.url === selectedInstance)?.name || 'Unknown';
-
   return (
     <ServiceInfoContainer>
       <Header>
-        <HeaderLeft>
-          <Title>Service Information</Title>
-          <Subtitle>View detailed information about TES service instances</Subtitle>
-        </HeaderLeft>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <InstanceSelector
-            value={selectedInstance}
-            onChange={(e) => setSelectedInstance(e.target.value)}
-            disabled={loadingInstances}
-          >
-            {loadingInstances ? (
-              <option value="">Loading instances...</option>
-            ) : (
-              <>
-                <option value="">Select TES Instance</option>
-                {tesInstances.map((instance, idx) => (
-                  <option key={idx} value={instance.url}>
-                    {instance.name}
-                  </option>
-                ))}
-              </>
-            )}
-          </InstanceSelector>
-          <RefreshButton onClick={loadServiceInfo} disabled={loading || !selectedInstance} title="Refresh service information">
-            <RefreshCw size={16} className={loading ? 'spinning' : ''} />
-            Refresh
-          </RefreshButton>
-        </div>
+        <Title>TES Instance Management</Title>
+        <Subtitle>Monitor and manage TES instances with real-time status checking. Status updates every hour.</Subtitle>
       </Header>
-
-      {error && (
-        <ErrorCard>
-          <AlertTriangle size={16} />
-          <div>{error}</div>
-        </ErrorCard>
+      <SectionHeader>
+        <div>
+          <SectionTitle>TES Instances</SectionTitle>
+          <LastUpdateIndicator>
+            <Clock size={14} />
+            Last updated: {lastUpdate ? new Date(lastUpdate).toLocaleTimeString() : 'Never'}
+          </LastUpdateIndicator>
+        </div>
+        <HeaderActions>
+          <button onClick={() => setShowAuthModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', padding: '0.5rem 1rem', fontWeight: 500, cursor: 'pointer' }}>
+            <Shield size={16} />
+            Configure Auth
+          </button>
+          <button onClick={refresh} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', color: '#2563eb', border: '1px solid #2563eb', borderRadius: '6px', padding: '0.5rem 1rem', fontWeight: 500, cursor: 'pointer' }}>
+            <RotateCcw size={16} />
+            Refresh Status
+          </button>
+        </HeaderActions>
+      </SectionHeader>
+      {loading ? (
+        <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Loading TES instances...</div>
+      ) : instancesError ? (
+        <div style={{ padding: '3rem', textAlign: 'center', color: '#dc2626', background: '#fef2f2' }}>{instancesError}</div>
+      ) : (
+        <InstanceList>
+          {tesInstances.map((instance, index) => (
+            <React.Fragment key={instance.id || `${instance.name}-${instance.url}-${index}`}>
+              <InstanceItem $status={instance.status}>
+                <InstanceInfo>
+                  <InstanceHeader>
+                    <InstanceName>{instance.name}</InstanceName>
+                    <StatusBadge $status={instance.status}>
+                      {instance.status === 'healthy' ? <CheckCircle size={14} /> : instance.status === 'unreachable' ? <AlertCircle size={14} color="#f59e42" /> : <AlertCircle size={14} color="#dc2626" />}
+                      {instance.status}
+                    </StatusBadge>
+                  </InstanceHeader>
+                  <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{instance.url}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                    <Clock size={14} />
+                    Last checked: {instance.lastChecked ? new Date(instance.lastChecked).toLocaleString() : 'Never'}
+                  </div>
+                  {instance.country && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                      <Globe size={14} />
+                      {instance.country}
+                    </div>
+                  )}
+                  {instance.responseTime && (
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                      Response time: {instance.responseTime}ms
+                    </div>
+                  )}
+                  {instance.error && (
+                    <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', background: '#fef2f2', padding: '4px 8px', borderRadius: '4px' }}>
+                      Error: {instance.error}
+                    </div>
+                  )}
+                </InstanceInfo>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {instance.status === 'healthy' && (
+                    <button onClick={() => handleShowDetails(instance)} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #2563eb', background: '#2563eb', color: 'white', cursor: 'pointer' }}>Details</button>
+                  )}
+                  <button onClick={() => window.open(instance.url, '_blank')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', color: '#374151', cursor: 'pointer' }}>Open</button>
+                </div>
+              </InstanceItem>
+              {detailsInstance && detailsInstance.url === instance.url && (
+                <ServiceInfoCard>
+                  <SectionTitle>
+                    Service Information - {detailsInstance.name}
+                  </SectionTitle>
+                  {detailsLoading ? (
+                    <div style={{ padding: '2rem', textAlign: 'center' }}>Fetching service information...</div>
+                  ) : detailsError ? (
+                    <div style={{ padding: '1rem', color: '#dc2626', background: '#fef2f2', borderRadius: '8px' }}>{detailsError}</div>
+                  ) : detailsInfo ? (
+                    (() => {
+                      const formattedInfo = formatServiceInfo(detailsInfo);
+                      return (
+                        <InfoGrid>
+                          <InfoSection>
+                            <InfoSectionTitle>
+                              Basic Information
+                            </InfoSectionTitle>
+                            {Object.entries(formattedInfo.basicInfo).map(([key, value]) => (
+                              <InfoItem key={key}>
+                                <InfoLabel>{key}</InfoLabel>
+                                <InfoValue>{value}</InfoValue>
+                              </InfoItem>
+                            ))}
+                          </InfoSection>
+                          <InfoSection>
+                            <InfoSectionTitle>
+                              API Information
+                            </InfoSectionTitle>
+                            {Object.entries(formattedInfo.apiInfo).map(([key, value]) => (
+                              <InfoItem key={key}>
+                                <InfoLabel>{key}</InfoLabel>
+                                <InfoValue>{value}</InfoValue>
+                              </InfoItem>
+                            ))}
+                          </InfoSection>
+                          <InfoSection>
+                            <InfoSectionTitle>
+                              Storage Information
+                            </InfoSectionTitle>
+                            {Object.entries(formattedInfo.storageInfo).map(([key, value]) => (
+                              <InfoItem key={key}>
+                                <InfoLabel>{key}</InfoLabel>
+                                <InfoValue>{value}</InfoValue>
+                              </InfoItem>
+                            ))}
+                          </InfoSection>
+                        </InfoGrid>
+                      );
+                    })()
+                  ) : null}
+                </ServiceInfoCard>
+              )}
+            </React.Fragment>
+          ))}
+        </InstanceList>
       )}
-
-      {selectedInstance && (
-        <ServiceInfoCard>
-          <SectionTitle>
-            <Info size={20} />
-            Service Information - {selectedInstanceName}
-          </SectionTitle>
-
-          {loading ? (
-            <LoadingSpinner text="Fetching service information..." />
-          ) : serviceInfo ? (
-            (() => {
-              const formattedInfo = formatServiceInfo(serviceInfo);
-              return (
-                <InfoGrid>
-                  <InfoSection>
-                    <InfoSectionTitle>
-                      <Server size={16} />
-                      Basic Information
-                    </InfoSectionTitle>
-                    {Object.entries(formattedInfo.basicInfo).map(([key, value]) => (
-                      <InfoItem key={key}>
-                        <InfoLabel>{key}</InfoLabel>
-                        <InfoValue>{value}</InfoValue>
-                      </InfoItem>
-                    ))}
-                  </InfoSection>
-
-                  <InfoSection>
-                    <InfoSectionTitle>
-                      <Code size={16} />
-                      API Information
-                    </InfoSectionTitle>
-                    {Object.entries(formattedInfo.apiInfo).map(([key, value]) => (
-                      <InfoItem key={key}>
-                        <InfoLabel>{key}</InfoLabel>
-                        <InfoValue>{value}</InfoValue>
-                      </InfoItem>
-                    ))}
-                  </InfoSection>
-
-                  <InfoSection>
-                    <InfoSectionTitle>
-                      <Database size={16} />
-                      Storage Information
-                    </InfoSectionTitle>
-                    {Object.entries(formattedInfo.storageInfo).map(([key, value]) => (
-                      <InfoItem key={key}>
-                        <InfoLabel>{key}</InfoLabel>
-                        <InfoValue>{value}</InfoValue>
-                      </InfoItem>
-                    ))}
-                  </InfoSection>
-                </InfoGrid>
-              );
-            })()
-          ) : !error ? (
-            <NoDataMessage>
-              Click "Refresh" to load service information for this instance
-            </NoDataMessage>
-          ) : null}
-
-        </ServiceInfoCard>
-      )}
+      <AuthConfigModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </ServiceInfoContainer>
   );
 };

@@ -577,7 +577,7 @@ const Utilities = () => {
         )}
       </DiagnosticsSection>
  
-      <TESInstancesSection>
+      {/* <TESInstancesSection>
         <SectionHeader>
           <div>
             <SectionTitle>TES Instance Management</SectionTitle>
@@ -673,7 +673,7 @@ const Utilities = () => {
             )}
           </InstanceList>
         )}
-      </TESInstancesSection>
+      </TESInstancesSection> */}
       
       <AuthConfigModal 
         isOpen={showAuthModal} 
