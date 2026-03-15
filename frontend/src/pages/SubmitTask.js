@@ -277,13 +277,12 @@ const SubmitTask = () => {
   };
 
   useEffect(() => {
-    // On mount, select a random healthy instance if available
+    // On mount, select the first healthy instance if available
     const healthyInstances = (allInstances.length > 0 ? allInstances : instances).filter(
       (inst) => String(inst.status).toLowerCase() === 'healthy'
     );
     if (healthyInstances.length > 0 && !formData.tes_instance) {
-      const random = healthyInstances[Math.floor(Math.random() * healthyInstances.length)];
-      setFormData((prev) => ({ ...prev, tes_instance: random.url }));
+      setFormData((prev) => ({ ...prev, tes_instance: healthyInstances[0].url }));
     }
     // eslint-disable-next-line
   }, [allInstances, instances]);
@@ -631,15 +630,15 @@ const SubmitTask = () => {
         {error && (
           <>
             <ErrorMessage error={error} title="Task Submission Failed" />
-            <div style={{marginTop:8, fontSize:'13px', color:'#6b7280', background:'#f3f4f6', borderRadius:4, padding:'8px 12px'}}>
+            {/* <div style={{marginTop:8, fontSize:'13px', color:'#6b7280', background:'#f3f4f6', borderRadius:4, padding:'8px 12px'}}>
               <strong>What is the difference between <code>state</code> and <code>status</code>?</strong><br/>
               <ul style={{margin:'6px 0 0 18px', padding:0}}>
                 <li><b>status</b>: Health/reachability of a TES instance (e.g., healthy, unreachable, error). Used for instance selection.</li>
                 <li><b>state</b>: Lifecycle state of a submitted TES task (e.g., QUEUED, RUNNING, COMPLETE, ERROR). Used for task progress.</li>
               </ul>
-            </div>
+            </div> */}
             {error.demoType && (
-              <div style={{marginTop:8, fontSize:'13px', color:'#b91c1c', background:'#fef2f2', borderRadius:4, padding:'8px 12px'}}>
+              <div style={{marginTop:8, fontSize:'13px', color:'#b91c1c', background:'#fef2f2', borderRadius:4, padding:'8px 12px', marginBottom:20}}>
                 <strong>Demo Task Info:</strong> {error.demoType === 'fileops' ? 'File I/O demo tasks may fail if the TES instance does not support remote file access or has restricted permissions.' : error.demoType === 'multiExec' ? 'Multi-executor demo tasks require TES v1.1+ support. Some TES implementations do not support multiple executors.' : ''}
               </div>
             )}

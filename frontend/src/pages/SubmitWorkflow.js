@@ -448,8 +448,7 @@ const SubmitWorkflow = () => {
       (inst) => String(inst.status).toLowerCase() === 'healthy'
     );
     if (healthyInstances.length > 0 && !selectedInstance) {
-      const random = healthyInstances[Math.floor(Math.random() * healthyInstances.length)];
-      setSelectedInstance(random.url);
+      setSelectedInstance(healthyInstances[0].url);
     }
     // eslint-disable-next-line
   }, [allInstances, instances]);
