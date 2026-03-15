@@ -1,13 +1,14 @@
-import React from 'react';
-import styled from 'styled-components';
-import { Server, LogOut, Shield } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import React from "react";
+import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
+import { Server, LogOut, Shield } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 const HeaderContainer = styled.header`
   background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   color: white;
   padding: 15px 30px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: between;
   align-items: center;
@@ -18,6 +19,12 @@ const Logo = styled.div`
   align-items: center;
   font-size: 24px;
   font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
 `;
 
 const LogoIcon = styled.div`
@@ -70,14 +77,20 @@ const StatusDot = styled.div`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: ${props => props.$connected ? '#28a745' : '#dc3545'};
+  background-color: ${(props) => (props.$connected ? "#28a745" : "#dc3545")};
   margin-right: 8px;
-  animation: ${props => props.$connected ? 'none' : 'pulse 2s infinite'};
-  
+  animation: ${(props) => (props.$connected ? "none" : "pulse 2s infinite")};
+
   @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
   }
 `;
 
@@ -123,23 +136,28 @@ const LogoutButton = styled.button`
   align-items: center;
   gap: 6px;
   transition: all 0.2s;
-  
+
   &:hover {
     background: rgba(220, 53, 69, 0.3);
     border-color: rgba(220, 53, 69, 0.5);
   }
 `;
 
-const Header = ({ connectionStatus = 'Connected', isConnected = true }) => {
+const Header = ({ connectionStatus = "Connected", isConnected = true }) => {
   const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
   };
 
+  const handleLogoClick = () => {
+    navigate("/");
+  };
+
   return (
     <HeaderContainer>
-      <Logo>
+      <Logo onClick={handleLogoClick}>
         <LogoIcon>
           <Server size={28} />
         </LogoIcon>
@@ -148,7 +166,7 @@ const Header = ({ connectionStatus = 'Connected', isConnected = true }) => {
           <Subtitle>Task Execution Service Management</Subtitle>
         </div>
       </Logo>
-      
+
       <HeaderActions>
         {isAuthenticated && (
           <>
@@ -164,14 +182,17 @@ const Header = ({ connectionStatus = 'Connected', isConnected = true }) => {
             </LogoutButton>
           </>
         )}
-        
+
         <StatusIndicator>
           <StatusDot $connected={isConnected} />
           <StatusText>{connectionStatus}</StatusText>
           <Tooltip>
-            {connectionStatus === 'Connected' && 'The dashboard is connected to the backend API.'}
-            {connectionStatus === 'Connection Failed' && 'The dashboard could not connect to the backend API. Some features may not work.'}
-            {connectionStatus === 'Checking...' && 'Checking backend API connection...'}
+            {connectionStatus === "Connected" &&
+              "The dashboard is connected to the backend API."}
+            {connectionStatus === "Connection Failed" &&
+              "The dashboard could not connect to the backend API. Some features may not work."}
+            {connectionStatus === "Checking..." &&
+              "Checking backend API connection..."}
           </Tooltip>
         </StatusIndicator>
       </HeaderActions>

@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import styled from "styled-components";
 import {
   ListTodo,
@@ -20,33 +20,6 @@ const SidebarContainer = styled.div`
   position: sticky;
   top: 0;
   z-index: 100;
-`;
-
-const LogoContainer = styled(Link)`
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  border-bottom: 1px solid #f1f5f9;
-`;
-
-const LogoIcon = styled.div`
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-`;
-
-const LogoText = styled.span`
-  font-size: 18px;
-  font-weight: 800;
-  color: #1e293b;
-  letter-spacing: -0.5px;
 `;
 
 const NavContent = styled.div`
@@ -130,13 +103,6 @@ const Footer = styled.div`
 const Sidebar = () => {
   return (
     <SidebarContainer>
-      <LogoContainer to="/">
-        <LogoIcon>
-          <Activity size={20} />
-        </LogoIcon>
-        <LogoText>Fedarated Analytics</LogoText>
-      </LogoContainer>
-
       <NavContent>
         <SectionLabel>Execution</SectionLabel>
         <StyledNavLink to="/tasks">

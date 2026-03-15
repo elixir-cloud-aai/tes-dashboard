@@ -1,18 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
-import api, { testConnection, fetchDashboardData } from '../services/api';
-import { taskService } from '../services/taskService';
-import { serviceInfoService } from '../services/serviceInfoService';
-import { workflowService } from '../services/workflowService';
-import { batchService } from '../services/batchService';
-import { mapService } from '../services/mapService';
-import { logService } from '../services/logService';
-import useInstances from '../hooks/useInstances';
-import AuthConfigModal from '../components/auth/AuthConfigModal';
-import { 
-  Server, Clock, AlertCircle, CheckCircle, Play, 
-  ExternalLink, RotateCcw, Globe, Shield
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback } from "react";
+import styled from "styled-components";
+import api, { testConnection, fetchDashboardData } from "../services/api";
+import { taskService } from "../services/taskService";
+import { serviceInfoService } from "../services/serviceInfoService";
+import { workflowService } from "../services/workflowService";
+import { batchService } from "../services/batchService";
+import { mapService } from "../services/mapService";
+import { logService } from "../services/logService";
+import useInstances from "../hooks/useInstances";
+import AuthConfigModal from "../components/auth/AuthConfigModal";
+import {
+  Server,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Play,
+  ExternalLink,
+  RotateCcw,
+  Globe,
+  Shield,
+} from "lucide-react";
 
 const UtilitiesContainer = styled.div`
   padding: 2rem;
@@ -99,11 +106,13 @@ const ActionButton = styled.button`
     border-color: #9ca3af;
   }
 
-  ${props => props.$primary && `
+  ${(props) =>
+    props.$primary &&
+    `
     background: #2563eb;
     border-color: #2563eb;
     color: white;
-    
+
     &:hover {
       background: #1d4ed8;
       border-color: #1d4ed8;
@@ -144,21 +153,25 @@ const InstanceItem = styled.div`
   padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
   transition: background-color 0.2s;
-  
+
   &:last-child {
     border-bottom: none;
   }
-  
+
   &:hover {
     background-color: #f9fafb;
   }
-  
-  ${props => props.$status === 'error' && `
+
+  ${(props) =>
+    props.$status === "error" &&
+    `
     background-color: #fef2f2;
     border-left: 4px solid #dc2626;
   `}
-  
-  ${props => props.$status === 'healthy' && `
+
+  ${(props) =>
+    props.$status === "healthy" &&
+    `
     border-left: 4px solid #059669;
   `}
 `;
@@ -192,11 +205,14 @@ const StatusBadge = styled.span`
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
-  
-  ${props => props.$status === 'healthy' ? `
+
+  ${(props) =>
+    props.$status === "healthy"
+      ? `
     background: rgba(5, 150, 105, 0.1);
     color: #059669;
-  ` : `
+  `
+      : `
     background: rgba(220, 38, 38, 0.1);
     color: #dc2626;
   `}
@@ -228,12 +244,12 @@ const EmptyState = styled.div`
   padding: 3rem;
   text-align: center;
   color: #6b7280;
-  
+
   h3 {
     margin: 1rem 0 0.5rem 0;
     color: #374151;
   }
-  
+
   p {
     margin: 0 0 1.5rem 0;
   }
@@ -268,11 +284,14 @@ const ServiceIcon = styled.div`
   justify-content: center;
   border-radius: 50%;
   margin-bottom: 0.5rem;
-  
-  ${props => props.$status === 'healthy' ? `
+
+  ${(props) =>
+    props.$status === "healthy"
+      ? `
     background: rgba(5, 150, 105, 0.1);
     color: #059669;
-  ` : `
+  `
+      : `
     background: rgba(220, 38, 38, 0.1);
     color: #dc2626;
   `}
@@ -296,28 +315,43 @@ const TestResult = styled.div`
   border-radius: 0.375rem;
   font-size: 0.875rem;
   margin-top: 0.5rem;
-  background: ${props => props.$success ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)'};
-  color: ${props => props.$success ? '#059669' : '#dc2626'};
-  border: 1px solid ${props => props.$success ? 'rgba(5, 150, 105, 0.3)' : 'rgba(220, 38, 38, 0.3)'};
+  background: ${(props) =>
+    props.$success ? "rgba(5, 150, 105, 0.1)" : "rgba(220, 38, 38, 0.1)"};
+  color: ${(props) => (props.$success ? "#059669" : "#dc2626")};
+  border: 1px solid
+    ${(props) =>
+    props.$success ? "rgba(5, 150, 105, 0.3)" : "rgba(220, 38, 38, 0.3)"};
 `;
 
-const Utilities = () => { 
-  const [services, setServices] = useState([
-    { name: 'Backend API', status: 'healthy', url: '/api/dashboard_data' },
-    { name: 'Database', status: 'healthy', url: null },
-    { name: 'File Storage', status: 'healthy', url: null },
-  ]);
+const serviceDescriptions = {
+  "Backend API":
+    "The Backend API is the main application server that powers the dashboard and all workflow/task operations.\n\nStatus is healthy if the dashboard can successfully communicate with the backend and retrieve data. If this is unhealthy, the dashboard will not function.",
+  "Database":
+    "The Database stores all persistent data for the dashboard, including tasks, workflows, and user settings.\n\nStatus is healthy if the backend can connect to the database and perform basic queries. If this is unhealthy, data may be missing or actions may fail.",
+  "File Storage":
+    "File Storage is used for storing uploaded files, workflow descriptors, and results.\n\nStatus is healthy if the backend can read and write files as needed. If this is unhealthy, file uploads, downloads, or workflow execution may fail.",
+};
+
+// Only show Backend API as a prominent card
+const SERVICES = [
+  { name: "Backend API", url: "/api/dashboard_data" },
+];
+
+const Utilities = () => {
+  const [services, setServices] = useState(
+    SERVICES.map((svc) => ({ ...svc, status: "healthy" }))
+  );
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState(null);
   const [lastChecked, setLastChecked] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
- 
+
   // ✅ NEW: State for ALL instances (including non-working)
   const [tesInstances, setTesInstances] = useState([]);
   const [instancesLoading, setInstancesLoading] = useState(true);
   const [instancesError, setInstancesError] = useState(null);
   const [lastStatusUpdate, setLastStatusUpdate] = useState(null);
- 
+
   // API Test state
   const [apiTestResults, setApiTestResults] = useState({});
   const [apiTesting, setApiTesting] = useState(false);
@@ -327,59 +361,50 @@ const Utilities = () => {
     try {
       setInstancesLoading(true);
       setInstancesError(null);
-      
-      const response = await api.get('/api/instances-with-status');
-      
-      const instancesData = Array.isArray(response.data) 
-        ? response.data 
+
+      const response = await api.get("/api/instances-with-status");
+
+      const instancesData = Array.isArray(response.data)
+        ? response.data
         : response.data.instances || [];
-      
+
       setTesInstances(instancesData);
       setLastStatusUpdate(new Date().toISOString());
-      
     } catch (error) {
-      console.error('Failed to load TES instances:', error);
-      setInstancesError('Failed to load TES instances');
+      console.error("Failed to load TES instances:", error);
+      setInstancesError("Failed to load TES instances");
       setTesInstances([]);
     } finally {
       setInstancesLoading(false);
     }
   }, []);
- 
+
   const checkServiceStatus = useCallback(async () => {
     try {
-      setServicesLoading(true); 
-      const currentServices = [
-        { name: 'Backend API', status: 'healthy', url: '/api/dashboard_data' },
-        { name: 'Database', status: 'healthy', url: null },
-        { name: 'File Storage', status: 'healthy', url: null },
-      ];
-      
+      setServicesLoading(true);
       const updatedServices = await Promise.all(
-        currentServices.map(async (service) => {
+        SERVICES.map(async (service) => {
           if (!service.url) {
-            return { ...service, status: 'healthy' };
+            return { ...service, status: "healthy" };
           }
-          
           try {
             await api.get(service.url, { timeout: 5000 });
-            return { ...service, status: 'healthy' };
+            return { ...service, status: "healthy" };
           } catch (error) {
-            return { ...service, status: 'error' };
+            return { ...service, status: "error" };
           }
         })
       );
-      
       setServices(updatedServices);
       setLastChecked(new Date());
       setServicesError(null);
     } catch (error) {
-      setServicesError('Failed to check service status');
+      setServicesError("Failed to check service status");
     } finally {
       setServicesLoading(false);
     }
   }, []);
- 
+
   // Unified API test suite
   const runApiTests = useCallback(async () => {
     setApiTesting(true);
@@ -387,23 +412,54 @@ const Utilities = () => {
     // Test 1: Basic connection
     try {
       await testConnection();
-      setApiTestResults(prev => ({ ...prev, connection: { success: true, message: 'Backend connection successful' } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        connection: { success: true, message: "Backend connection successful" },
+      }));
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, connection: { success: false, message: `Connection failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        connection: {
+          success: false,
+          message: `Connection failed: ${error.message}`,
+        },
+      }));
     }
     // Test 2: Dashboard data
     try {
       const data = await fetchDashboardData();
-      setApiTestResults(prev => ({ ...prev, dashboardData: { success: true, message: `Dashboard data loaded: ${Object.keys(data).join(', ')}`, data } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        dashboardData: {
+          success: true,
+          message: `Dashboard data loaded: ${Object.keys(data).join(", ")}`,
+          data,
+        },
+      }));
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, dashboardData: { success: false, message: `Dashboard data failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        dashboardData: {
+          success: false,
+          message: `Dashboard data failed: ${error.message}`,
+        },
+      }));
     }
     // Test 3: Task service
     try {
       const tasks = await taskService.listTasks();
-      setApiTestResults(prev => ({ ...prev, tasks: { success: true, message: `Tasks loaded: ${tasks.length} tasks found` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        tasks: {
+          success: true,
+          message: `Tasks loaded: ${tasks.length} tasks found`,
+        },
+      }));
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, tasks: { success: false, message: `Tasks failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        tasks: { success: false, message: `Tasks failed: ${error.message}` },
+      }));
     }
     // Test 4: Service info
     try {
@@ -412,113 +468,191 @@ const Utilities = () => {
       if (tesInstances.length > 0) {
         const testUrl = tesInstances[0].url;
         await serviceInfoService.getServiceInfo(testUrl);
-        setApiTestResults(prev => ({ ...prev, serviceInfo: { success: true, message: 'Service info loaded successfully' } }));
+        setApiTestResults((prev) => ({
+          ...prev,
+          serviceInfo: {
+            success: true,
+            message: "Service info loaded successfully",
+          },
+        }));
       } else {
-        setApiTestResults(prev => ({ ...prev, serviceInfo: { success: false, message: 'No TES instances available to test' } }));
+        setApiTestResults((prev) => ({
+          ...prev,
+          serviceInfo: {
+            success: false,
+            message: "No TES instances available to test",
+          },
+        }));
       }
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, serviceInfo: { success: false, message: `Service info failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        serviceInfo: {
+          success: false,
+          message: `Service info failed: ${error.message}`,
+        },
+      }));
     }
     // Test 5: TES locations
     try {
       const locations = await mapService.getTesLocations();
-      setApiTestResults(prev => ({ ...prev, tesLocations: { success: true, message: `TES locations loaded: ${locations.length} locations` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        tesLocations: {
+          success: true,
+          message: `TES locations loaded: ${locations.length} locations`,
+        },
+      }));
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, tesLocations: { success: false, message: `TES locations failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        tesLocations: {
+          success: false,
+          message: `TES locations failed: ${error.message}`,
+        },
+      }));
     }
     // Test 6: Batch runs
     try {
       const runs = await batchService.getBatchRuns();
-      setApiTestResults(prev => ({ ...prev, batchRuns: { success: true, message: `Batch runs loaded: ${runs.length} runs` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        batchRuns: {
+          success: true,
+          message: `Batch runs loaded: ${runs.length} runs`,
+        },
+      }));
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, batchRuns: { success: false, message: `Batch runs failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        batchRuns: {
+          success: false,
+          message: `Batch runs failed: ${error.message}`,
+        },
+      }));
     }
     // Test 7: Workflow runs
     try {
       const runs = await workflowService.getWorkflowRuns();
-      setApiTestResults(prev => ({ ...prev, workflowRuns: { success: true, message: `Workflow runs loaded: ${runs.length} runs` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        workflowRuns: {
+          success: true,
+          message: `Workflow runs loaded: ${runs.length} runs`,
+        },
+      }));
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, workflowRuns: { success: false, message: `Workflow runs failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        workflowRuns: {
+          success: false,
+          message: `Workflow runs failed: ${error.message}`,
+        },
+      }));
     }
     // Test 8: All logs
     try {
       const logs = await logService.getTopologyLogs();
-      setApiTestResults(prev => ({ ...prev, logs: { success: true, message: `Logs loaded: ${logs.length} log sources` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        logs: {
+          success: true,
+          message: `Logs loaded: ${logs.length} log sources`,
+        },
+      }));
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, logs: { success: false, message: `Logs failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        logs: { success: false, message: `Logs failed: ${error.message}` },
+      }));
     }
     // Test 9: Nodes
     try {
-      const response = await api.get('/api/nodes');
-      setApiTestResults(prev => ({ ...prev, nodes: { success: true, message: `Nodes loaded: ${response.data.length} nodes` } }));
+      const response = await api.get("/api/nodes");
+      setApiTestResults((prev) => ({
+        ...prev,
+        nodes: {
+          success: true,
+          message: `Nodes loaded: ${response.data.length} nodes`,
+        },
+      }));
     } catch (error) {
-      setApiTestResults(prev => ({ ...prev, nodes: { success: false, message: `Nodes failed: ${error.message}` } }));
+      setApiTestResults((prev) => ({
+        ...prev,
+        nodes: { success: false, message: `Nodes failed: ${error.message}` },
+      }));
     }
     setApiTesting(false);
   }, []);
 
   const testInstanceConnection = async (url) => {
-    const instance = tesInstances.find(inst => inst.url === url);
+    const instance = tesInstances.find((inst) => inst.url === url);
     const instanceName = instance?.name || url;
-    
+
     try {
       const startTime = Date.now();
-      const response = await api.get('/api/service_info', {
+      const response = await api.get("/api/service_info", {
         params: { tes_url: url },
-        timeout: 10000
+        timeout: 10000,
       });
-      
+
       const responseTime = Date.now() - startTime;
-       
+
       // Refresh after test
       await loadInstancesWithStatus();
-       
+
       const serviceInfo = response.data;
       let successMessage = `Connection Test Successful!\n\nInstance: ${instanceName}\nResponse Time: ${responseTime}ms`;
-      
+
       if (serviceInfo && serviceInfo.name) {
         successMessage += `\nService Name: ${serviceInfo.name}`;
       }
       if (serviceInfo && serviceInfo.version) {
         successMessage += `\nVersion: ${serviceInfo.version}`;
       }
-      
+
       alert(successMessage);
-    } catch (error) { 
+    } catch (error) {
       let errorMessage = `Connection Test Failed\n\nInstance: ${instanceName}\nURL: ${url}\n\n`;
-      
+
       if (error.response && error.response.data) {
         const errorData = error.response.data;
-        errorMessage += `Error: ${errorData.error || errorData.message || error.message || 'Unknown error'}`;
-      } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        errorMessage += `Error: ${errorData.error || errorData.message || error.message || "Unknown error"}`;
+      } else if (
+        error.code === "ECONNABORTED" ||
+        error.message.includes("timeout")
+      ) {
         errorMessage += `Error: Connection Timeout\n\nThe TES instance did not respond within 10 seconds.`;
       } else {
-        errorMessage += `Error: ${error.message || 'Unknown error occurred'}`;
+        errorMessage += `Error: ${error.message || "Unknown error occurred"}`;
       }
-      
+
       alert(errorMessage);
     }
   };
 
   const refreshInstanceStatus = () => {
     loadInstancesWithStatus();
-  }; 
+  };
 
-  useEffect(() => { 
+  useEffect(() => {
     const initialLoad = async () => {
       await checkServiceStatus();
       await loadInstancesWithStatus();
     };
-    
+
     initialLoad();
-    
-    const interval = setInterval(() => {
-      loadInstancesWithStatus();
-      checkServiceStatus();
-    }, 60 * 60 * 1000); 
-    
-    return () => clearInterval(interval); 
-  }, [checkServiceStatus, loadInstancesWithStatus]); 
+
+    const interval = setInterval(
+      () => {
+        loadInstancesWithStatus();
+        checkServiceStatus();
+      },
+      60 * 60 * 1000,
+    );
+
+    return () => clearInterval(interval);
+  }, [checkServiceStatus, loadInstancesWithStatus]);
 
   useEffect(() => {
     runApiTests();
@@ -530,13 +664,13 @@ const Utilities = () => {
         <PageTitle>Diagnostics</PageTitle>
         <PageSubtitle>System diagnostics and API endpoint testing</PageSubtitle>
       </PageHeader>
- 
+
       <DiagnosticsSection>
         <SectionHeader>
           <div>
             <SectionTitle>API Diagnostics</SectionTitle>
             <SectionDescription>
-              Current status of core system services and API endpoints
+              Current status of the Backend API service
             </SectionDescription>
           </div>
           <HeaderActions>
@@ -546,7 +680,7 @@ const Utilities = () => {
             </ActionButton>
             <ActionButton onClick={runApiTests} disabled={apiTesting}>
               <Play size={16} />
-              {apiTesting ? 'Testing...' : 'Run API Tests'}
+              {apiTesting ? "Testing..." : "Run API Tests"}
             </ActionButton>
             {lastChecked && (
               <LastUpdateIndicator>
@@ -557,26 +691,62 @@ const Utilities = () => {
           </HeaderActions>
         </SectionHeader>
 
-        {/* Service Status Results */}
+        {/* Backend API Status Card */}
         {servicesLoading ? (
           <LoadingState>Checking service status...</LoadingState>
         ) : servicesError ? (
           <ErrorState>{servicesError}</ErrorState>
         ) : (
-          <ServiceGrid>
-            {services.map((service, index) => (
-              <ServiceCard key={index}>
-                <ServiceIcon $status={service.status}>
-                  {service.status === 'healthy' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                </ServiceIcon>
-                <ServiceName>{service.name}</ServiceName>
-                <ServiceStatus>{service.status}</ServiceStatus>
-              </ServiceCard>
-            ))}
-          </ServiceGrid>
+          <div style={{ display: "flex", justifyContent: "center", padding: "2rem 0" }}>
+            <div style={{ maxWidth: 600, width: "100%", border: `2px solid ${services[0].status === "healthy" ? "#059669" : "#dc2626"}`, display: "flex", alignItems: "center" }}>
+              <div
+                style={{
+                  minWidth: 320,
+                  maxWidth: 400,
+                  width: "100%",
+                  background: "#fff",
+                  
+                  borderRadius: 16,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                  padding: "2rem 1.5rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  transition: "border-color 0.2s",
+                }}
+                title={serviceDescriptions[services[0].name]}
+              >
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: services[0].status === "healthy" ? "rgba(5,150,105,0.1)" : "rgba(220,38,38,0.1)",
+                  color: services[0].status === "healthy" ? "#059669" : "#dc2626",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 16,
+                  fontSize: 32,
+                }}>
+                  {services[0].status === "healthy" ? <CheckCircle size={36} /> : <AlertCircle size={36} />}
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 20, color: "#111827", marginBottom: 8 }}>
+                  {services[0].name}
+                </div>
+              </div>
+              <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 12, padding: "1.5rem" }}>
+                <div style={{ fontSize: 14, color: services[0].status === "healthy" ? "#059669" : "#dc2626", marginBottom: 12, textTransform: "uppercase", fontWeight: 500 }}>
+                  {services[0].status}
+                </div>
+                <div style={{ fontSize: 13, color: "#6b7280", whiteSpace: "pre-line" }}>
+                  {serviceDescriptions[services[0].name]}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </DiagnosticsSection>
- 
+
       {/* <TESInstancesSection>
         <SectionHeader>
           <div>
@@ -616,7 +786,7 @@ const Utilities = () => {
                       {instance.status}
                     </StatusBadge>
                   </InstanceHeader>
-                  
+
                   <InstanceDetails>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Server size={14} />
@@ -633,28 +803,28 @@ const Utilities = () => {
                       Last checked: {instance.lastChecked ? new Date(instance.lastChecked).toLocaleString() : 'Never'}
                     </div>
                   </InstanceDetails>
-                  
+
                   {instance.responseTime && (
                     <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
                       Response time: {instance.responseTime}ms
                     </div>
                   )}
-                  
+
                   {instance.error && (
                     <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', background: '#fef2f2', padding: '4px 8px', borderRadius: '4px' }}>
                       Error: {instance.error}
                     </div>
                   )}
                 </InstanceInfo>
-                
+
                 <InstanceActions>
-                  <ActionButton 
+                  <ActionButton
                     onClick={() => testInstanceConnection(instance.url)}
                     title="Test Connection"
                   >
                     <Play size={16} />
                   </ActionButton>
-                  <ActionButton 
+                  <ActionButton
                     onClick={() => window.open(instance.url, '_blank')}
                     title="Open in Browser"
                   >
@@ -663,7 +833,7 @@ const Utilities = () => {
                 </InstanceActions>
               </InstanceItem>
             ))}
-            
+
             {tesInstances.length === 0 && (
               <EmptyState>
                 <Server size={48} />
@@ -674,30 +844,41 @@ const Utilities = () => {
           </InstanceList>
         )}
       </TESInstancesSection> */}
-      
-      <AuthConfigModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+
+      <AuthConfigModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
       {/* API Test Results */}
-        <div style={{ marginTop: '2rem' }}>
-          <SectionTitle>API Endpoint Checks</SectionTitle>
-          {Object.entries(apiTestResults).map(([test, result]) => (
-            <div key={test} style={{ marginBottom: '1rem' }}>
-              <TestResult $success={result.success} $error={!result.success}>
-                <strong>{result.success ? '✅' : '❌'} {test.charAt(0).toUpperCase() + test.slice(1)}:</strong> {result.message}
-                {result.data && (
-                  <details>
-                    <summary>Show Data</summary>
-                    <pre style={{ background: '#f5f5f5', padding: '10px', borderRadius: '4px', fontSize: '12px' }}>
-                      {JSON.stringify(result.data, null, 2)}
-                    </pre>
-                  </details>
-                )}
-              </TestResult>
-            </div>
-          ))}
-        </div>
+      <div style={{ marginTop: "2rem" }}>
+        <SectionTitle>API Endpoint Checks</SectionTitle>
+        {Object.entries(apiTestResults).map(([test, result]) => (
+          <div key={test} style={{ marginBottom: "1rem" }}>
+            <TestResult $success={result.success} $error={!result.success}>
+              <strong>
+                {result.success ? "✅" : "❌"}{" "}
+                {test.charAt(0).toUpperCase() + test.slice(1)}:
+              </strong>{" "}
+              {result.message}
+              {result.data && (
+                <details>
+                  <summary>Show Data</summary>
+                  <pre
+                    style={{
+                      background: "#f5f5f5",
+                      padding: "10px",
+                      borderRadius: "4px",
+                      fontSize: "12px",
+                    }}
+                  >
+                    {JSON.stringify(result.data, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </TestResult>
+          </div>
+        ))}
+      </div>
     </UtilitiesContainer>
   );
 };

@@ -1,6 +1,6 @@
-import React from 'react';
-import styled from 'styled-components';
-import { AlertCircle, X } from 'lucide-react';
+import React from "react";
+import styled from "styled-components";
+import { AlertCircle, X } from "lucide-react";
 
 const ErrorContainer = styled.div`
   background-color: #f8d7da;
@@ -41,7 +41,7 @@ const CloseButton = styled.button`
   padding: 0;
   margin-left: 10px;
   color: #721c24;
-  
+
   &:hover {
     opacity: 0.7;
   }
@@ -75,38 +75,52 @@ const InstanceInfo = styled.div`
   opacity: 0.9;
 `;
 
-const ErrorMessage = ({ 
-  title = 'Error', 
-  message, 
-  error, 
+const ErrorMessage = ({
+  title = "Error",
+  message,
+  error,
   onClose,
-  className = '' 
+  className = "",
 }) => {
-  const displayMessage = message || (error && error.message) || 'An unexpected error occurred';
-  
+  const displayMessage =
+    message || (error && error.message) || "An unexpected error occurred";
+
   let errorReason = null;
   let errorCode = null;
   let errorType = null;
+  let statusCode = null;
   let instanceInfo = null;
-  
+
   if (error) {
-    errorReason = error.reason || (error.response && error.response.data && error.response.data.reason);
-    errorCode = error.errorCode || (error.response && error.response.data && error.response.data.error_code);
-    errorType = error.errorType || (error.response && error.response.data && error.response.data.error_type);
-    
-    if (error.response && error.response.data) {
+    // Extract error details from error object or response
+    errorReason =
+      error.reason ||
+      (error.response && error.response.data && error.response.data.reason);
+    errorCode =
+      error.errorCode ||
+      (error.response && error.response.data && error.response.data.error_code);
+    errorType =
+      error.errorType ||
+      (error.response && error.response.data && error.response.data.error_type);
+    statusCode = error.statusCode || (error.response && error.response.status);
+
+    // Get TES instance info from error object or response
+    if (error.tesInstance) {
+      instanceInfo = error.tesInstance;
+    } else if (error.response && error.response.data) {
       const data = error.response.data;
       if (data.tes_name || data.tes_url) {
         instanceInfo = {
           name: data.tes_name,
-          url: data.tes_url
+          url: data.tes_url,
+          endpoint: data.tes_endpoint,
         };
       }
     }
   }
-  
-  const displayTitle = errorCode ? `${title} ${errorCode ? `(${errorCode})` : ''}` : title;
-  
+
+  const displayTitle = title;
+
   return (
     <ErrorContainer className={className}>
       <IconContainer>
@@ -116,8 +130,14 @@ const ErrorMessage = ({
         <Title>
           {displayTitle}
           {errorCode && <ErrorCode>{errorCode}</ErrorCode>}
+          {statusCode && !errorCode && <ErrorCode>HTTP {statusCode}</ErrorCode>}
         </Title>
         <Message>{displayMessage}</Message>
+        {errorType && (
+          <div style={{ marginTop: "6px", fontSize: "12px", opacity: 0.8 }}>
+            <strong>Type:</strong> {errorType}
+          </div>
+        )}
         {errorReason && (
           <ReasonText>
             <strong>Reason:</strong> {errorReason}
@@ -125,8 +145,19 @@ const ErrorMessage = ({
         )}
         {instanceInfo && (
           <InstanceInfo>
-            <strong>Instance:</strong> {instanceInfo.name || 'Unknown'}<br/>
-            {instanceInfo.url && <><strong>URL:</strong> {instanceInfo.url}</>}
+            <strong>Instance:</strong> {instanceInfo.name || "Unknown"}
+            <br />
+            {instanceInfo.url && (
+              <>
+                <strong>URL:</strong> {instanceInfo.url}
+                <br />
+              </>
+            )}
+            {instanceInfo.endpoint && (
+              <>
+                <strong>Endpoint:</strong> {instanceInfo.endpoint}
+              </>
+            )}
           </InstanceInfo>
         )}
       </MessageContainer>

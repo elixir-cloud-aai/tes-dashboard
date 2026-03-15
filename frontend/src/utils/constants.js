@@ -30,6 +30,24 @@ export const WORKFLOW_TYPES = {
   CWL: "cwl",
 };
 
+export const WORKFLOW_STATES = {
+  RUNNING: "RUNNING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+  QUEUED: "QUEUED",
+  CANCELED: "CANCELED",
+  UNKNOWN: "UNKNOWN",
+};
+
+export const WORKFLOW_STATE_COLORS = {
+  [WORKFLOW_STATES.RUNNING]: "#007bff",
+  [WORKFLOW_STATES.COMPLETED]: "#28a745",
+  [WORKFLOW_STATES.FAILED]: "#dc3545",
+  [WORKFLOW_STATES.QUEUED]: "#ffc107",
+  [WORKFLOW_STATES.CANCELED]: "#6c757d",
+  [WORKFLOW_STATES.UNKNOWN]: "#6c757d",
+};
+
 export const API_ENDPOINTS = {
   TEST_CONNECTION: "/api/test_connection",
   DASHBOARD_DATA: "/api/dashboard_data",

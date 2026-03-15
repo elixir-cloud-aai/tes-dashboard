@@ -223,8 +223,8 @@ const TaskDetails = () => {
   const taskId = searchParams.get("task_id");
 
   const viewLevelInfo = {
-    Minimum: "Show only essential task info (ID, status, timing)",
-    Basic: "Show basic info, timing, and status (recommended)",
+    Minimal: "Show only essential task info (ID, status, timing)",
+    Basic: "Show basic info, timing, and status",
     Full: "Show all available task details and JSON",
   };
 
@@ -233,10 +233,7 @@ const TaskDetails = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await taskService.getTaskDetails(
-          tesUrl,
-          taskId
-        );
+        const data = await taskService.getTaskDetails(tesUrl, taskId);
         setTaskDetails(data);
       } catch (err) {
         setError(err);
@@ -285,7 +282,7 @@ const TaskDetails = () => {
   if (error) {
     return (
       <PageContainer>
-        <BackButton onClick={() => navigate("/tasks")}> 
+        <BackButton onClick={() => navigate("/tasks")}>
           <ArrowLeft size={16} style={{ marginRight: "8px" }} />
           Back to Tasks
         </BackButton>
@@ -307,11 +304,12 @@ const TaskDetails = () => {
     : Array.isArray(taskDetails.task?.logs)
       ? taskDetails.task.logs
       : [];
-  const jsonKeyCount = taskJson && typeof taskJson === 'object' ? Object.keys(taskJson).length : 0;
+  const jsonKeyCount =
+    taskJson && typeof taskJson === "object" ? Object.keys(taskJson).length : 0;
 
   return (
     <PageContainer>
-      <BackButton onClick={() => navigate("/tasks")}> 
+      <BackButton onClick={() => navigate("/tasks")}>
         <ArrowLeft size={16} style={{ marginRight: "8px" }} />
         Back to Tasks
       </BackButton>
@@ -326,7 +324,7 @@ const TaskDetails = () => {
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
-            <option value="Minimum">Minimum</option>
+            <option value="Minimal">Minimal</option>
             <option value="Basic">Basic</option>
             <option value="Full">Full</option>
           </Dropdown>
@@ -341,13 +339,22 @@ const TaskDetails = () => {
             {showTooltip && <Tooltip>{viewLevelInfo[viewLevel]}</Tooltip>}
           </span>
         </ViewLevelDropdownContainer>
-        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", marginTop: "20px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-start",
+            alignItems: "center",
+            marginTop: "20px",
+          }}
+        >
           <ActionButtons>
             <ActionButton onClick={fetchTaskDetails}>
               <RefreshCw size={16} style={{ marginRight: "8px" }} />
               Refresh
             </ActionButton>
-            {(taskDetails?.task_json?.state === "RUNNING" || taskDetails?.task?.status === "RUNNING" || taskDetails?.task?.status === "QUEUED") && (
+            {(taskDetails?.task_json?.state === "RUNNING" ||
+              taskDetails?.task?.status === "RUNNING" ||
+              taskDetails?.task?.status === "QUEUED") && (
               <ActionButton
                 variant="danger"
                 onClick={handleCancel}
@@ -368,15 +375,21 @@ const TaskDetails = () => {
             <InfoRow>
               <InfoLabel>Task ID:</InfoLabel>
               <InfoValue>
-                {taskJson.id || taskDetails.task?.task_id || taskDetails.task?.id || "N/A"}
+                {taskJson.id ||
+                  taskDetails.task?.task_id ||
+                  taskDetails.task?.id ||
+                  "N/A"}
               </InfoValue>
             </InfoRow>
-            {(viewLevel !== "Minimum") && (
+            {viewLevel !== "Minimal" && (
               <>
                 <InfoRow>
                   <InfoLabel>Name:</InfoLabel>
                   <InfoValue>
-                    {taskJson.name || taskDetails.task?.task_name || taskDetails.task?.name || "Unnamed Task"}
+                    {taskJson.name ||
+                      taskDetails.task?.task_name ||
+                      taskDetails.task?.name ||
+                      "Unnamed Task"}
                   </InfoValue>
                 </InfoRow>
               </>
@@ -385,9 +398,17 @@ const TaskDetails = () => {
               <InfoLabel>State/Status:</InfoLabel>
               <InfoValue>
                 <TaskStatus
-                  status={taskJson.state || taskDetails.task?.status || taskDetails.task?.state}
+                  status={
+                    taskJson.state ||
+                    taskDetails.task?.status ||
+                    taskDetails.task?.state
+                  }
                 >
-                  {formatTaskStatus(taskJson.state || taskDetails.task?.status || taskDetails.task?.state)}
+                  {formatTaskStatus(
+                    taskJson.state ||
+                      taskDetails.task?.status ||
+                      taskDetails.task?.state,
+                  )}
                 </TaskStatus>
                 {taskDetails.comprehensive_metadata?.is_terminal_state && (
                   <Badge color="#28a745">Terminal</Badge>
@@ -400,32 +421,30 @@ const TaskDetails = () => {
                 )}
               </InfoValue>
             </InfoRow>
-            {(viewLevel !== "Minimum") && (
+            {viewLevel !== "Minimal" && (
               <>
                 <InfoRow>
                   <InfoLabel>TES Instance:</InfoLabel>
                   <InfoValue>
-                    {taskDetails.instance_name || taskDetails.task?.tes_name || "Unknown"}
+                    {taskDetails.instance_name ||
+                      taskDetails.task?.tes_name ||
+                      "Unknown"}
                   </InfoValue>
                 </InfoRow>
                 <InfoRow>
                   <InfoLabel>TES URL:</InfoLabel>
-                  <InfoValue style={{ fontSize: "12px", wordBreak: "break-all" }}>
+                  <InfoValue
+                    style={{ fontSize: "12px", wordBreak: "break-all" }}
+                  >
                     {tesUrl || "N/A"}
                   </InfoValue>
                 </InfoRow>
                 <InfoRow>
                   <InfoLabel>Description:</InfoLabel>
                   <InfoValue>
-                    {taskJson.description || taskDetails.task?.description || "No description"}
-                  </InfoValue>
-                </InfoRow>
-                <InfoRow>
-                  <InfoLabel>Data Source:</InfoLabel>
-                  <InfoValue>
-                    <Badge color={taskDetails.source === "tes_instance" ? "#28a745" : "#6f42c1"}>
-                      {taskDetails.source === "tes_instance" ? "TES Instance API" : "Dashboard Submission"}
-                    </Badge>
+                    {taskJson.description ||
+                      taskDetails.task?.description ||
+                      "No description"}
                   </InfoValue>
                 </InfoRow>
               </>
@@ -437,21 +456,47 @@ const TaskDetails = () => {
             <InfoRow>
               <InfoLabel>Creation Time:</InfoLabel>
               <InfoValue>
-                {formatDate(taskJson.creation_time || taskDetails.task?.submitted_at || taskDetails.task?.creation_time) || "N/A"}
+                {formatDate(
+                  taskJson.creation_time ||
+                    taskDetails.task?.submitted_at ||
+                    taskDetails.task?.creation_time,
+                ) || "N/A"}
               </InfoValue>
             </InfoRow>
             <InfoRow>
               <InfoLabel>End Time:</InfoLabel>
               <InfoValue>
                 {(() => {
-                  const endTimeRaw = taskJson.end_time || taskDetails.task?.end_time;
-                  const state = (taskJson.state || taskDetails.task?.status || taskDetails.task?.state || "").toUpperCase();
-                  const completedStates = ["COMPLETE", "CANCELED", "CANCELLED", "EXECUTOR_ERROR", "SYSTEM_ERROR", "UNKNOWN", "FAILED", "ERROR"]; // add more as needed
-                  if (endTimeRaw && endTimeRaw !== null && endTimeRaw !== undefined && endTimeRaw !== "") {
+                  const endTimeRaw =
+                    taskJson.end_time || taskDetails.task?.end_time;
+                  const state = (
+                    taskJson.state ||
+                    taskDetails.task?.status ||
+                    taskDetails.task?.state ||
+                    ""
+                  ).toUpperCase();
+                  const completedStates = [
+                    "COMPLETE",
+                    "CANCELED",
+                    "CANCELLED",
+                    "EXECUTOR_ERROR",
+                    "SYSTEM_ERROR",
+                    "UNKNOWN",
+                    "FAILED",
+                    "ERROR",
+                  ]; // add more as needed
+                  if (
+                    endTimeRaw &&
+                    endTimeRaw !== null &&
+                    endTimeRaw !== undefined &&
+                    endTimeRaw !== ""
+                  ) {
                     return formatDate(endTimeRaw);
                   } else if (completedStates.includes(state)) {
                     // fallback: show last fetched time as end time if task is completed but end_time is missing
-                    return formatDate(taskDetails.fetch_timestamp) + " (inferred)";
+                    return (
+                      formatDate(taskDetails.fetch_timestamp) + " (inferred)"
+                    );
                   } else {
                     return "N/A";
                   }
@@ -463,11 +508,14 @@ const TaskDetails = () => {
                 <InfoLabel>Duration:</InfoLabel>
                 <InfoValue>
                   {(() => {
-                    const seconds = taskDetails.comprehensive_metadata.duration_seconds;
+                    const seconds =
+                      taskDetails.comprehensive_metadata.duration_seconds;
                     const minutes = Math.floor(seconds / 60);
                     const hours = Math.floor(minutes / 60);
-                    if (hours > 0) return `${hours}h ${minutes % 60}m ${Math.floor(seconds % 60)}s`;
-                    if (minutes > 0) return `${minutes}m ${Math.floor(seconds % 60)}s`;
+                    if (hours > 0)
+                      return `${hours}h ${minutes % 60}m ${Math.floor(seconds % 60)}s`;
+                    if (minutes > 0)
+                      return `${minutes}m ${Math.floor(seconds % 60)}s`;
                     return `${Math.floor(seconds)}s`;
                   })()}
                 </InfoValue>
@@ -485,18 +533,68 @@ const TaskDetails = () => {
             <>
               <LogsSection>
                 <ContentCard>
-                  <CardTitle>
-                    Complete Task JSON [{jsonKeyCount}]
-                  </CardTitle>
-                  <div style={{ marginBottom: "15px", display: "flex", gap: "10px", alignItems: "center" }}>
-                    <Badge color={taskDetails.source === "tes_instance" ? "#28a745" : "#6f42c1"}>
-                      {taskDetails.source === "tes_instance" ? "TES Instance API" : "Dashboard Submission"}
+                  <CardTitle>Complete Task JSON [{jsonKeyCount}]</CardTitle>
+                  <div
+                    style={{
+                      marginBottom: "15px",
+                      display: "flex",
+                      gap: "10px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Badge
+                      color={
+                        taskDetails.source === "tes_instance"
+                          ? "#28a745"
+                          : "#6f42c1"
+                      }
+                    >
+                      {taskDetails.source === "tes_instance"
+                        ? "TES Instance API"
+                        : "Dashboard Submission"}
                     </Badge>
                     {taskDetails.tes_endpoint && (
                       <span style={{ fontSize: "12px", color: "#999" }}>
                         Endpoint: {taskDetails.tes_endpoint}
                       </span>
                     )}
+                  </div>
+                  <div
+                    style={{
+                      marginBottom: "15px",
+                      padding: "12px",
+                      background: "#f8f9fa",
+                      borderLeft: "4px solid #17a2b8",
+                      borderRadius: "4px",
+                      fontSize: "13px",
+                      color: "#495057",
+                    }}
+                  >
+                    <strong>About "state" vs "status":</strong> The TES
+                    specification uses{" "}
+                    <code
+                      style={{
+                        background: "#e9ecef",
+                        padding: "2px 6px",
+                        borderRadius: "3px",
+                      }}
+                    >
+                      state
+                    </code>{" "}
+                    as the official field name (e.g., QUEUED, RUNNING,
+                    COMPLETE). Some TES implementations also include a{" "}
+                    <code
+                      style={{
+                        background: "#e9ecef",
+                        padding: "2px 6px",
+                        borderRadius: "3px",
+                      }}
+                    >
+                      status
+                    </code>{" "}
+                    field for compatibility. This dashboard handles both fields
+                    to work with all TES implementations.
                   </div>
                   <JsonContainer>
                     {JSON.stringify(taskJson, null, 2)}
@@ -510,12 +608,18 @@ const TaskDetails = () => {
                   {Array.isArray(logs) && logs.length > 0 ? (
                     logs.map((log, idx) => (
                       <div key={idx} style={{ marginBottom: 16 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Log #{idx + 1}</div>
-                        <JsonContainer>{JSON.stringify(log, null, 2)}</JsonContainer>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                          Log #{idx + 1}
+                        </div>
+                        <JsonContainer>
+                          {JSON.stringify(log, null, 2)}
+                        </JsonContainer>
                       </div>
                     ))
                   ) : (
-                    <div style={{ color: '#888', fontSize: 14 }}>No logs available for this task.</div>
+                    <div style={{ color: "#888", fontSize: 14 }}>
+                      No logs available for this task.
+                    </div>
                   )}
                 </ContentCard>
               </LogsSection>

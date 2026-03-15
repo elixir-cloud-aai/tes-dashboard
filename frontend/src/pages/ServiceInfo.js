@@ -156,6 +156,7 @@ const InstanceName = styled.h3`
   color: #111827;
 `;
 
+// Forward the title prop to the span for tooltips
 const StatusBadge = styled.span`
   display: flex;
   align-items: center;
@@ -205,6 +206,42 @@ const LastUpdateIndicator = styled.div`
   align-items: center;
   gap: 0.5rem;
 `;
+
+// Custom Tooltip component for instant display
+const Tooltip = ({ children, content }) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+      onFocus={() => setVisible(true)}
+      onBlur={() => setVisible(false)}
+    >
+      {children}
+      {visible && (
+        <span style={{
+          position: 'absolute',
+          zIndex: 1000,
+          left: '50%',
+          bottom: '120%',
+          transform: 'translateX(-50%)',
+          background: '#222b45',
+          color: 'white',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          fontSize: '0.85rem',
+          whiteSpace: 'pre-line',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          pointerEvents: 'none',
+          minWidth: '180px',
+          maxWidth: '320px',
+        }}>
+          {content}
+        </span>
+      )}
+    </span>
+  );
+};
 
 const ServiceInfo = () => {
   // Use the custom hook for instance state and refresh
@@ -266,6 +303,77 @@ const ServiceInfo = () => {
     return { basicInfo, apiInfo, storageInfo };
   };
 
+  const isInstanceHealthy = (instance) => {
+    // Consider an instance healthy only if status is 'healthy' and service-info returns a valid name, version, and no error/404
+    if (instance.status !== 'healthy' && instance.status !== 'Auth Required (401)') return false;
+    // If serviceInfo is present, check for error or 404
+    if (instance.serviceInfo) {
+      if (instance.serviceInfo.status === 404 || instance.serviceInfo.title === 'Not Found' || instance.serviceInfo.error) {
+        return false;
+      }
+      // If serviceInfo has a name and type, consider healthy
+      if (instance.serviceInfo.name && instance.serviceInfo.type && !instance.serviceInfo.error) {
+        return true;
+      }
+      return false;
+    }
+    // Only check status for Details button visibility
+    return instance.status === 'healthy' || instance.status === 'Auth Required (401)';
+  };
+
+  const getInstanceError = (instance) => {
+    if (instance.error) return instance.error;
+    if (instance.serviceInfo) {
+      if (instance.serviceInfo.status === 404 || instance.serviceInfo.title === 'Not Found') {
+        return 'Not Found (404) - Service info endpoint not found or requires authentication.';
+      }
+      if (instance.serviceInfo.error) {
+        return instance.serviceInfo.errorMessage || instance.serviceInfo.error || 'Unknown error';
+      }
+      if (instance.serviceInfo.auth_required) {
+        return 'Authentication required for service info.';
+      }
+    }
+    return null;
+  };
+
+  // Helper to provide detailed status explanations for tooltips
+  const getStatusExplanation = (instance) => {
+    const status = instance.status ? instance.status.toLowerCase() : '';
+    // Show backend error detail for unauthorized
+    if ((status === 'auth required (401)' || status === 'unauthorized' || instance.http_status === 401) && instance.response_content) {
+      let detail = '';
+      if (typeof instance.response_content === 'object') {
+        detail = JSON.stringify(instance.response_content, null, 2);
+      } else {
+        detail = String(instance.response_content);
+      }
+      return `Unauthorized (401): The TES instance requires authentication.\nDetails: ${detail}`;
+    }
+    if (status === 'healthy') {
+      return 'The TES instance is reachable and responded successfully to health and service-info checks.';
+    }
+    if (status === 'auth required (401)') {
+      return 'Authentication is required to access this TES instance. Please configure credentials.';
+    }
+    if (status === 'forbidden (403)') {
+      return 'Access to this TES instance is forbidden (HTTP 403). Your credentials may lack permission or IP may be blocked.';
+    }
+    if (status === 'not found (404)') {
+      return 'The TES instance responded with 404 Not Found. The service-info endpoint may not exist or the URL is incorrect.';
+    }
+    if (status === 'connection failed') {
+      return 'The TES instance could not be reached. The server may be down, the URL may be incorrect, or there is a network issue.';
+    }
+    if (status === 'unreachable') {
+      return 'The TES instance is unreachable. This may be due to network issues, downtime, or incorrect configuration.';
+    }
+    if (status === 'error') {
+      return instance.error || 'An unknown error occurred while checking the TES instance.';
+    }
+    return instance.status_detail || instance.error || 'Status unknown.';
+  };
+
   return (
     <ServiceInfoContainer>
       <Header>
@@ -303,10 +411,12 @@ const ServiceInfo = () => {
                 <InstanceInfo>
                   <InstanceHeader>
                     <InstanceName>{instance.name}</InstanceName>
-                    <StatusBadge $status={instance.status}>
-                      {instance.status === 'healthy' ? <CheckCircle size={14} /> : instance.status === 'unreachable' ? <AlertCircle size={14} color="#f59e42" /> : <AlertCircle size={14} color="#dc2626" />}
-                      {instance.status}
-                    </StatusBadge>
+                    <Tooltip content={getStatusExplanation(instance)}>
+                      <StatusBadge $status={instance.status}>
+                        {instance.status === 'healthy' ? <CheckCircle size={14} /> : instance.status === 'unreachable' ? <AlertCircle size={14} color="#f59e42" /> : <AlertCircle size={14} color="#dc2626" />}
+                        {instance.status}
+                      </StatusBadge>
+                    </Tooltip>
                   </InstanceHeader>
                   <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{instance.url}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
@@ -324,14 +434,16 @@ const ServiceInfo = () => {
                       Response time: {instance.responseTime}ms
                     </div>
                   )}
-                  {instance.error && (
+                  {getInstanceError(instance) && (
                     <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', background: '#fef2f2', padding: '4px 8px', borderRadius: '4px' }}>
-                      Error: {instance.error}
+                      Error: {getInstanceError(instance)}
                     </div>
                   )}
                 </InstanceInfo>
+                {/* Debug: log status for troubleshooting */}
+                {console.log('Instance:', instance.name, 'Status:', instance.status)}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {instance.status === 'healthy' && (
+                  {(instance.status && instance.status.toLowerCase() === 'healthy') && (
                     <button onClick={() => handleShowDetails(instance)} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #2563eb', background: '#2563eb', color: 'white', cursor: 'pointer' }}>Details</button>
                   )}
                   <button onClick={() => window.open(instance.url, '_blank')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', color: '#374151', cursor: 'pointer' }}>Open</button>
@@ -355,33 +467,39 @@ const ServiceInfo = () => {
                             <InfoSectionTitle>
                               Basic Information
                             </InfoSectionTitle>
-                            {Object.entries(formattedInfo.basicInfo).map(([key, value]) => (
-                              <InfoItem key={key}>
-                                <InfoLabel>{key}</InfoLabel>
-                                <InfoValue>{value}</InfoValue>
-                              </InfoItem>
+                            {Object.entries(formattedInfo.basicInfo)
+                              .filter(([_, value]) => typeof value === 'string' ? !['unknown', 'n/a'].includes(value.trim().toLowerCase()) : true)
+                              .map(([key, value]) => (
+                                <InfoItem key={key}>
+                                  <InfoLabel>{key}</InfoLabel>
+                                  <InfoValue>{value}</InfoValue>
+                                </InfoItem>
                             ))}
                           </InfoSection>
                           <InfoSection>
                             <InfoSectionTitle>
                               API Information
                             </InfoSectionTitle>
-                            {Object.entries(formattedInfo.apiInfo).map(([key, value]) => (
-                              <InfoItem key={key}>
-                                <InfoLabel>{key}</InfoLabel>
-                                <InfoValue>{value}</InfoValue>
-                              </InfoItem>
+                            {Object.entries(formattedInfo.apiInfo)
+                              .filter(([_, value]) => typeof value === 'string' ? !['unknown', 'n/a'].includes(value.trim().toLowerCase()) : true)
+                              .map(([key, value]) => (
+                                <InfoItem key={key}>
+                                  <InfoLabel>{key}</InfoLabel>
+                                  <InfoValue>{value}</InfoValue>
+                                </InfoItem>
                             ))}
                           </InfoSection>
                           <InfoSection>
                             <InfoSectionTitle>
                               Storage Information
                             </InfoSectionTitle>
-                            {Object.entries(formattedInfo.storageInfo).map(([key, value]) => (
-                              <InfoItem key={key}>
-                                <InfoLabel>{key}</InfoLabel>
-                                <InfoValue>{value}</InfoValue>
-                              </InfoItem>
+                            {Object.entries(formattedInfo.storageInfo)
+                              .filter(([_, value]) => typeof value === 'string' ? !['unknown', 'n/a'].includes(value.trim().toLowerCase()) : true)
+                              .map(([key, value]) => (
+                                <InfoItem key={key}>
+                                  <InfoLabel>{key}</InfoLabel>
+                                  <InfoValue>{value}</InfoValue>
+                                </InfoItem>
                             ))}
                           </InfoSection>
                         </InfoGrid>
