@@ -7,6 +7,7 @@ import {
   Popup,
   Tooltip,
   ZoomControl,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -34,6 +35,27 @@ const MapWrapper = styled.div`
   border: 1px solid #e2e8f0;
   box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
   background: #f1f5f9;
+`;
+
+const RefreshButton = styled.button`
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  &:hover {
+    background: #f8fafc;
+  }
 `;
 
 const Legend = styled.div`
@@ -98,18 +120,33 @@ const createStepIcon = (color, label, isPulse = false) =>
     iconAnchor: [15, 15],
   });
 
-function GeoTopologyMap({ workflowId }) {
-  const [data, setData] = useState({ instances: [], steps: [], edges: [] });
+// Component to handle auto-fitting bounds to steps
+const FitBounds = ({ steps }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (steps && steps.length > 0) {
+      const bounds = L.latLngBounds(steps.map((s) => [s.lat, s.lng]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    }
+  }, [steps, map]);
+  return null;
+};
+
+function GeoTopologyMap({ workflowId, workflow: workflowProp }) {
+  const [data, setData] = useState({ instances: [], steps: [], dataFlow: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const loadMapData = async () => {
       try {
-        setLoading(true);
+        if (refreshKey === 0) setLoading(true);
         const [topology, workflow] = await Promise.all([
           topologyService.getNetworkTopology(),
-          workflowService.getWorkflowRun(workflowId),
+          workflowProp
+            ? Promise.resolve(workflowProp)
+            : workflowService.getWorkflowRun(workflowId),
         ]);
 
         if (!topology || !topology.instances) {
@@ -142,17 +179,18 @@ function GeoTopologyMap({ workflowId }) {
           })),
         );
 
-        // Map workflow tasks to locations
+        // Map workflow steps to locations
         let workflowSteps = [];
-        if (workflow?.tasks && workflow.tasks.length > 0) {
-          workflowSteps = workflow.tasks
-            .map((task, idx) => {
+        if (workflow?.steps && workflow.steps.length > 0) {
+          workflowSteps = workflow.steps
+            .map((step, idx) => {
               const inst = enrichedInstances.find(
                 (i) =>
-                  i.id === task.tes_instance_id || i.name === task.tes_name,
+                  i.id === step.tes_instance_id ||
+                  i.name === step.tes_instance_name,
               );
               return {
-                ...task,
+                ...step,
                 idx,
                 lat: inst?.lat || 0,
                 lng: inst?.lng || 0,
@@ -161,38 +199,38 @@ function GeoTopologyMap({ workflowId }) {
               };
             })
             .filter((s) => s.isValid);
-        } else if (workflow?.tes_name) {
-          const inst = enrichedInstances.find(
-            (i) => i.name === workflow.tes_name,
-          );
-          if (inst) {
-            workflowSteps = [
-              {
-                idx: 0,
-                name: "Workflow Execution",
-                status: workflow.status,
-                lat: inst.lat,
-                lng: inst.lng,
-                instanceName: inst.name,
-              },
-            ];
-          }
         }
 
-        const stepEdges = [];
-        for (let i = 0; i < workflowSteps.length - 1; i++) {
-          if (workflowSteps[i].lat !== workflowSteps[i + 1].lat) {
-            stepEdges.push({
-              from: [workflowSteps[i].lat, workflowSteps[i].lng],
-              to: [workflowSteps[i + 1].lat, workflowSteps[i + 1].lng],
-            });
-          }
+        // Use backend data_flow for polylines
+        let dataFlow = [];
+        if (workflow?.data_flow && workflow.data_flow.length > 0) {
+          dataFlow = workflow.data_flow
+            .map((flow) => {
+              const fromInst =
+                flow.from === "start"
+                  ? null
+                  : enrichedInstances.find((i) => i.id === flow.from);
+              const toInst = enrichedInstances.find((i) => i.id === flow.to);
+              if (flow.from === "start" && toInst) {
+                return {
+                  from: [toInst.lat - 1.2, toInst.lng - 0.5],
+                  to: [toInst.lat, toInst.lng],
+                };
+              }
+              return fromInst && toInst
+                ? {
+                    from: [fromInst.lat, fromInst.lng],
+                    to: [toInst.lat, toInst.lng],
+                  }
+                : null;
+            })
+            .filter(Boolean);
         }
 
         setData({
           instances: enrichedInstances,
           steps: workflowSteps,
-          edges: stepEdges,
+          dataFlow,
         });
       } catch (err) {
         console.error("Map Load Error:", err);
@@ -202,8 +240,8 @@ function GeoTopologyMap({ workflowId }) {
       }
     };
 
-    if (workflowId) loadMapData();
-  }, [workflowId]);
+    if (workflowId || workflowProp) loadMapData();
+  }, [workflowId, refreshKey, workflowProp]);
 
   const mapCenter = useMemo(() => {
     return [50, 10]; // Center on Europe
@@ -216,14 +254,20 @@ function GeoTopologyMap({ workflowId }) {
       </MapWrapper>
     );
 
+  const handleRefresh = () => setRefreshKey((prev) => prev + 1);
+
   return (
     <MapWrapper>
+      <RefreshButton onClick={handleRefresh}>
+        <span style={{ fontSize: "16px" }}>🔄</span> Manual Refresh
+      </RefreshButton>
       <MapContainer
         center={mapCenter}
         zoom={3}
         style={{ width: "100%", height: "100%" }}
         zoomControl={false}
       >
+        {data.steps.length > 0 && <FitBounds steps={data.steps} />}
         <ZoomControl position="topright" />
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -277,45 +321,198 @@ function GeoTopologyMap({ workflowId }) {
           </Marker>
         ))}
 
-        {/* Workflow Connections */}
-        {data.edges.map((edge, idx) => (
-          <Polyline
-            key={`edge-${idx}`}
-            positions={[edge.from, edge.to]}
-            color="#3b82f6"
-            weight={3}
-            dashArray="5, 10"
-            opacity={0.5}
-          />
-        ))}
+        {/* Data Flow Lines removed as redundant with workflow step connections */}
 
-        {/* Active Workflow Steps */}
-        {data.steps.map((step, idx) => (
-          <Marker
-            key={`step-${idx}`}
-            position={[step.lat, step.lng]}
-            icon={createStepIcon(
-              idx === 0
-                ? "#10b981"
-                : idx === data.steps.length - 1
-                  ? "#ef4444"
-                  : "#3b82f6",
-              idx + 1,
-              step.status === "RUNNING",
-            )}
-            zIndexOffset={1000}
-          >
-            <Popup>
-              <div style={{ fontWeight: 700 }}>
-                Step ${idx + 1}: ${step.name}
-              </div>
-              <div style={{ fontSize: "11px" }}>Node: ${step.instanceName}</div>
-              <div style={{ fontWeight: 800, color: "#3b82f6" }}>
-                Status: ${step.status}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {/* Draw polylines between all consecutive steps with different colors */}
+        {data.steps.length > 1 &&
+          data.steps.map((step, idx) => {
+            if (idx === 0) return null;
+            const prevStep = data.steps[idx - 1];
+
+            // Use a color palette for each connection
+            const colors = [
+              "#6366f1",
+              "#10b981",
+              "#f59e42",
+              "#ef4444",
+              "#3b82f6",
+              "#f472b6",
+              "#facc15",
+              "#38bdf8",
+            ];
+            const color = colors[(idx - 1) % colors.length];
+
+            // Calculate offset positions to match the marker jittering
+            const sameLocPrev = data.steps.filter(
+              (s) => s.lat === prevStep.lat && s.lng === prevStep.lng,
+            );
+            const prevIndex = sameLocPrev.findIndex(
+              (s) => s.idx === prevStep.idx,
+            );
+            const prevOffset =
+              0.005 * (prevIndex - Math.floor(sameLocPrev.length / 2));
+
+            const sameLocCurr = data.steps.filter(
+              (s) => s.lat === step.lat && s.lng === step.lng,
+            );
+            const currIndex = sameLocCurr.findIndex((s) => s.idx === step.idx);
+            const currOffset =
+              0.005 * (currIndex - Math.floor(sameLocCurr.length / 2));
+
+            // Simple straight line connection between steps
+            return (
+              <Polyline
+                key={`step-connection-${idx}`}
+                positions={[
+                  [prevStep.lat + prevOffset, prevStep.lng + prevOffset],
+                  [step.lat + currOffset, step.lng + currOffset],
+                ]}
+                color={color}
+                weight={4}
+                dashArray="10, 10"
+                opacity={0.8}
+                lineCap="round"
+              />
+            );
+          })}
+
+        {/* Step Markers with jittering and informative popups */}
+        {data.steps &&
+          data.steps.length > 0 &&
+          data.steps.map((step, idx) => {
+            // Find all steps at this location
+            const sameLocSteps = data.steps.filter(
+              (s) => s && s.lat === step.lat && s.lng === step.lng,
+            );
+            // Find this step's index among steps at this location
+            const myIndex = sameLocSteps.findIndex((s) => s.idx === step.idx);
+            // Apply a tiny offset to prevent perfect overlap but keep them on the node
+            const offset =
+              0.005 * (myIndex - Math.floor(sameLocSteps.length / 2));
+            const lat = step.lat + offset;
+            const lng = step.lng + offset;
+
+            const st = (step.status || "").toLowerCase();
+
+            // Fix: Ensure Step 2 doesn't show COMPLETED if Step 1 is still RUNNING
+            let displayStatus = st;
+            if (
+              idx === 1 &&
+              data.steps[0].status.toLowerCase() !== "completed" &&
+              data.steps[0].status.toLowerCase() !== "complete"
+            ) {
+              displayStatus = data.steps[0].status.toLowerCase();
+            }
+
+            let color = "#3b82f6";
+            if (displayStatus === "completed" || displayStatus === "complete")
+              color = "#10b981";
+            if (st === "failed" || st === "canceled" || st === "cancelled")
+              color = "#ef4444";
+            if (idx === 0) color = "#f59e42";
+            if (idx === data.steps.length - 1) color = "#6366f1";
+
+            const stepInfo = step.name || `Step ${idx + 1}`;
+            const isRunning =
+              st === "running" || st === "queued" || st === "initializing";
+
+            return (
+              <Marker
+                key={`step-${idx}`}
+                position={[lat, lng]}
+                icon={createStepIcon(color, idx + 1, isRunning)}
+                zIndexOffset={1000}
+              >
+                <Popup>
+                  <div style={{ minWidth: "200px" }}>
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: "14px",
+                        borderBottom: "1px solid #eee",
+                        paddingBottom: "4px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      {stepInfo}
+                    </div>
+                    <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                      <span style={{ color: "#64748b" }}>Execution Node:</span>
+                      <br />
+                      <strong>{step.instanceName}</strong>
+                    </div>
+                    <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                      <span style={{ color: "#64748b" }}>Exact Location:</span>
+                      <br />
+                      <code style={{ fontSize: "10px" }}>
+                        {step.lat.toFixed(4)}, {step.lng.toFixed(4)}
+                      </code>
+                    </div>
+                    <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                      <span style={{ color: "#64748b" }}>Current Step:</span>
+                      <br />
+                      <strong>
+                        {idx + 1} of {data.steps.length}
+                      </strong>
+                    </div>
+                    <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                      <span style={{ color: "#64748b" }}>Status:</span>
+                      <br />
+                      <span
+                        style={{
+                          color:
+                            displayStatus === "completed" ||
+                            displayStatus === "complete"
+                              ? "#10b981"
+                              : "#3b82f6",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {displayStatus === "complete"
+                          ? "COMPLETED"
+                          : displayStatus.toUpperCase()}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        marginBottom: "4px",
+                        color: "#475569",
+                      }}
+                    >
+                      {idx === 0
+                        ? "Initial processing and container startup."
+                        : idx === data.steps.length - 1
+                          ? "Finalizing results and cleaning up environment."
+                          : "Executing core workflow logic."}
+                    </div>
+                    {step.tes_task_id && (
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          marginTop: "8px",
+                          background: "#f1f5f9",
+                          padding: "4px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        <span style={{ color: "#64748b" }}>TES Task ID:</span>
+                        <br />
+                        <code>{step.tes_task_id}</code>
+                      </div>
+                    )}
+                    {step.start_time && (
+                      <div style={{ fontSize: "10px", marginTop: "4px" }}>
+                        <span style={{ color: "#64748b" }}>Started:</span>{" "}
+                        {new Date(step.start_time).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
 
         <Legend>
           <div style={{ fontWeight: 700, marginBottom: "5px" }}>

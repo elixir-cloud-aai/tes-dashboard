@@ -172,7 +172,9 @@ const MapSection = styled.div`
 
 const formatStatus = (status) => {
   if (!status) return "UNKNOWN";
-  return status
+  const s = status.toUpperCase();
+  if (s === "COMPLETE" || s === "COMPLETED") return "COMPLETED";
+  return s
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
@@ -186,23 +188,55 @@ const WorkflowDetails = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchWorkflow = async () => {
-      setLoading(true);
-      setError("");
+    if (!runId) return undefined;
+    let cancelled = false;
+    let pollTimer = null;
+
+    const load = async (isInitial) => {
       try {
+        if (isInitial) {
+          setLoading(true);
+          setError("");
+        }
         const data = await workflowService.getWorkflowRun(runId);
+        if (cancelled) return;
         if (data) {
           setWorkflow(data);
-        } else {
+        } else if (isInitial) {
           setError("Workflow record not found.");
         }
       } catch (err) {
-        setError("Failed to load workflow details.");
+        if (isInitial) setError("Failed to load workflow details.");
       } finally {
-        setLoading(false);
+        if (isInitial) setLoading(false);
       }
     };
-    if (runId) fetchWorkflow();
+
+    load(true);
+
+    pollTimer = setInterval(async () => {
+      try {
+        const data = await workflowService.getWorkflowRun(runId);
+        if (cancelled || !data) return;
+        setWorkflow(data);
+        const s = (data.status || "").toUpperCase();
+        if (
+          ["COMPLETE", "COMPLETED", "FAILED", "CANCELED", "CANCELLED"].includes(
+            s,
+          )
+        ) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      } catch (_) {
+        /* keep polling on transient errors */
+      }
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      if (pollTimer) clearInterval(pollTimer);
+    };
   }, [runId]);
 
   if (loading)
@@ -236,7 +270,11 @@ const WorkflowDetails = () => {
           <Title>Workflow Context</Title>
           <RunId>{workflow.run_id}</RunId>
         </TitleSection>
-        <StatusBadge status={workflow.status}>
+        <StatusBadge
+          status={
+            workflow.status === "COMPLETED" ? "COMPLETE" : workflow.status
+          }
+        >
           {formatStatus(workflow.status)}
         </StatusBadge>
       </Header>
@@ -244,37 +282,39 @@ const WorkflowDetails = () => {
       <Grid>
         <ContentCard>
           <CardTitle>
-            <Activity size={18} /> Basic Information
+            <Activity size={18} /> Execution Overview
           </CardTitle>
           <InfoRow>
-            <InfoLabel>Status</InfoLabel>
+            <InfoLabel>Current Progress</InfoLabel>
             <InfoValue>{formatStatus(workflow.status)}</InfoValue>
           </InfoRow>
           <InfoRow>
-            <InfoLabel>Execution Node</InfoLabel>
-            <InfoValue>{workflow.tes_name || "Multi-node Fleet"}</InfoValue>
+            <InfoLabel>Primary Computing Node</InfoLabel>
+            <InfoValue>
+              {workflow.tes_name || "Distributed Cloud Fleet"}
+            </InfoValue>
           </InfoRow>
           <InfoRow>
-            <InfoLabel>Engine Type</InfoLabel>
+            <InfoLabel>Workflow Language</InfoLabel>
             <InfoValue>{(workflow.type || "CWL").toUpperCase()}</InfoValue>
           </InfoRow>
         </ContentCard>
 
         <ContentCard>
           <CardTitle>
-            <Clock size={18} /> Timing
+            <Clock size={18} /> Time Tracking
           </CardTitle>
           <InfoRow>
-            <InfoLabel>Submitted At</InfoLabel>
+            <InfoLabel>Start Time</InfoLabel>
             <InfoValue>
               {workflow.submitted_at
                 ? new Date(workflow.submitted_at).toLocaleString()
-                : "N/A"}
+                : "Waiting to start..."}
             </InfoValue>
           </InfoRow>
           <InfoRow>
-            <InfoLabel>Duration</InfoLabel>
-            <InfoValue>Calculated at runtime</InfoValue>
+            <InfoLabel>Total Runtime</InfoLabel>
+            <InfoValue>Live tracking active</InfoValue>
           </InfoRow>
         </ContentCard>
       </Grid>
@@ -282,7 +322,7 @@ const WorkflowDetails = () => {
       <Grid>
         <ContentCard>
           <CardTitle>
-            <Server size={18} /> Infrastructure Logic
+            <Server size={18} /> Cloud Infrastructure View
           </CardTitle>
           <TopologyMap workflowId={workflow.run_id} />
         </ContentCard>
@@ -298,9 +338,9 @@ const WorkflowDetails = () => {
       <MapSection>
         <ContentCard>
           <CardTitle>
-            <Activity size={18} /> Geographical Distribution & Data Flow
+            <Activity size={18} /> Live Global Data Flow
           </CardTitle>
-          <GeoTopologyMap workflowId={workflow.run_id} />
+          <GeoTopologyMap workflowId={workflow.run_id} workflow={workflow} />
         </ContentCard>
       </MapSection>
     </PageContainer>

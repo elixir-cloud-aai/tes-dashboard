@@ -1,0 +1,16 @@
+{
+  "id": "org.example.tes.node-1",
+  "name": "Example TES Node",
+  "type": { "group": "org.ga4gh", "artifact": "tes", "version": "1.0" },
+  "security": {
+    "tee": {
+      "platform": "intel-tdx",
+      "quote": "<base64-encoded TDX quote>",
+      "quoteFormat": "tdx-1.5",
+      "measurementAlgorithm": "sha384",
+      "nonce": "a3f1c9...",
+      "timestamp": "2025-08-01T12:00:00Z",
+      "verificationUrl": "https://api.trustedservices.intel.com/tdx/certification/v4/"
+    }
+  }
+}

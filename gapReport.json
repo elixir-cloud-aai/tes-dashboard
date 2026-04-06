@@ -1,0 +1,31 @@
+{
+  "workflow_id": "github.com/owner/repo@abc123",
+  "language": "nextflow",
+  "analyzed_at": "2026-06-01T14:32:00Z",
+  "summary": {
+    "total_gaps": 4,
+    "critical": 1,
+    "high": 2,
+    "low": 1,
+    "cloud_ready": false
+  },
+  "gaps": [
+    {
+      "id": "GAP-001",
+      "category": "containerization",
+      "severity": "critical",
+      "location": {
+        "file": "main.nf",
+        "line": 42,
+        "process": "align_reads"
+      },
+      "description": "Process has no container directive. Will fail on WES platforms.",
+      "evidence": "process align_reads { ... }",
+      "remediation": {
+        "strategy": "add_container_directive",
+        "suggested_image": "biocontainers/bwa:0.7.17",
+        "confidence": 0.87
+      }
+    }
+  ]
+}

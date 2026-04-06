@@ -85,10 +85,10 @@ export const workflowService = {
 
   getWorkflowRun: async (runId) => {
     try {
-      const response = await api.get('/api/dashboard_data');
-      const workflowRuns = response.data.workflow_runs || [];
-      return workflowRuns.find(run => run.run_id === runId) || null;
+      const response = await api.get(`/api/workflow_run/${runId}`);
+      return response.data || null;
     } catch (error) {
+      if (error.response?.status === 404) return null;
       console.error('Error fetching workflow run:', error);
       throw error;
     }

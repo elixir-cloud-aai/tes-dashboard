@@ -1,5 +1,17 @@
 import api from './api';
 
+export const setInstanceCredentials = async (url, credentials) => {
+  return api.post('/api/set_instance_credentials', { url, credentials });
+};
+
+export const getInstanceCredentials = async (url) => {
+  return api.get('/api/get_instance_credentials', { params: { url } });
+};
+
+export const deleteInstanceCredentials = async (url) => {
+  return api.delete('/api/delete_instance_credentials', { params: { url } });
+};
+
 class InstanceService {
   constructor() {
     this.healthyInstances = [];

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from datetime import datetime, timezone
 from utils.tes_utils import load_tes_instances
 from services.tes_service import get_healthy_instances, fetch_tes_status
@@ -6,6 +6,9 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 
 instances_bp = Blueprint('instances', __name__)
+
+# In-memory store for runtime tokens (url -> token)
+runtime_tokens = {}
 
 @instances_bp.route('/api/instances', methods=['GET'])
 def get_instances():
@@ -75,3 +78,13 @@ def get_service_info():
     # Always return 200 with the service info structure
     # The result now always contains proper fields even on errors
     return jsonify(result), 200
+
+@instances_bp.route('/api/set_instance_token', methods=['POST'])
+def set_instance_token():
+    data = request.get_json()
+    url = data.get('url')
+    token = data.get('token')
+    if not url or not token:
+        return jsonify({'success': False, 'error': 'url and token are required'}), 400
+    runtime_tokens[url.rstrip('/').lower()] = token
+    return jsonify({'success': True, 'message': f'Token set for {url}'})

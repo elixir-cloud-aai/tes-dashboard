@@ -8,10 +8,12 @@ import {
   Server, 
   AlertCircle,
   CheckCircle,
-  ExternalLink
+  ExternalLink,
+  Shield
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import api from '../services/api';
+import { setInstanceCredentials, getInstanceCredentials, deleteInstanceCredentials } from '../services/instanceService';
 
 const Container = styled.div`
   padding: 20px;
@@ -376,6 +378,7 @@ const InstanceManagement = () => {
     country: '',
     description: ''
   });
+  const [credentialModal, setCredentialModal] = useState({ open: false, instance: null, credentials: { token: '', user: '', password: '' }, loading: false, error: '' });
 
   useEffect(() => {
     loadInstances();
@@ -504,6 +507,45 @@ const InstanceManagement = () => {
     items.splice(result.destination.index, 0, reorderedItem);
 
     setManagedInstances(items);
+  };
+
+  // Credential management handlers
+  const openCredentialModal = async (instance) => {
+    setCredentialModal({ open: true, instance, credentials: { token: '', user: '', password: '' }, loading: true, error: '' });
+    try {
+      const res = await getInstanceCredentials(instance.url);
+      setCredentialModal({ open: true, instance, credentials: res.data.credentials || { token: '', user: '', password: '' }, loading: false, error: '' });
+    } catch (err) {
+      setCredentialModal((prev) => ({ ...prev, loading: false, error: '' }));
+    }
+  };
+
+  const handleCredentialChange = (e) => {
+    const { name, value } = e.target;
+    setCredentialModal((prev) => ({ ...prev, credentials: { ...prev.credentials, [name]: value } }));
+  };
+
+  const saveCredentials = async () => {
+    setCredentialModal((prev) => ({ ...prev, loading: true, error: '' }));
+    try {
+      await setInstanceCredentials(credentialModal.instance.url, credentialModal.credentials);
+      setCredentialModal({ open: false, instance: null, credentials: { token: '', user: '', password: '' }, loading: false, error: '' });
+      alert('Credentials saved!');
+    } catch (err) {
+      setCredentialModal((prev) => ({ ...prev, loading: false, error: 'Failed to save credentials.' }));
+    }
+  };
+
+  const removeCredentials = async () => {
+    if (!window.confirm('Are you sure you want to delete credentials for this instance?')) return;
+    setCredentialModal((prev) => ({ ...prev, loading: true, error: '' }));
+    try {
+      await deleteInstanceCredentials(credentialModal.instance.url);
+      setCredentialModal({ open: false, instance: null, credentials: { token: '', user: '', password: '' }, loading: false, error: '' });
+      alert('Credentials deleted!');
+    } catch (err) {
+      setCredentialModal((prev) => ({ ...prev, loading: false, error: 'Failed to delete credentials.' }));
+    }
   };
 
   if (loading) {
@@ -639,6 +681,9 @@ const InstanceManagement = () => {
                           <ActionButton onClick={() => handleRemoveInstance(instance.id)}>
                             <Trash2 size={18} />
                           </ActionButton>
+                          <ActionButton style={{ background: '#eaf6fb', color: '#3498db', marginLeft: 8 }} onClick={() => openCredentialModal(instance)}>
+                            <Shield size={18} />
+                          </ActionButton>
                         </InstanceItem>
                       )}
                     </Draggable>
@@ -699,6 +744,53 @@ const InstanceManagement = () => {
             <ButtonGroup>
               <Button onClick={() => setShowModal(false)}>Cancel</Button>
               <Button $primary onClick={handleAddInstance}>Add Instance</Button>
+            </ButtonGroup>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {credentialModal.open && (
+        <Modal onClick={(e) => e.target === e.currentTarget && setCredentialModal({ ...credentialModal, open: false })}>
+          <ModalContent>
+            <ModalTitle>Manage Credentials for {credentialModal.instance?.name}</ModalTitle>
+            <FormGroup>
+              <Label>Token (for TESK/Poiesis)</Label>
+              <Input
+                type="text"
+                name="token"
+                value={credentialModal.credentials.token || ''}
+                onChange={handleCredentialChange}
+                placeholder="Bearer token for TESK/Poiesis endpoints"
+                autoComplete="off"
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Username (for Funnel)</Label>
+              <Input
+                type="text"
+                name="user"
+                value={credentialModal.credentials.user || ''}
+                onChange={handleCredentialChange}
+                placeholder="Username for Funnel endpoints"
+                autoComplete="off"
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Password (for Funnel)</Label>
+              <Input
+                type="password"
+                name="password"
+                value={credentialModal.credentials.password || ''}
+                onChange={handleCredentialChange}
+                placeholder="Password for Funnel endpoints"
+                autoComplete="off"
+              />
+            </FormGroup>
+            {credentialModal.error && <div style={{ color: 'red', marginBottom: 10 }}>{credentialModal.error}</div>}
+            <ButtonGroup>
+              <Button onClick={() => setCredentialModal({ ...credentialModal, open: false })}>Cancel</Button>
+              <Button $primary onClick={saveCredentials} disabled={credentialModal.loading}>Save</Button>
+              <Button style={{ background: '#e74c3c', color: 'white' }} onClick={removeCredentials} disabled={credentialModal.loading}>Delete</Button>
             </ButtonGroup>
           </ModalContent>
         </Modal>

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Shield, Key, User, AlertTriangle, Save, X } from 'lucide-react';
 import { useAuthConfig } from '../../contexts/AuthConfigContext';
 import useInstances from '../../hooks/useInstances';
+import api from '../../services/api';
+import { setInstanceCredentials as setInstanceCredentialsAPI } from '../../services/instanceService';
 
 const Modal = styled.div`
   position: fixed;
@@ -215,20 +217,48 @@ const Button = styled.button`
 const AuthConfigModal = ({ isOpen, onClose }) => {
   const { instances } = useInstances();
   const { tesCredentials, setInstanceCredentials, hasCredentials } = useAuthConfig();
-  
-  const [instanceConfigs, setInstanceConfigs] = useState(() => {
-    const configs = {};
-    instances.forEach(inst => {
-      const existing = tesCredentials[inst.url] || {};
-      configs[inst.url] = {
-        authType: existing.token ? 'token' : 'basic',
-        token: existing.token || '',
-        username: existing.username || '',
-        password: existing.password || ''
-      };
-    });
-    return configs;
-  });
+  const [instanceConfigs, setInstanceConfigs] = useState({});
+  const [loadingInstances, setLoadingInstances] = useState(false);
+  const [fetchedInstances, setFetchedInstances] = useState([]);
+
+  useEffect(() => {
+    if (instances.length > 0) {
+      // Use federated instances from context
+      const configs = {};
+      instances.forEach(inst => {
+        const existing = tesCredentials[inst.url] || {};
+        configs[inst.url] = {
+          authType: existing.token ? 'token' : 'basic',
+          token: existing.token || '',
+          username: existing.username || '',
+          password: existing.password || ''
+        };
+      });
+      setInstanceConfigs(configs);
+      setFetchedInstances(instances);
+    } else {
+      // Fallback: fetch from backend directly
+      setLoadingInstances(true);
+      api.get('/api/instances-with-status')
+        .then(res => {
+          const backendInstances = res.data.instances || [];
+          setFetchedInstances(backendInstances);
+          const configs = {};
+          backendInstances.forEach(inst => {
+            const existing = tesCredentials[inst.url] || {};
+            configs[inst.url] = {
+              authType: existing.token ? 'token' : 'basic',
+              token: existing.token || '',
+              username: existing.username || '',
+              password: existing.password || ''
+            };
+          });
+          setInstanceConfigs(configs);
+        })
+        .catch(() => setFetchedInstances([]))
+        .finally(() => setLoadingInstances(false));
+    }
+  }, [instances, tesCredentials]);
 
   if (!isOpen) return null;
 
@@ -252,18 +282,17 @@ const AuthConfigModal = ({ isOpen, onClose }) => {
     }));
   };
 
-  const handleSave = () => {
-    // Save all configurations
-    Object.entries(instanceConfigs).forEach(([url, config]) => {
+  const handleSave = async () => {
+    // Save all configurations to backend and context
+    await Promise.all(Object.entries(instanceConfigs).map(async ([url, config]) => {
       if (config.authType === 'token' && config.token) {
+        await setInstanceCredentialsAPI(url, { token: config.token });
         setInstanceCredentials(url, { token: config.token });
       } else if (config.authType === 'basic' && config.username && config.password) {
-        setInstanceCredentials(url, { 
-          username: config.username, 
-          password: config.password 
-        });
+        await setInstanceCredentialsAPI(url, { username: config.username, password: config.password });
+        setInstanceCredentials(url, { username: config.username, password: config.password });
       }
-    });
+    }));
     onClose();
   };
 
@@ -279,24 +308,24 @@ const AuthConfigModal = ({ isOpen, onClose }) => {
             <X size={20} />
           </CloseButton>
         </Header>
-
         <Warning>
           <AlertTriangle size={20} />
           <div>
-            <strong>Temporary Solution:</strong> Credentials are stored in session storage only and will be cleared 
-            when you close your browser. Life Science Login integration is coming soon.
+            <strong>Credentials are now stored securely on the backend and persist across sessions.</strong>
           </div>
         </Warning>
-
-        {instances.length === 0 ? (
+        {loadingInstances ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+            Loading TES instances...
+          </div>
+        ) : fetchedInstances.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
             No TES instances available. Please check your configuration.
           </div>
         ) : (
-          instances.map((instance) => {
+          fetchedInstances.map((instance) => {
             const config = instanceConfigs[instance.url] || { authType: 'token', token: '', username: '', password: '' };
             const configured = hasCredentials(instance.url);
-            
             return (
               <InstanceSection key={instance.url}>
                 <InstanceHeader>
@@ -307,9 +336,7 @@ const AuthConfigModal = ({ isOpen, onClose }) => {
                     </StatusBadge>
                   </div>
                 </InstanceHeader>
-                
                 <InstanceUrl>{instance.url}</InstanceUrl>
-
                 <AuthTypeSelector>
                   <AuthTypeButton
                     type="button"
@@ -328,7 +355,6 @@ const AuthConfigModal = ({ isOpen, onClose }) => {
                     Basic Auth
                   </AuthTypeButton>
                 </AuthTypeSelector>
-
                 {config.authType === 'token' ? (
                   <FormGroup>
                     <Label>JWT Token</Label>
@@ -364,7 +390,6 @@ const AuthConfigModal = ({ isOpen, onClose }) => {
             );
           })
         )}
-
         <ButtonGroup>
           <Button type="button" onClick={onClose}>
             Cancel

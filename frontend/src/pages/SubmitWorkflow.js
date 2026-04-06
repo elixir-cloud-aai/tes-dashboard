@@ -436,6 +436,7 @@ const SubmitWorkflow = () => {
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState(null);
   const [workflowFileContent, setWorkflowFileContent] = useState("");
+  const [isGateway, setIsGateway] = useState(false);
 
   // Helper function to get status badge
   const getStatusBadge = (status) => {
@@ -444,9 +445,9 @@ const SubmitWorkflow = () => {
 
   // On mount, select a random healthy instance if available
   useEffect(() => {
-    const healthyInstances = (allInstances.length > 0 ? allInstances : instances).filter(
-      (inst) => String(inst.status).toLowerCase() === 'healthy'
-    );
+    const healthyInstances = (
+      allInstances.length > 0 ? allInstances : instances
+    ).filter((inst) => String(inst.status).toLowerCase() === "healthy");
     if (healthyInstances.length > 0 && !selectedInstance) {
       setSelectedInstance(healthyInstances[0].url);
     }
@@ -469,24 +470,40 @@ const SubmitWorkflow = () => {
   };
 
   const handleChange = (e) => {
-    setSelectedInstance(e.target.value);
+    const url = e.target.value;
+    setSelectedInstance(url);
+
+    // Check if the selected instance is a gateway (e.g., proTES)
+    // In a real implementation, this would be based on instance metadata
+    const inst =
+      allInstances.find((i) => i.url === url) ||
+      instances.find((i) => i.url === url);
+    const name = inst?.name?.toLowerCase() || "";
+    setIsGateway(name.includes("protes") || name.includes("gateway"));
   };
 
   const handleTestConnection = async () => {
+    if (!selectedInstance) {
+      setError("Please select an instance to test");
+      return;
+    }
     setTestingConnection(true);
     setConnectionTestResult(null);
     try {
-      const result = await testConnection();
+      // In a real scenario, we would test the specific selectedInstance
+      const result =
+        await workflowService.testInstanceConnection(selectedInstance);
       setConnectionTestResult({
         success: true,
-        message: result.message || "Backend connection successful",
+        message:
+          result.message || `Connection to ${selectedInstance} successful`,
       });
     } catch (err) {
       setConnectionTestResult({
         success: false,
         message:
           err.message ||
-          "Connection test failed - please check your backend service",
+          `Connection to ${selectedInstance} failed. Check URL and health status.`,
       });
     } finally {
       setTestingConnection(false);
@@ -549,11 +566,12 @@ const SubmitWorkflow = () => {
     setSelectedWorkflow(workflowKey);
     setError("");
     // Pick a random healthy instance for workflow
-    const healthyInstances = (allInstances.length > 0 ? allInstances : instances).filter(
-      (inst) => String(inst.status).toLowerCase() === 'healthy'
-    );
+    const healthyInstances = (
+      allInstances.length > 0 ? allInstances : instances
+    ).filter((inst) => String(inst.status).toLowerCase() === "healthy");
     if (healthyInstances.length > 0) {
-      const random = healthyInstances[Math.floor(Math.random() * healthyInstances.length)];
+      const random =
+        healthyInstances[Math.floor(Math.random() * healthyInstances.length)];
       setSelectedInstance(random.url);
     }
   };
@@ -568,9 +586,14 @@ const SubmitWorkflow = () => {
         <Title>Submit Workflow</Title>
 
         {/* Removed misleading 'No healthy TES instances found' UI message. Now only logs to console for debugging. */}
-        {instances.length === 0 && !instancesLoading && (
-          (() => { console.log('No TES instances found (allInstances and instances are empty).'); return null; })()
-        )}
+        {instances.length === 0 &&
+          !instancesLoading &&
+          (() => {
+            console.log(
+              "No TES instances found (allInstances and instances are empty).",
+            );
+            return null;
+          })()}
 
         <form onSubmit={handleSubmit}>
           <FormGroup>
@@ -588,40 +611,66 @@ const SubmitWorkflow = () => {
               {(() => {
                 const all = allInstances.length > 0 ? allInstances : instances;
                 // Move healthy to top, but tesk-prod.cloud.e-infra.cz always in 'others' and always red cross
-                const isProdCZ = (inst) => inst.url && inst.url.includes("tesk-prod.cloud.e-infra.cz");
+                const isProdCZ = (inst) =>
+                  inst.url && inst.url.includes("tesk-prod.cloud.e-infra.cz");
                 const healthy = all.filter(
-                  (inst) => String(inst.status).toLowerCase() === "healthy" && !isProdCZ(inst)
+                  (inst) =>
+                    String(inst.status).toLowerCase() === "healthy" &&
+                    !isProdCZ(inst),
                 );
                 const prodCZ = all.filter(isProdCZ);
                 const others = all.filter(
-                  (inst) => String(inst.status).toLowerCase() !== "healthy" && !isProdCZ(inst)
+                  (inst) =>
+                    String(inst.status).toLowerCase() !== "healthy" &&
+                    !isProdCZ(inst),
                 );
-                return [
-                  ...healthy,
-                  ...prodCZ,
-                  ...others
-                ].map((instance, index) => {
-                  const statusStr = String(instance.status).toLowerCase();
-                  const isHealthy = statusStr === "healthy" && !isProdCZ(instance);
-                  const isProd = isProdCZ(instance);
-                  const isUnauthorized = statusStr.includes("auth required") || statusStr.includes("unauthorized") || instance.http_status === 401;
-                  return (
-                    <option key={index} value={instance.url}>
-                      {isProd ? "❌" : isHealthy ? "✅" : isUnauthorized ? "❌ (Unauthorized)" : "❌"} {instance.name}
-                    </option>
-                  );
-                });
+                return [...healthy, ...prodCZ, ...others].map(
+                  (instance, index) => {
+                    const name = instance.name || "Unknown Instance";
+                    const isGatewayOption =
+                      name.toLowerCase().includes("protes") ||
+                      name.toLowerCase().includes("gateway");
+                    const statusStr = String(instance.status).toLowerCase();
+                    const isHealthy =
+                      statusStr === "healthy" && !isProdCZ(instance);
+                    const isProd = isProdCZ(instance);
+                    const isUnauthorized =
+                      statusStr.includes("auth required") ||
+                      statusStr.includes("unauthorized") ||
+                      instance.http_status === 401;
+                    return (
+                      <option key={index} value={instance.url}>
+                        {isProd
+                          ? "❌"
+                          : isHealthy
+                            ? "✅"
+                            : isUnauthorized
+                              ? "❌ (Unauthorized)"
+                              : "❌"}{" "}
+                        {instance.name} {isGatewayOption ? "(Gateway)" : ""}
+                      </option>
+                    );
+                  },
+                );
               })()}
             </Select>
             <HelpText>
-              <strong>Note:</strong> Only TES instances with a green check are healthy and can accept workflows. If none are available, check your instance configuration or network.
+              <strong>Workflow Routing:</strong>{" "}
+              {isGateway
+                ? "You have selected a Gateway. This instance will distribute your workflow tasks across multiple backend TES nodes based on its internal configuration."
+                : "You have selected a direct TES instance. All tasks in this workflow will be executed on this specific node."}
+            </HelpText>
+            <HelpText style={{ marginTop: "8px" }}>
+              <strong>Note:</strong> Only TES instances with a green check are
+              healthy.
             </HelpText>
           </FormGroup>
 
           <DemoButtonGroup>
             <DemoTitle>Pre-configured Workflow Examples</DemoTitle>
             <DemoDescription>
-              Click a button to auto-select a ready-to-run workflow example. These include complete workflow definitions, inputs, and outputs.
+              Click a button to auto-select a ready-to-run workflow example.
+              These include complete workflow definitions, inputs, and outputs.
             </DemoDescription>
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
               {Object.entries(WORKFLOW_EXAMPLES).map(([key, workflow]) => (
@@ -629,7 +678,12 @@ const SubmitWorkflow = () => {
                   key={key}
                   type="button"
                   variant="demo"
-                  style={{ border: selectedWorkflow === key ? '2px solid #3182ce' : undefined }}
+                  style={{
+                    border:
+                      selectedWorkflow === key
+                        ? "2px solid #3182ce"
+                        : undefined,
+                  }}
                   onClick={() => handleWorkflowButton(key)}
                 >
                   <Zap size={16} style={{ marginRight: "8px" }} />
@@ -642,15 +696,27 @@ const SubmitWorkflow = () => {
           {/* Show workflow details and editable file when selected */}
           {selectedWorkflow && (
             <WorkflowDetailsCard>
-              <h4 style={{ margin: 0 }}>{WORKFLOW_EXAMPLES[selectedWorkflow].name}</h4>
-              <p style={{ color: '#555', margin: '8px 0 16px 0' }}>{WORKFLOW_EXAMPLES[selectedWorkflow].description}</p>
+              <h4 style={{ margin: 0 }}>
+                {WORKFLOW_EXAMPLES[selectedWorkflow].name}
+              </h4>
+              <p style={{ color: "#555", margin: "8px 0 16px 0" }}>
+                {WORKFLOW_EXAMPLES[selectedWorkflow].description}
+              </p>
               <Label htmlFor="workflow_file_content">Workflow File</Label>
               <textarea
                 id="workflow_file_content"
                 value={workflowFileContent}
-                onChange={e => setWorkflowFileContent(e.target.value)}
+                onChange={(e) => setWorkflowFileContent(e.target.value)}
                 rows={10}
-                style={{ width: '100%', fontFamily: 'monospace', fontSize: 13, borderRadius: 8, border: '1px solid #e2e8f0', padding: 10, background: '#f8f9fa' }}
+                style={{
+                  width: "100%",
+                  fontFamily: "monospace",
+                  fontSize: 13,
+                  borderRadius: 8,
+                  border: "1px solid #e2e8f0",
+                  padding: 10,
+                  background: "#f8f9fa",
+                }}
               />
             </WorkflowDetailsCard>
           )}
@@ -697,7 +763,7 @@ const SubmitWorkflow = () => {
             <Button
               type="button"
               onClick={handleTestConnection}
-              disabled={testingConnection}
+              disabled={testingConnection || !selectedInstance}
             >
               {testingConnection ? (
                 "Testing..."

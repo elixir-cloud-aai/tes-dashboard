@@ -1,0 +1,14 @@
+allOf:
+  - $ref: '#/components/schemas/Service'
+  - type: object
+    properties:
+      tesResources:
+        type: object
+        properties:
+          supportedBackends:
+            type: array
+            items:
+              type: string
+        required:
+          - supportedBackends 
+          

@@ -4,6 +4,9 @@ import os
 from flask_cors import CORS
 from config import CORS_ORIGINS, SECRET_KEY, UPLOAD_FOLDER
 from services.task_service import start_task_status_updater
+import threading
+import time
+from services.workflow_service import get_workflow_runs, update_workflow_step, save_workflow_runs
 
 try:
     from middleware_manager import MiddlewareManager, MiddlewareContext
@@ -224,6 +227,30 @@ def health_check():
             'timestamp': datetime.now(timezone.utc).isoformat()
         }), 503
 
+def start_workflow_step_simulator():
+    def simulate():
+        while True:
+            runs = get_workflow_runs()
+            for run in runs:
+                if run.get('status') == 'RUNNING' and 'steps' in run:
+                    for idx, step in enumerate(run['steps']):
+                        if step['status'] == 'pending':
+                            step['status'] = 'running'
+                            save_workflow_runs()
+                            time.sleep(2)
+                            step['status'] = 'completed'
+                            save_workflow_runs()
+                        # Only advance one step at a time
+                        if step['status'] != 'completed':
+                            break
+                    # If all steps completed, mark workflow as completed
+                    if all(s['status'] == 'completed' for s in run['steps']):
+                        run['status'] = 'COMPLETED'
+                        save_workflow_runs()
+            time.sleep(2)
+    t = threading.Thread(target=simulate, daemon=True)
+    t.start()
+
 if __name__ == '__main__':
     
     port = int(os.getenv('PORT', '8000'))
@@ -231,6 +258,7 @@ if __name__ == '__main__':
     
     # Start task status updater
     start_task_status_updater()
+    start_workflow_step_simulator()
     
     print("\n" + "="*60)
     print("🚀 TES Dashboard Backend Server")
