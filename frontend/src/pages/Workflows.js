@@ -154,6 +154,7 @@ const StatusBadge = styled.span`
         return "#dbeafe";
       case "COMPLETE":
         return "#dcfce7";
+      case "FAILED":
       case "SYSTEM_ERROR":
         return "#fee2e2";
       case "CANCELED":
@@ -168,6 +169,7 @@ const StatusBadge = styled.span`
         return "#1e40af";
       case "COMPLETE":
         return "#166534";
+      case "FAILED":
       case "SYSTEM_ERROR":
         return "#991b1b";
       case "CANCELED":
@@ -316,7 +318,19 @@ const Workflows = () => {
                   <code>{run.run_id.substring(0, 13)}...</code>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={run.status}>{run.status}</StatusBadge>
+                  <StatusBadge
+                    status={
+                      run.status === "COMPLETE" &&
+                      (!run.steps || run.steps.length === 0)
+                        ? "FAILED"
+                        : run.status
+                    }
+                  >
+                    {run.status === "COMPLETE" &&
+                    (!run.steps || run.steps.length === 0)
+                      ? "FAILED"
+                      : run.status}
+                  </StatusBadge>
                 </TableCell>
                 <TableCell>{run.tes_name}</TableCell>
                 <TableCell>{formatDate(run.submitted_at)}</TableCell>

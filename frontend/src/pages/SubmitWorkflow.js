@@ -445,9 +445,15 @@ const SubmitWorkflow = () => {
 
   // On mount, select a random healthy instance if available
   useEffect(() => {
-    const healthyInstances = (
-      allInstances.length > 0 ? allInstances : instances
-    ).filter((inst) => String(inst.status).toLowerCase() === "healthy");
+    const all = allInstances.length > 0 ? allInstances : instances;
+    const isProdCZ = (inst) =>
+      inst.url && inst.url.includes("tesk-prod.cloud.e-infra.cz");
+
+    const healthyInstances = all.filter(
+      (inst) =>
+        String(inst.status).toLowerCase() === "healthy" && !isProdCZ(inst),
+    );
+
     if (healthyInstances.length > 0 && !selectedInstance) {
       setSelectedInstance(healthyInstances[0].url);
     }

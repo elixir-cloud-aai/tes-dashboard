@@ -130,6 +130,7 @@ const StatusBadge = styled.span`
         return "#dcfce7";
       case "RUNNING":
         return "#dbeafe";
+      case "FAILED":
       case "SYSTEM_ERROR":
         return "#fee2e2";
       case "CANCELED":
@@ -144,6 +145,7 @@ const StatusBadge = styled.span`
         return "#166534";
       case "RUNNING":
         return "#1e40af";
+      case "FAILED":
       case "SYSTEM_ERROR":
         return "#991b1b";
       case "CANCELED":
@@ -173,7 +175,8 @@ const MapSection = styled.div`
 const formatStatus = (status) => {
   if (!status) return "UNKNOWN";
   const s = status.toUpperCase();
-  if (s === "COMPLETE" || s === "COMPLETED") return "COMPLETED";
+  if (s === "COMPLETE" || s === "COMPLETED") return "COMPLETE";
+  if (s === "FAILED" || s === "SYSTEM_ERROR") return "FAILED";
   return s
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -220,11 +223,7 @@ const WorkflowDetails = () => {
         if (cancelled || !data) return;
         setWorkflow(data);
         const s = (data.status || "").toUpperCase();
-        if (
-          ["COMPLETE", "COMPLETED", "FAILED", "CANCELED", "CANCELLED"].includes(
-            s,
-          )
-        ) {
+        if (["COMPLETE", "FAILED", "CANCELED", "CANCELLED"].includes(s)) {
           clearInterval(pollTimer);
           pollTimer = null;
         }
@@ -272,10 +271,20 @@ const WorkflowDetails = () => {
         </TitleSection>
         <StatusBadge
           status={
-            workflow.status === "COMPLETED" ? "COMPLETE" : workflow.status
+            workflow.status === "COMPLETE" &&
+            (!workflow.steps || workflow.steps.length === 0)
+              ? "FAILED"
+              : workflow.status === "COMPLETED"
+                ? "COMPLETE"
+                : workflow.status
           }
         >
-          {formatStatus(workflow.status)}
+          {formatStatus(
+            workflow.status === "COMPLETE" &&
+              (!workflow.steps || workflow.steps.length === 0)
+              ? "FAILED"
+              : workflow.status,
+          )}
         </StatusBadge>
       </Header>
 
@@ -286,7 +295,14 @@ const WorkflowDetails = () => {
           </CardTitle>
           <InfoRow>
             <InfoLabel>Current Progress</InfoLabel>
-            <InfoValue>{formatStatus(workflow.status)}</InfoValue>
+            <InfoValue>
+              {formatStatus(
+                workflow.status === "COMPLETE" &&
+                  (!workflow.steps || workflow.steps.length === 0)
+                  ? "FAILED"
+                  : workflow.status,
+              )}
+            </InfoValue>
           </InfoRow>
           <InfoRow>
             <InfoLabel>Primary Computing Node</InfoLabel>
@@ -318,6 +334,20 @@ const WorkflowDetails = () => {
           </InfoRow>
         </ContentCard>
       </Grid>
+
+      {(workflow.status === "FAILED" ||
+        (workflow.status === "COMPLETE" &&
+          (!workflow.steps || workflow.steps.length === 0))) && (
+        <div style={{ marginBottom: "24px" }}>
+          <ErrorMessage
+            message={
+              workflow.submission_error
+                ? `Submission Error: ${workflow.submission_error}`
+                : "Workflow error: No execution steps were generated. This usually indicates a connection failure or an invalid Snakefile/Nextflow configuration."
+            }
+          />
+        </div>
+      )}
 
       <Grid>
         <ContentCard>

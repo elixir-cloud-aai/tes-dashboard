@@ -6,8 +6,6 @@ def _normalize_step_status(tes_state):
     if not tes_state:
         return 'unknown'
     s = str(tes_state).upper()
-    if s == 'COMPLETE':
-        return 'completed'
     if s == 'RUNNING':
         return 'running'
     if s in ('QUEUED', 'INITIALIZING', 'PAUSED'):

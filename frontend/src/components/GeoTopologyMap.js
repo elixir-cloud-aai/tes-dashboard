@@ -124,9 +124,20 @@ const createStepIcon = (color, label, isPulse = false) =>
 const FitBounds = ({ steps }) => {
   const map = useMap();
   useEffect(() => {
-    if (steps && steps.length > 0) {
-      const bounds = L.latLngBounds(steps.map((s) => [s.lat, s.lng]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    if (steps && steps.length > 0 && map) {
+      try {
+        const validSteps = steps.filter(
+          (s) => s && typeof s.lat === "number" && typeof s.lng === "number",
+        );
+        if (validSteps.length > 0) {
+          const bounds = L.latLngBounds(validSteps.map((s) => [s.lat, s.lng]));
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [50, 50], animate: false });
+          }
+        }
+      } catch (e) {
+        console.warn("Map bounds calculation skipped:", e);
+      }
     }
   }, [steps, map]);
   return null;
@@ -266,8 +277,13 @@ function GeoTopologyMap({ workflowId, workflow: workflowProp }) {
         zoom={3}
         style={{ width: "100%", height: "100%" }}
         zoomControl={false}
+        whenCreated={(mapInstance) => {
+          mapInstance.invalidateSize();
+        }}
       >
-        {data.steps.length > 0 && <FitBounds steps={data.steps} />}
+        {data.steps && data.steps.length > 0 && (
+          <FitBounds steps={data.steps} />
+        )}
         <ZoomControl position="topright" />
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -398,16 +414,19 @@ function GeoTopologyMap({ workflowId, workflow: workflowProp }) {
             let displayStatus = st;
             if (
               idx === 1 &&
-              data.steps[0].status.toLowerCase() !== "completed" &&
               data.steps[0].status.toLowerCase() !== "complete"
             ) {
               displayStatus = data.steps[0].status.toLowerCase();
             }
 
             let color = "#3b82f6";
-            if (displayStatus === "completed" || displayStatus === "complete")
-              color = "#10b981";
-            if (st === "failed" || st === "canceled" || st === "cancelled")
+            if (displayStatus === "complete") color = "#10b981";
+            if (
+              st === "failed" ||
+              st === "system_error" ||
+              st === "canceled" ||
+              st === "cancelled"
+            )
               color = "#ef4444";
             if (idx === 0) color = "#f59e42";
             if (idx === data.steps.length - 1) color = "#6366f1";
@@ -461,16 +480,17 @@ function GeoTopologyMap({ workflowId, workflow: workflowProp }) {
                       <span
                         style={{
                           color:
-                            displayStatus === "completed" ||
                             displayStatus === "complete"
                               ? "#10b981"
-                              : "#3b82f6",
+                              : st === "failed" || st === "system_error"
+                                ? "#ef4444"
+                                : "#3b82f6",
                           fontWeight: 700,
                           textTransform: "uppercase",
                         }}
                       >
                         {displayStatus === "complete"
-                          ? "COMPLETED"
+                          ? "COMPLETE"
                           : displayStatus.toUpperCase()}
                       </span>
                     </div>

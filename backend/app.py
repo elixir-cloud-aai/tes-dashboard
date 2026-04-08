@@ -81,7 +81,7 @@ if MIDDLEWARE_AVAILABLE and middleware_manager:
         """Create middleware context from current request"""
         if not MIDDLEWARE_AVAILABLE:
             return None
-        
+
         request_data = {
             'endpoint': request.endpoint or request.path,
             'method': request.method,
@@ -90,7 +90,7 @@ if MIDDLEWARE_AVAILABLE and middleware_manager:
             'client_ip': request.remote_addr,
             'body': {}
         }
-        
+
         if request.is_json:
             try:
                 request_data['body'] = request.get_json() or {}
@@ -98,7 +98,7 @@ if MIDDLEWARE_AVAILABLE and middleware_manager:
                 request_data['body'] = {}
         elif request.form:
             request_data['body'] = dict(request.form)
-        
+
         return MiddlewareContext(request_data)
 
     def run_async_middleware(coro):
@@ -122,19 +122,19 @@ if MIDDLEWARE_AVAILABLE and middleware_manager:
         # Skip middleware routes to avoid recursion
         if request.path.startswith('/api/middleware'):
             return None
-        
+
         if not MIDDLEWARE_AVAILABLE or not middleware_manager:
             return None
-        
+
         context = create_middleware_context()
         if not context:
             return None
-        
+
         try:
             results = run_async_middleware(middleware_manager.execute_chain(context))
             g.middleware_context = context
             g.middleware_results = results
-            
+
             # Check for blocking middleware
             for result in results:
                 if result.status.value in ['failed'] and result.middleware_name in ['authentication', 'authorization']:
@@ -148,7 +148,7 @@ if MIDDLEWARE_AVAILABLE and middleware_manager:
                     })
                     error_response.status_code = 401 if result.middleware_name == 'authentication' else 403
                     return error_response
-            
+
             # Check for cached response
             if hasattr(context, 'cached_response') and context.cached_response:
                 from flask import jsonify
@@ -165,34 +165,34 @@ if MIDDLEWARE_AVAILABLE and middleware_manager:
         """Process response through middleware"""
         if not MIDDLEWARE_AVAILABLE or not hasattr(g, 'middleware_context'):
             return response
-        
+
         try:
             context = g.middleware_context
-            
+
             # Cache response if needed
             if hasattr(context, 'should_cache') and context.should_cache and hasattr(context, 'cache_key'):
                 for middleware in middleware_manager.middlewares.values():
                     if hasattr(middleware, 'cache_response'):
                         middleware.cache_response(context.cache_key, response.get_json())
                         break
-            
+
             # Record metrics
             status_code = response.status_code
             for middleware in middleware_manager.middlewares.values():
                 if hasattr(middleware, 'record_response_metrics'):
                     middleware.record_response_metrics(context.__dict__, status_code)
-            
+
             # Add middleware headers
             response.headers['X-Middleware-Processed'] = 'true'
             response.headers['X-Middleware-Count'] = str(len(g.middleware_results))
-            
+
             total_time = context.get_execution_time()
             response.headers['X-Middleware-Time'] = f"{total_time:.2f}ms"
         except Exception as e:
             print(f"❌ Middleware response processing error: {e}")
             import traceback
             traceback.print_exc()
-        
+
         return response
 
 @app.route('/health', methods=['GET'])
@@ -212,7 +212,7 @@ def health_check():
                 mongo_status = 'connected'
             except Exception as mongo_err:
                 mongo_status = f'error: {str(mongo_err)}'
-        
+
         return jsonify({
             'status': 'healthy',
             'mongodb': mongo_status,
@@ -238,28 +238,28 @@ def start_workflow_step_simulator():
                             step['status'] = 'running'
                             save_workflow_runs()
                             time.sleep(2)
-                            step['status'] = 'completed'
+                            step['status'] = 'complete'
                             save_workflow_runs()
                         # Only advance one step at a time
-                        if step['status'] != 'completed':
+                        if step['status'] != 'complete':
                             break
                     # If all steps completed, mark workflow as completed
-                    if all(s['status'] == 'completed' for s in run['steps']):
-                        run['status'] = 'COMPLETED'
+                    if all(s['status'] == 'complete' for s in run['steps']):
+                        run['status'] = 'COMPLETE'
                         save_workflow_runs()
             time.sleep(2)
     t = threading.Thread(target=simulate, daemon=True)
     t.start()
 
 if __name__ == '__main__':
-    
+
     port = int(os.getenv('PORT', '8000'))
     debug_mode = os.getenv('FLASK_DEBUG', 'true').lower() == 'true'
-    
+
     # Start task status updater
     start_task_status_updater()
     start_workflow_step_simulator()
-    
+
     print("\n" + "="*60)
     print("🚀 TES Dashboard Backend Server")
     print("="*60)
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     print(f"🔒 Middleware: {'enabled ✅' if MIDDLEWARE_AVAILABLE else 'disabled ⚠️'}")
     print(f"⏱️  Task auto-update: enabled (every 30s)")
     print("="*60 + "\n")
-    
+
     app.run(
         host='0.0.0.0',
         port=port,

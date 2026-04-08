@@ -1,11 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import styled from 'styled-components';
-import { Layers, Upload, Play, Clock, CheckCircle, XCircle, AlertCircle, FileText } from 'lucide-react';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import ErrorMessage from '../components/common/ErrorMessage';
-import { batchService } from '../services/batchService';
-import { formatDateTime, formatDuration } from '../utils/formatters';
-import useInstances from '../hooks/useInstances';
+import React, { useState, useEffect, useRef } from "react";
+import styled from "styled-components";
+import {
+  Layers,
+  Upload,
+  Play,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import ErrorMessage from "../components/common/ErrorMessage";
+import { batchService } from "../services/batchService";
+import { formatDateTime, formatDuration } from "../utils/formatters";
+import useInstances from "../hooks/useInstances";
 
 const BatchContainer = styled.div`
   padding: 2rem;
@@ -60,8 +69,9 @@ const Tab = styled.button`
   border: none;
   cursor: pointer;
   font-weight: 500;
-  color: ${props => props.$active ? '#2563eb' : '#6b7280'};
-  border-bottom: 2px solid ${props => props.$active ? '#2563eb' : 'transparent'};
+  color: ${(props) => (props.$active ? "#2563eb" : "#6b7280")};
+  border-bottom: 2px solid
+    ${(props) => (props.$active ? "#2563eb" : "transparent")};
   transition: all 0.2s;
 
   &:hover {
@@ -176,7 +186,8 @@ const BatchRunsTable = styled.table`
   border-collapse: collapse;
   margin-top: 1rem;
 
-  th, td {
+  th,
+  td {
     padding: 1rem;
     text-align: left;
     border-bottom: 1px solid #e5e7eb;
@@ -202,21 +213,20 @@ const StatusBadge = styled.span`
   align-items: center;
   gap: 0.25rem;
 
-  ${props => {
+  ${(props) => {
     switch (props.status?.toLowerCase()) {
-      case 'complete':
-      case 'completed':
+      case "complete":
         return `
           background: #dcfce7;
           color: #166534;
         `;
-      case 'running':
+      case "running":
         return `
           background: #dbeafe;
           color: #1d4ed8;
         `;
-      case 'failed':
-      case 'error':
+      case "failed":
+      case "error":
         return `
           background: #fee2e2;
           color: #dc2626;
@@ -304,7 +314,7 @@ const CloseButton = styled.button`
   font-size: 1.5rem;
   cursor: pointer;
   color: #6b7280;
-  
+
   &:hover {
     color: #374151;
   }
@@ -315,7 +325,7 @@ const LogTextArea = styled.pre`
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 1rem;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
   font-size: 0.875rem;
   line-height: 1.5;
   overflow: auto;
@@ -343,13 +353,12 @@ const RadioOption = styled.label`
 
 const getStatusIcon = (status) => {
   switch (status?.toLowerCase()) {
-    case 'complete':
-    case 'completed':
+    case "complete":
       return <CheckCircle size={14} />;
-    case 'running':
+    case "running":
       return <Clock size={14} />;
-    case 'failed':
-    case 'error':
+    case "failed":
+    case "error":
       return <XCircle size={14} />;
     default:
       return <AlertCircle size={14} />;
@@ -357,17 +366,22 @@ const getStatusIcon = (status) => {
 };
 
 const BatchProcessing = () => {
-  const [activeTab, setActiveTab] = useState('snakemake');
+  const [activeTab, setActiveTab] = useState("snakemake");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [batchRuns, setBatchRuns] = useState([]);
   const [runsLoading, setRunsLoading] = useState(true);
-  
-  const { instances = [], loading: instancesLoading, error: instancesError, refresh: refreshInstances } = useInstances();
+
+  const {
+    instances = [],
+    loading: instancesLoading,
+    error: instancesError,
+    refresh: refreshInstances,
+  } = useInstances();
 
   const [showLogModal, setShowLogModal] = useState(false);
-  const [currentLog, setCurrentLog] = useState('');
-  const [currentLogRunId, setCurrentLogRunId] = useState('');
+  const [currentLog, setCurrentLog] = useState("");
+  const [currentLogRunId, setCurrentLogRunId] = useState("");
   const [logLoading, setLogLoading] = useState(false);
 
   const snakefileRef = useRef(null);
@@ -378,22 +392,22 @@ const BatchProcessing = () => {
   const cwlInputsRef = useRef(null);
 
   const [snakemakeForm, setSnakemakeForm] = useState({
-    batchMode: 'all',
+    batchMode: "all",
     snakefile: null,
-    smkDir: null
+    smkDir: null,
   });
 
   const [nextflowForm, setNextflowForm] = useState({
-    batchMode: 'all',
+    batchMode: "all",
     nextflowFile: null,
     nextflowConfig: null,
-    nextflowParams: '{}'
+    nextflowParams: "{}",
   });
 
   const [cwlForm, setCwlForm] = useState({
-    batchMode: 'all',
+    batchMode: "all",
     cwlFile: null,
-    inputsFile: null
+    inputsFile: null,
   });
 
   useEffect(() => {
@@ -406,12 +420,18 @@ const BatchProcessing = () => {
       const runs = await batchService.getBatchRuns();
       setBatchRuns(runs);
     } catch (err) {
-      console.error('Error loading batch runs:', err);
-      if (err.response?.status === 504 || err.response?.status === 503 || err.message?.includes('timeout')) {
-        console.warn('External services slow/unavailable - showing empty batch runs');
+      console.error("Error loading batch runs:", err);
+      if (
+        err.response?.status === 504 ||
+        err.response?.status === 503 ||
+        err.message?.includes("timeout")
+      ) {
+        console.warn(
+          "External services slow/unavailable - showing empty batch runs",
+        );
         setBatchRuns([]);
       } else {
-        console.error('Critical batch loading error:', err);
+        console.error("Critical batch loading error:", err);
       }
     } finally {
       setRunsLoading(false);
@@ -420,19 +440,21 @@ const BatchProcessing = () => {
 
   const handleViewLogs = async (runId) => {
     try {
-      console.log('Opening batch logs modal for run:', runId);
+      console.log("Opening batch logs modal for run:", runId);
       setLogLoading(true);
       setCurrentLogRunId(runId);
-      setCurrentLog(''); 
+      setCurrentLog("");
       setShowLogModal(true);
-      
-      console.log('Fetching batch logs...');
+
+      console.log("Fetching batch logs...");
       const logs = await batchService.getBatchLog(runId);
-      console.log('Received batch logs:', logs);
-      setCurrentLog(logs || 'No logs available for this batch run');
+      console.log("Received batch logs:", logs);
+      setCurrentLog(logs || "No logs available for this batch run");
     } catch (err) {
-      console.error('Error loading batch logs:', err);
-      setCurrentLog(`Error loading logs: ${err.message}\n\nThis might be because:\n- The backend pod doesn't have the latest code\n- The batch logs endpoint is not working\n- Network connectivity issues`);
+      console.error("Error loading batch logs:", err);
+      setCurrentLog(
+        `Error loading logs: ${err.message}\n\nThis might be because:\n- The backend pod doesn't have the latest code\n- The batch logs endpoint is not working\n- Network connectivity issues`,
+      );
     } finally {
       setLogLoading(false);
     }
@@ -440,30 +462,32 @@ const BatchProcessing = () => {
 
   const closeLogModal = () => {
     setShowLogModal(false);
-    setCurrentLog('');
-    setCurrentLogRunId('');
+    setCurrentLog("");
+    setCurrentLogRunId("");
   };
 
   const handleSnakemakeSubmit = async (e) => {
     e.preventDefault();
     if (!snakemakeForm.snakefile) {
-      setError('Please select a Snakefile');
+      setError("Please select a Snakefile");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
+      setError("");
       await batchService.submitSnakemakeBatch(snakemakeForm);
       setSnakemakeForm({
-        batchMode: 'all',
+        batchMode: "all",
         snakefile: null,
-        smkDir: null
+        smkDir: null,
       });
       loadBatchRuns();
-      alert('Snakemake batch submitted successfully!');
+      alert("Snakemake batch submitted successfully!");
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit Snakemake batch');
+      setError(
+        err.response?.data?.message || "Failed to submit Snakemake batch",
+      );
     } finally {
       setLoading(false);
     }
@@ -472,24 +496,26 @@ const BatchProcessing = () => {
   const handleNextflowSubmit = async (e) => {
     e.preventDefault();
     if (!nextflowForm.nextflowFile) {
-      setError('Please select a Nextflow script');
+      setError("Please select a Nextflow script");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
+      setError("");
       await batchService.submitNextflowBatch(nextflowForm);
       setNextflowForm({
-        batchMode: 'all',
+        batchMode: "all",
         nextflowFile: null,
         nextflowConfig: null,
-        nextflowParams: '{}'
+        nextflowParams: "{}",
       });
       loadBatchRuns();
-      alert('Nextflow batch submitted successfully!');
+      alert("Nextflow batch submitted successfully!");
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit Nextflow batch');
+      setError(
+        err.response?.data?.message || "Failed to submit Nextflow batch",
+      );
     } finally {
       setLoading(false);
     }
@@ -498,23 +524,23 @@ const BatchProcessing = () => {
   const handleCwlSubmit = async (e) => {
     e.preventDefault();
     if (!cwlForm.cwlFile) {
-      setError('Please select a CWL workflow file');
+      setError("Please select a CWL workflow file");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
+      setError("");
       await batchService.submitCwlBatch(cwlForm);
       setCwlForm({
-        batchMode: 'all',
+        batchMode: "all",
         cwlFile: null,
-        inputsFile: null
+        inputsFile: null,
       });
       loadBatchRuns();
-      alert('CWL batch submitted successfully!');
+      alert("CWL batch submitted successfully!");
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit CWL batch');
+      setError(err.response?.data?.message || "Failed to submit CWL batch");
     } finally {
       setLoading(false);
     }
@@ -529,8 +555,13 @@ const BatchProcessing = () => {
             <input
               type="radio"
               value="all"
-              checked={snakemakeForm.batchMode === 'all'}
-              onChange={(e) => setSnakemakeForm({ ...snakemakeForm, batchMode: e.target.value })}
+              checked={snakemakeForm.batchMode === "all"}
+              onChange={(e) =>
+                setSnakemakeForm({
+                  ...snakemakeForm,
+                  batchMode: e.target.value,
+                })
+              }
             />
             All Healthy TES Instances ✅ ({instances.length})
           </RadioOption>
@@ -538,8 +569,13 @@ const BatchProcessing = () => {
             <input
               type="radio"
               value="gateway"
-              checked={snakemakeForm.batchMode === 'gateway'}
-              onChange={(e) => setSnakemakeForm({ ...snakemakeForm, batchMode: e.target.value })}
+              checked={snakemakeForm.batchMode === "gateway"}
+              onChange={(e) =>
+                setSnakemakeForm({
+                  ...snakemakeForm,
+                  batchMode: e.target.value,
+                })
+              }
             />
             TES Gateway (Federated)
           </RadioOption>
@@ -553,11 +589,20 @@ const BatchProcessing = () => {
             <input
               ref={snakefileRef}
               type="file"
-              onChange={(e) => setSnakemakeForm({ ...snakemakeForm, snakefile: e.target.files[0] })}
+              onChange={(e) =>
+                setSnakemakeForm({
+                  ...snakemakeForm,
+                  snakefile: e.target.files[0],
+                })
+              }
               required
             />
             <Upload size={24} color="#6b7280" />
-            <p>{snakemakeForm.snakefile ? snakemakeForm.snakefile.name : 'Click to upload Snakefile'}</p>
+            <p>
+              {snakemakeForm.snakefile
+                ? snakemakeForm.snakefile.name
+                : "Click to upload Snakefile"}
+            </p>
           </FileUpload>
         </FormGroup>
         <FormGroup>
@@ -567,10 +612,19 @@ const BatchProcessing = () => {
               ref={smkDirRef}
               type="file"
               webkitdirectory=""
-              onChange={(e) => setSnakemakeForm({ ...snakemakeForm, smkDir: e.target.files[0] })}
+              onChange={(e) =>
+                setSnakemakeForm({
+                  ...snakemakeForm,
+                  smkDir: e.target.files[0],
+                })
+              }
             />
             <Upload size={24} color="#6b7280" />
-            <p>{snakemakeForm.smkDir ? snakemakeForm.smkDir.name : 'Click to upload directory'}</p>
+            <p>
+              {snakemakeForm.smkDir
+                ? snakemakeForm.smkDir.name
+                : "Click to upload directory"}
+            </p>
           </FileUpload>
         </FormGroup>
       </FormRow>
@@ -591,8 +645,10 @@ const BatchProcessing = () => {
             <input
               type="radio"
               value="all"
-              checked={nextflowForm.batchMode === 'all'}
-              onChange={(e) => setNextflowForm({ ...nextflowForm, batchMode: e.target.value })}
+              checked={nextflowForm.batchMode === "all"}
+              onChange={(e) =>
+                setNextflowForm({ ...nextflowForm, batchMode: e.target.value })
+              }
             />
             All Healthy TES Instances ✅ ({instances.length})
           </RadioOption>
@@ -600,8 +656,10 @@ const BatchProcessing = () => {
             <input
               type="radio"
               value="gateway"
-              checked={nextflowForm.batchMode === 'gateway'}
-              onChange={(e) => setNextflowForm({ ...nextflowForm, batchMode: e.target.value })}
+              checked={nextflowForm.batchMode === "gateway"}
+              onChange={(e) =>
+                setNextflowForm({ ...nextflowForm, batchMode: e.target.value })
+              }
             />
             TES Gateway (Federated)
           </RadioOption>
@@ -616,11 +674,20 @@ const BatchProcessing = () => {
               ref={nextflowFileRef}
               type="file"
               accept=".nf"
-              onChange={(e) => setNextflowForm({ ...nextflowForm, nextflowFile: e.target.files[0] })}
+              onChange={(e) =>
+                setNextflowForm({
+                  ...nextflowForm,
+                  nextflowFile: e.target.files[0],
+                })
+              }
               required
             />
             <Upload size={24} color="#6b7280" />
-            <p>{nextflowForm.nextflowFile ? nextflowForm.nextflowFile.name : 'Click to upload Nextflow script (.nf)'}</p>
+            <p>
+              {nextflowForm.nextflowFile
+                ? nextflowForm.nextflowFile.name
+                : "Click to upload Nextflow script (.nf)"}
+            </p>
           </FileUpload>
         </FormGroup>
         <FormGroup>
@@ -630,10 +697,19 @@ const BatchProcessing = () => {
               ref={nextflowConfigRef}
               type="file"
               accept=".config"
-              onChange={(e) => setNextflowForm({ ...nextflowForm, nextflowConfig: e.target.files[0] })}
+              onChange={(e) =>
+                setNextflowForm({
+                  ...nextflowForm,
+                  nextflowConfig: e.target.files[0],
+                })
+              }
             />
             <Upload size={24} color="#6b7280" />
-            <p>{nextflowForm.nextflowConfig ? nextflowForm.nextflowConfig.name : 'Click to upload config file (.config)'}</p>
+            <p>
+              {nextflowForm.nextflowConfig
+                ? nextflowForm.nextflowConfig.name
+                : "Click to upload config file (.config)"}
+            </p>
           </FileUpload>
         </FormGroup>
       </FormRow>
@@ -642,7 +718,9 @@ const BatchProcessing = () => {
         <Label>Nextflow Parameters (JSON)</Label>
         <TextArea
           value={nextflowForm.nextflowParams}
-          onChange={(e) => setNextflowForm({ ...nextflowForm, nextflowParams: e.target.value })}
+          onChange={(e) =>
+            setNextflowForm({ ...nextflowForm, nextflowParams: e.target.value })
+          }
           placeholder='{"param1": "value1", "param2": "value2"}'
         />
       </FormGroup>
@@ -663,17 +741,23 @@ const BatchProcessing = () => {
             <input
               type="radio"
               value="all"
-              checked={cwlForm.batchMode === 'all'}
-              onChange={(e) => setCwlForm({ ...cwlForm, batchMode: e.target.value })}
+              checked={cwlForm.batchMode === "all"}
+              onChange={(e) =>
+                setCwlForm({ ...cwlForm, batchMode: e.target.value })
+              }
             />
-            <span>Submit to All Healthy TES Instances ✅ ({instances.length})</span>
+            <span>
+              Submit to All Healthy TES Instances ✅ ({instances.length})
+            </span>
           </RadioOption>
           <RadioOption>
             <input
               type="radio"
               value="gateway"
-              checked={cwlForm.batchMode === 'gateway'}
-              onChange={(e) => setCwlForm({ ...cwlForm, batchMode: e.target.value })}
+              checked={cwlForm.batchMode === "gateway"}
+              onChange={(e) =>
+                setCwlForm({ ...cwlForm, batchMode: e.target.value })
+              }
             />
             <span>Federated Execution via Gateway</span>
           </RadioOption>
@@ -687,11 +771,17 @@ const BatchProcessing = () => {
             ref={cwlFileRef}
             type="file"
             accept=".cwl,.yaml,.yml"
-            style={{ display: 'none' }}
-            onChange={(e) => setCwlForm({ ...cwlForm, cwlFile: e.target.files[0] })}
+            style={{ display: "none" }}
+            onChange={(e) =>
+              setCwlForm({ ...cwlForm, cwlFile: e.target.files[0] })
+            }
           />
           <Upload size={20} />
-          <p>{cwlForm.cwlFile ? cwlForm.cwlFile.name : 'Click to upload CWL workflow (.cwl, .yaml, .yml)'}</p>
+          <p>
+            {cwlForm.cwlFile
+              ? cwlForm.cwlFile.name
+              : "Click to upload CWL workflow (.cwl, .yaml, .yml)"}
+          </p>
         </FileUpload>
       </FormGroup>
 
@@ -702,11 +792,17 @@ const BatchProcessing = () => {
             ref={cwlInputsRef}
             type="file"
             accept=".json,.yaml,.yml"
-            style={{ display: 'none' }}
-            onChange={(e) => setCwlForm({ ...cwlForm, inputsFile: e.target.files[0] })}
+            style={{ display: "none" }}
+            onChange={(e) =>
+              setCwlForm({ ...cwlForm, inputsFile: e.target.files[0] })
+            }
           />
           <Upload size={20} />
-          <p>{cwlForm.inputsFile ? cwlForm.inputsFile.name : 'Click to upload inputs file (.json, .yaml, .yml)'}</p>
+          <p>
+            {cwlForm.inputsFile
+              ? cwlForm.inputsFile.name
+              : "Click to upload inputs file (.json, .yaml, .yml)"}
+          </p>
         </FileUpload>
       </FormGroup>
 
@@ -721,37 +817,45 @@ const BatchProcessing = () => {
     <BatchContainer>
       <Header>
         <Title>Batch Processing</Title>
-        <Subtitle>Submit workflows to multiple healthy TES instances or use federated execution</Subtitle>
+        <Subtitle>
+          Submit workflows to multiple healthy TES instances or use federated
+          execution
+        </Subtitle>
       </Header>
 
       {error && <ErrorMessage message={error} />}
 
       {instances.length === 0 && !instancesLoading && (
-        <div style={{
-          background: '#fef3cd',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          padding: '1rem',
-          marginBottom: '1rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
+        <div
+          style={{
+            background: "#fef3cd",
+            border: "1px solid #fecaca",
+            borderRadius: "8px",
+            padding: "1rem",
+            marginBottom: "1rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div>
-            <strong style={{ color: '#92400e' }}>No Healthy TES Instances Available</strong>
-            <p style={{ margin: '0.5rem 0 0 0', color: '#92400e' }}>
-              Unable to connect to any TES instances. Please check instance availability.
+            <strong style={{ color: "#92400e" }}>
+              No Healthy TES Instances Available
+            </strong>
+            <p style={{ margin: "0.5rem 0 0 0", color: "#92400e" }}>
+              Unable to connect to any TES instances. Please check instance
+              availability.
             </p>
           </div>
           <button
             onClick={refreshInstances || (() => {})}
             style={{
-              background: '#d97706',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.5rem 1rem',
-              cursor: 'pointer'
+              background: "#d97706",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              padding: "0.5rem 1rem",
+              cursor: "pointer",
             }}
           >
             Refresh Instance Health
@@ -766,20 +870,29 @@ const BatchProcessing = () => {
         </SectionTitle>
 
         <TabContainer>
-          <Tab $active={activeTab === 'snakemake'} onClick={() => setActiveTab('snakemake')}>
+          <Tab
+            $active={activeTab === "snakemake"}
+            onClick={() => setActiveTab("snakemake")}
+          >
             Snakemake Batch
           </Tab>
-          <Tab $active={activeTab === 'nextflow'} onClick={() => setActiveTab('nextflow')}>
+          <Tab
+            $active={activeTab === "nextflow"}
+            onClick={() => setActiveTab("nextflow")}
+          >
             Nextflow Batch
           </Tab>
-          <Tab $active={activeTab === 'cwl'} onClick={() => setActiveTab('cwl')}>
+          <Tab
+            $active={activeTab === "cwl"}
+            onClick={() => setActiveTab("cwl")}
+          >
             CWL Batch
           </Tab>
         </TabContainer>
 
-        {activeTab === 'snakemake' && renderSnakemakeForm()}
-        {activeTab === 'nextflow' && renderNextflowForm()}
-        {activeTab === 'cwl' && renderCwlForm()}
+        {activeTab === "snakemake" && renderSnakemakeForm()}
+        {activeTab === "nextflow" && renderNextflowForm()}
+        {activeTab === "cwl" && renderCwlForm()}
       </BatchSection>
 
       <BatchSection>
@@ -818,7 +931,11 @@ const BatchProcessing = () => {
                       {run.status}
                     </StatusBadge>
                   </td>
-                  <td>{run.submitted_at ? formatDateTime(run.submitted_at) : 'Unknown'}</td>
+                  <td>
+                    {run.submitted_at
+                      ? formatDateTime(run.submitted_at)
+                      : "Unknown"}
+                  </td>
                   <td>
                     <LogButton onClick={() => handleViewLogs(run.run_id)}>
                       <FileText size={14} />
@@ -841,7 +958,9 @@ const BatchProcessing = () => {
               <CloseButton onClick={closeLogModal}>×</CloseButton>
             </LogHeader>
             <LogTextArea>
-              {logLoading ? 'Loading logs...' : (currentLog || 'No logs available for this batch run')}
+              {logLoading
+                ? "Loading logs..."
+                : currentLog || "No logs available for this batch run"}
             </LogTextArea>
           </LogContent>
         </LogModal>
