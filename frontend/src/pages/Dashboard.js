@@ -282,7 +282,7 @@ const Dashboard = () => {
     if (!instancesLoading) {
       const total = allInstances.length;
       const healthy = allInstances.filter(
-        (inst) => inst.status && inst.status.toLowerCase() === "healthy"
+        (inst) => inst.status && inst.status.toLowerCase() === "healthy",
       ).length;
       const unhealthy = total - healthy;
       const percentage = total > 0 ? Math.round((healthy / total) * 100) : 0;
@@ -730,8 +730,18 @@ const Dashboard = () => {
                         {workflow.tes_url || "Unknown"}
                       </WorkflowMeta>
                     </WorkflowInfo>
-                    <WorkflowStatus status={workflow.status}>
-                      {workflow.status || "UNKNOWN"}
+                    <WorkflowStatus
+                      status={
+                        workflow.status === "COMPLETE" &&
+                        (!workflow.steps || workflow.steps.length === 0)
+                          ? "FAILED"
+                          : workflow.status
+                      }
+                    >
+                      {workflow.status === "COMPLETE" &&
+                      (!workflow.steps || workflow.steps.length === 0)
+                        ? "FAILED"
+                        : workflow.status || "UNKNOWN"}
                     </WorkflowStatus>
                   </WorkflowItem>
                 ))}
