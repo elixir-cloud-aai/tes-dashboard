@@ -262,7 +262,6 @@ const SubmitTask = () => {
     refresh: refreshInstances,
   } = useInstances();
 
-  // Helper function to get status badge
   const getStatusBadge = (status) => {
     return status === "healthy" ? "✅" : "❌";
   };
@@ -277,14 +276,20 @@ const SubmitTask = () => {
   };
 
   useEffect(() => {
-    // On mount, select the first healthy instance if available
-    const healthyInstances = (allInstances.length > 0 ? allInstances : instances).filter(
-      (inst) => String(inst.status).toLowerCase() === 'healthy'
-    );
+    const healthyInstances = (
+      allInstances.length > 0 ? allInstances : instances
+    ).filter((inst) => {
+      const isHealthy = String(inst.status).toLowerCase() === "healthy";
+      const isExcluded =
+        inst.url && inst.url.includes("tesk-prod.cloud.e-infra.cz");
+      return isHealthy && !isExcluded;
+    });
     if (healthyInstances.length > 0 && !formData.tes_instance) {
-      setFormData((prev) => ({ ...prev, tes_instance: healthyInstances[0].url }));
+      setFormData((prev) => ({
+        ...prev,
+        tes_instance: healthyInstances[0].url,
+      }));
     }
-    // eslint-disable-next-line
   }, [allInstances, instances]);
 
   const handleTestConnection = async () => {
@@ -318,7 +323,6 @@ const SubmitTask = () => {
   };
 
   const getDemoTaskData = (demoType = "basic") => {
-    // Use random healthy instance as default for demos
     let defaultTesInstance = getRandomHealthyInstance();
 
     const demoTasks = {
@@ -354,19 +358,19 @@ const SubmitTask = () => {
         task_name: "Demo File Operations Task",
         docker_image: "alpine:latest",
         command:
-          "ls -lh /tmp/input && wc -c /tmp/input > /tmp/output && cat /tmp/output",
+          '/bin/sh -c "ls -lh /tmp/input.bin && wc -c /tmp/input.bin > /tmp/output.txt && cat /tmp/output.txt"',
         input_url: "https://speed.hetzner.de/1MB.bin",
         output_url: "",
         cpu_cores: "1",
         ram_gb: "2",
         disk_gb: "5",
         description:
-          "Demonstrates file input and output operations. Downloads a 1MB file to /tmp/input, counts bytes, writes result to /tmp/output, and displays it.",
+          "Demonstrates file input and output operations. Downloads a 1MB file to /tmp/input.bin, counts bytes, writes result to /tmp/output.txt, and displays it.",
       },
       multiExec: {
         tes_instance: getRandomHealthyInstance(),
         task_name: "Demo Multi-Executor Task",
-        docker_image: "alpine:latest", // Set to first executor's image for form validation
+        docker_image: "alpine:latest",
         command: "echo 'Multi-executor task - see executors array'",
         input_url: "",
         output_url: "",
@@ -413,11 +417,12 @@ const SubmitTask = () => {
   const handleRunDemo = (demoType = "basic") => {
     const demoData = getDemoTaskData(demoType);
     // Pick a random healthy instance for demo
-    const healthyInstances = (allInstances.length > 0 ? allInstances : instances).filter(
-      (inst) => String(inst.status).toLowerCase() === 'healthy'
-    );
+    const healthyInstances = (
+      allInstances.length > 0 ? allInstances : instances
+    ).filter((inst) => String(inst.status).toLowerCase() === "healthy");
     if (healthyInstances.length > 0) {
-      const random = healthyInstances[Math.floor(Math.random() * healthyInstances.length)];
+      const random =
+        healthyInstances[Math.floor(Math.random() * healthyInstances.length)];
       demoData.tes_instance = random.url;
     }
     setFormData(demoData);
@@ -427,13 +432,11 @@ const SubmitTask = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation: TES instance and docker image required
     if (!formData.tes_instance) {
       setError(new Error("Please select a TES instance"));
       return;
     }
 
-    // Multi-Executor validation: every executor must have an image and command
     if (formData.executors && Array.isArray(formData.executors)) {
       const invalidExecutor = formData.executors.find(
         (exec) =>
@@ -451,7 +454,6 @@ const SubmitTask = () => {
         return;
       }
     } else if (!formData.docker_image) {
-      // Single executor needs docker_image
       setError(new Error("Docker image is required"));
       return;
     }
@@ -475,10 +477,17 @@ const SubmitTask = () => {
         ...(formData.executors ? { executors: formData.executors } : {}),
       };
 
-      // Attach demoType for actionable error context
       let demoType = null;
-      if (formData.task_name && formData.task_name.toLowerCase().includes('file')) demoType = 'fileops';
-      if (formData.task_name && formData.task_name.toLowerCase().includes('multi')) demoType = 'multiExec';
+      if (
+        formData.task_name &&
+        formData.task_name.toLowerCase().includes("file")
+      )
+        demoType = "fileops";
+      if (
+        formData.task_name &&
+        formData.task_name.toLowerCase().includes("multi")
+      )
+        demoType = "multiExec";
 
       console.log("Submitting task with data:", submitData);
 
@@ -509,7 +518,6 @@ const SubmitTask = () => {
       if (err.response && err.response.data) {
         const errorData = err.response.data;
 
-        // Extract all error information
         errorMessage =
           errorData.error ||
           errorData.message ||
@@ -523,7 +531,6 @@ const SubmitTask = () => {
         tesUrl = errorData.tes_url || "";
         tesEndpoint = errorData.tes_endpoint || "";
 
-        // Log for debugging
         console.error("Parsed error details:", {
           errorMessage,
           errorReason,
@@ -539,7 +546,6 @@ const SubmitTask = () => {
         console.error("Using err.message:", errorMessage);
       }
 
-      // Create detailed error object with all information
       const detailedError = new Error(errorMessage);
       detailedError.reason = errorReason;
       detailedError.errorType = errorType;
@@ -547,7 +553,6 @@ const SubmitTask = () => {
       detailedError.statusCode = statusCode;
       detailedError.response = err.response;
 
-      // Add TES instance info if available
       if (tesName || tesUrl) {
         detailedError.tesInstance = {
           name: tesName,
@@ -556,10 +561,17 @@ const SubmitTask = () => {
         };
       }
 
-      // Add demoType for actionable error context
       let demoType = null;
-      if (formData.task_name && formData.task_name.toLowerCase().includes('file')) demoType = 'fileops';
-      if (formData.task_name && formData.task_name.toLowerCase().includes('multi')) demoType = 'multiExec';
+      if (
+        formData.task_name &&
+        formData.task_name.toLowerCase().includes("file")
+      )
+        demoType = "fileops";
+      if (
+        formData.task_name &&
+        formData.task_name.toLowerCase().includes("multi")
+      )
+        demoType = "multiExec";
       if (demoType) err.demoType = demoType;
       setError(err);
     } finally {
@@ -638,18 +650,37 @@ const SubmitTask = () => {
               </ul>
             </div> */}
             {error.demoType && (
-              <div style={{marginTop:8, fontSize:'13px', color:'#b91c1c', background:'#fef2f2', borderRadius:4, padding:'8px 12px', marginBottom:20}}>
-                <strong>Demo Task Info:</strong> {error.demoType === 'fileops' ? 'File I/O demo tasks may fail if the TES instance does not support remote file access or has restricted permissions.' : error.demoType === 'multiExec' ? 'Multi-executor demo tasks require TES v1.1+ support. Some TES implementations do not support multiple executors.' : ''}
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: "13px",
+                  color: "#b91c1c",
+                  background: "#fef2f2",
+                  borderRadius: 4,
+                  padding: "8px 12px",
+                  marginBottom: 20,
+                }}
+              >
+                <strong>Demo Task Info:</strong>{" "}
+                {error.demoType === "fileops"
+                  ? "File I/O demo tasks may fail if the TES instance does not support remote file access or has restricted permissions."
+                  : error.demoType === "multiExec"
+                    ? "Multi-executor demo tasks require TES v1.1+ support. Some TES implementations do not support multiple executors."
+                    : ""}
               </div>
             )}
           </>
         )}
         {instancesError && <ErrorMessage error={instancesError} />}
 
-        {/* Removed misleading 'No healthy TES instances found' UI message. Now only logs to console for debugging. */}
-        {instances.length === 0 && !instancesLoading && (
-          (() => { console.log('No TES instances found (allInstances and instances are empty).'); return null; })()
-        )}
+        {instances.length === 0 &&
+          !instancesLoading &&
+          (() => {
+            console.log(
+              "No TES instances found (allInstances and instances are empty).",
+            );
+            return null;
+          })()}
 
         <form onSubmit={handleSubmit}>
           <FormGroup>
@@ -662,37 +693,51 @@ const SubmitTask = () => {
               required
             >
               <option value="">Select TES Instance</option>
-              {/* Only show healthy instances at the top, then others, but force tesk-prod.cloud.e-infra.cz as red cross */}
               {(() => {
                 const all = allInstances.length > 0 ? allInstances : instances;
-                // Move healthy to top, but tesk-prod.cloud.e-infra.cz always in 'others' and always red cross
-                const isProdCZ = (inst) => inst.url && inst.url.includes("tesk-prod.cloud.e-infra.cz");
+                const isProdCZ = (inst) =>
+                  inst.url && inst.url.includes("tesk-prod.cloud.e-infra.cz");
                 const healthy = all.filter(
-                  (inst) => String(inst.status).toLowerCase() === "healthy" && !isProdCZ(inst)
+                  (inst) =>
+                    String(inst.status).toLowerCase() === "healthy" &&
+                    !isProdCZ(inst),
                 );
                 const prodCZ = all.filter(isProdCZ);
                 const others = all.filter(
-                  (inst) => String(inst.status).toLowerCase() !== "healthy" && !isProdCZ(inst)
+                  (inst) =>
+                    String(inst.status).toLowerCase() !== "healthy" &&
+                    !isProdCZ(inst),
                 );
-                return [
-                  ...healthy,
-                  ...prodCZ,
-                  ...others
-                ].map((instance, index) => {
-                  const statusStr = String(instance.status).toLowerCase();
-                  const isHealthy = statusStr === "healthy" && !isProdCZ(instance);
-                  const isProd = isProdCZ(instance);
-                  const isUnauthorized = statusStr.includes("auth required") || statusStr.includes("unauthorized") || instance.http_status === 401;
-                  return (
-                    <option key={index} value={instance.url}>
-                      {isProd ? "❌" : isHealthy ? "✅" : isUnauthorized ? "❌ (Unauthorized)" : "❌"} {instance.name}
-                    </option>
-                  );
-                });
+                return [...healthy, ...prodCZ, ...others].map(
+                  (instance, index) => {
+                    const statusStr = String(instance.status).toLowerCase();
+                    const isHealthy =
+                      statusStr === "healthy" && !isProdCZ(instance);
+                    const isProd = isProdCZ(instance);
+                    const isUnauthorized =
+                      statusStr.includes("auth required") ||
+                      statusStr.includes("unauthorized") ||
+                      instance.http_status === 401;
+                    return (
+                      <option key={index} value={instance.url}>
+                        {isProd
+                          ? "❌"
+                          : isHealthy
+                            ? "✅"
+                            : isUnauthorized
+                              ? "❌ (Unauthorized)"
+                              : "❌"}{" "}
+                        {instance.name}
+                      </option>
+                    );
+                  },
+                );
               })()}
             </Select>
             <HelpText>
-              <strong>Note:</strong> Only TES instances with a green check are healthy and can accept tasks. If none are available, check your instance configuration or network.
+              <strong>Note:</strong> Only TES instances with a green check are
+              healthy and can accept tasks. If none are available, check your
+              instance configuration or network.
             </HelpText>
           </FormGroup>
 

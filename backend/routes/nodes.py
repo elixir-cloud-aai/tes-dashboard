@@ -273,7 +273,6 @@ def check_node_health(node_id):
         
         url = service.get('url', '').rstrip('/')
         
-        # Try multiple TES API endpoints in order
         endpoints_to_try = [
             f"{url}/ga4gh/tes/v1/service-info",
             f"{url}/service-info",
@@ -286,18 +285,17 @@ def check_node_health(node_id):
                 start_time = time.time()
                 response = requests.get(
                     endpoint, 
-                    timeout=10,  # Increased timeout
+                    timeout=10,  
                     headers={
                         'Accept': 'application/json',
                         'User-Agent': 'TES-Dashboard/1.0'
                     },
-                    verify=True,  # SSL verification
+                    verify=True, 
                     allow_redirects=True
                 )
                 response_time = round((time.time() - start_time) * 1000)
                 
-                # SUCCESS - Got valid response
-                if response.status_code in [200, 403]:  # 403 = auth required but service exists
+                if response.status_code in [200, 403]:  
                     service_info = None
                     if response.status_code == 200:
                         try:
@@ -331,7 +329,6 @@ def check_node_health(node_id):
                 last_error = str(e)
                 continue
         
-        # ALL ENDPOINTS FAILED
         return jsonify({
             'status': 'offline',
             'healthy': False,

@@ -4,7 +4,6 @@ from utils.tes_utils import load_tes_location_data
 
 WORKFLOW_RUNS_FILE = os.path.join(os.path.dirname(__file__), '../data/workflow_runs.json')
 
-# Load workflow runs from file if it exists
 if os.path.exists(WORKFLOW_RUNS_FILE):
     with open(WORKFLOW_RUNS_FILE, 'r') as f:
         try:
@@ -37,6 +36,8 @@ def add_workflow_run(workflow):
     Persist a workflow run. Snakemake steps/data_flow are filled by submit_real_workflow.
     Other types get a single step on the TES node the user selected (real topology, not random).
     """
+    if workflow.get('status') != 'SUBMISSION_ERROR':
+        workflow['status'] = 'RUNNING'
     wf_type = (workflow.get('type') or '').lower()
     if wf_type == 'snakemake':
         workflow.setdefault('steps', [])

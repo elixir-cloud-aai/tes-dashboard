@@ -269,7 +269,7 @@ const Tasks = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [sortColumn, setSortColumn] = useState("creation_time");
-  const [sortDirection, setSortDirection] = useState("desc"); // 'asc' or 'desc'
+  const [sortDirection, setSortDirection] = useState("desc"); 
   const [tasksData, setTasksData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -301,7 +301,6 @@ const Tasks = () => {
     const healthyTasks = allTasks.filter((task) => {
       return task && task.id && task.tes_url && task.state;
     });
-    // Apply search filter
     let tasksToDisplay = healthyTasks;
     if (searchTerm) {
       tasksToDisplay = healthyTasks.filter(
@@ -313,7 +312,6 @@ const Tasks = () => {
           task.tes_name?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
-    // Apply sorting
     const sorted = sortTasks(tasksToDisplay, sortColumn, sortDirection);
     setFilteredTasks(sorted);
   }, [tasksData, searchTerm, sortColumn, sortDirection]);
@@ -395,7 +393,6 @@ const Tasks = () => {
       </PageHeader>
 
       <ContentCard>
-        {/* Search Bar */}
         <SearchBar>
           <Search size={20} color="#6c757d" />
           <SearchInput
@@ -418,7 +415,6 @@ const Tasks = () => {
             <StatusNotification>{error.message}</StatusNotification>
           )}
 
-        {/* Remove loading check here; always show table/empty state */}
         {filteredTasks.length === 0 ? (
           <EmptyState>
             {searchTerm
@@ -472,6 +468,9 @@ const Tasks = () => {
                   </TableCell>
                   <TableCell>{task.name || "Unnamed Task"}</TableCell>
                   <TableCell>
+                    {/* <TaskStatus status={task.state}>
+                      {formatTaskStatus(task.state)}
+                    </TaskStatus>*/}
                     <TaskStatus status={task.state}>
                       {formatTaskStatus(task.state)}
                     </TaskStatus>
@@ -487,7 +486,10 @@ const Tasks = () => {
                       Details
                     </ActionButton>
 
-                    {(task.state === "RUNNING" || task.state === "QUEUED") && (
+                    {(task.state === "RUNNING" ||
+                      task.state === "QUEUED" ||
+                      task.state === "INITIALIZING" ||
+                      task.state === "PAUSED") && (
                       <ActionButton
                         variant="danger"
                         onClick={() => handleCancelTask(task.tes_url, task.id)}

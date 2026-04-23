@@ -24,13 +24,11 @@ def load_tes_location_data():
     Enriches TES instances with geographical data and statuses.
     Forces all 9+ instances to be visible by providing strict fallback coordinates.
     """
-    # Hardcoded fallback coordinates to ensure visibility even if JSON is missing
     default_coords = {
         'Czech Republic': {'lat': 50.0755, 'lng': 14.4378, 'region': 'EU-Central'},
         'Finland': {'lat': 60.1699, 'lng': 24.9384, 'region': 'EU-North'},
         'Greece': {'lat': 37.9838, 'lng': 23.7275, 'region': 'EU-South'},
         'Germany': {'lat': 52.5200, 'lng': 13.4050, 'region': 'EU-Central'},
-        'Local': {'lat': 48.8566, 'lng': 2.3522, 'region': 'Local-Dev'}, # Mocked to Paris for visibility
         'Unknown': {'lat': 45.0, 'lng': 10.0, 'region': 'Global'}
     }
 
@@ -54,7 +52,6 @@ def load_tes_location_data():
         url = inst['url']
         url_key = url.lower()
 
-        # Determine country for coordinate lookup
         country = 'Unknown'
         if 'CZ' in name or 'Czech' in name:
             country = 'Czech Republic'
@@ -70,7 +67,6 @@ def load_tes_location_data():
         coords = default_coords.get(country, default_coords['Unknown'])
         loc_data = location_map.get(url_key, {})
 
-        # Merge data, prioritizing config file but ensuring coords exist
         enriched = {
             'id': loc_data.get('id', name.lower().replace(' ', '-').replace('/', '-')),
             'name': name,

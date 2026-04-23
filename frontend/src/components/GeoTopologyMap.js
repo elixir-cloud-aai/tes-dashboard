@@ -152,7 +152,7 @@ function GeoTopologyMap({ workflowId, workflow: workflowProp }) {
   useEffect(() => {
     const loadMapData = async () => {
       try {
-        if (refreshKey === 0) setLoading(true);
+        if (refreshKey === 0 && data.instances.length === 0) setLoading(true);
         const [topology, workflow] = await Promise.all([
           topologyService.getNetworkTopology(),
           workflowProp
@@ -258,7 +258,7 @@ function GeoTopologyMap({ workflowId, workflow: workflowProp }) {
     return [50, 10]; // Center on Europe
   }, []);
 
-  if (loading)
+  if (loading && data.instances.length === 0)
     return (
       <MapWrapper>
         <div style={{ padding: 20 }}>Loading global fleet...</div>

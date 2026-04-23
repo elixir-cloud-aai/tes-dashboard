@@ -2,7 +2,6 @@ import os
 from config import FUNNEL_SERVER_USER, FUNNEL_SERVER_PASSWORD, TES_TOKEN
 from utils.credential_store import get_instance_credentials as fetch_creds
 
-# Try to import runtime_tokens from instances route if available
 try:
     from routes.instances import runtime_tokens
 except ImportError:
@@ -14,11 +13,9 @@ def get_instance_credentials(instance_name, instance_url):
     default_token = TES_TOKEN
 
     url_key = instance_url.rstrip('/').lower()
-    # 1. Check file-based credential store
     file_creds = fetch_creds(url_key)
     if file_creds:
         return file_creds
-    # 2. Check runtime_tokens (legacy)
     runtime_token = runtime_tokens.get(url_key)
     if runtime_token:
         return {
@@ -27,7 +24,6 @@ def get_instance_credentials(instance_name, instance_url):
             'token': runtime_token
         }
 
-    # 3. Fallback to environment variables
     if 'tesk-prod.cloud.e-infra.cz' in instance_url:
         return {
             'user': os.getenv('TESK_PROD_USER', default_user),

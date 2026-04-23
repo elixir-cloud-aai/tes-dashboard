@@ -438,12 +438,10 @@ const SubmitWorkflow = () => {
   const [workflowFileContent, setWorkflowFileContent] = useState("");
   const [isGateway, setIsGateway] = useState(false);
 
-  // Helper function to get status badge
   const getStatusBadge = (status) => {
     return status === "healthy" ? "✅" : "❌";
   };
 
-  // On mount, select a random healthy instance if available
   useEffect(() => {
     const all = allInstances.length > 0 ? allInstances : instances;
     const isProdCZ = (inst) =>
@@ -457,10 +455,8 @@ const SubmitWorkflow = () => {
     if (healthyInstances.length > 0 && !selectedInstance) {
       setSelectedInstance(healthyInstances[0].url);
     }
-    // eslint-disable-next-line
   }, [allInstances, instances]);
 
-  // When workflow changes, update the editable file content
   useEffect(() => {
     if (selectedWorkflow) {
       const wf = WORKFLOW_EXAMPLES[selectedWorkflow];
@@ -479,8 +475,6 @@ const SubmitWorkflow = () => {
     const url = e.target.value;
     setSelectedInstance(url);
 
-    // Check if the selected instance is a gateway (e.g., proTES)
-    // In a real implementation, this would be based on instance metadata
     const inst =
       allInstances.find((i) => i.url === url) ||
       instances.find((i) => i.url === url);
@@ -496,7 +490,6 @@ const SubmitWorkflow = () => {
     setTestingConnection(true);
     setConnectionTestResult(null);
     try {
-      // In a real scenario, we would test the specific selectedInstance
       const result =
         await workflowService.testInstanceConnection(selectedInstance);
       setConnectionTestResult({
@@ -567,11 +560,9 @@ const SubmitWorkflow = () => {
     }
   };
 
-  // Button group for workflow examples (like demo tasks)
   const handleWorkflowButton = (workflowKey) => {
     setSelectedWorkflow(workflowKey);
     setError("");
-    // Pick a random healthy instance for workflow
     const healthyInstances = (
       allInstances.length > 0 ? allInstances : instances
     ).filter((inst) => String(inst.status).toLowerCase() === "healthy");
@@ -591,7 +582,6 @@ const SubmitWorkflow = () => {
       <FormCard>
         <Title>Submit Workflow</Title>
 
-        {/* Removed misleading 'No healthy TES instances found' UI message. Now only logs to console for debugging. */}
         {instances.length === 0 &&
           !instancesLoading &&
           (() => {
@@ -613,10 +603,8 @@ const SubmitWorkflow = () => {
               required
             >
               <option value="">Select TES Instance</option>
-              {/* Only show healthy instances at the top, then others, but force tesk-prod.cloud.e-infra.cz as red cross */}
               {(() => {
                 const all = allInstances.length > 0 ? allInstances : instances;
-                // Move healthy to top, but tesk-prod.cloud.e-infra.cz always in 'others' and always red cross
                 const isProdCZ = (inst) =>
                   inst.url && inst.url.includes("tesk-prod.cloud.e-infra.cz");
                 const healthy = all.filter(
@@ -699,7 +687,6 @@ const SubmitWorkflow = () => {
             </div>
           </DemoButtonGroup>
 
-          {/* Show workflow details and editable file when selected */}
           {selectedWorkflow && (
             <WorkflowDetailsCard>
               <h4 style={{ margin: 0 }}>

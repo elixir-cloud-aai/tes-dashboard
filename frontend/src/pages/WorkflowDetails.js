@@ -12,7 +12,7 @@ const PageContainer = styled.div`
   padding: 24px;
   background-color: #f8f9fa;
   min-height: calc(100vh - 64px);
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
 `;
 
@@ -81,6 +81,7 @@ const ContentCard = styled.div`
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   border: 1px solid #e2e8f0;
+  width: 500px;
 `;
 
 const CardTitle = styled.h2`
@@ -118,6 +119,48 @@ const InfoValue = styled.span`
   text-align: right;
 `;
 
+const ErrorCard = styled(ContentCard)`
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  width: 1100px;
+  margin-bottom: 24px;
+  border-left: 4px solid #f56565;
+  padding: 20px;
+`;
+
+const ErrorTitle = styled.h3`
+  color: #c53030;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+`;
+
+const ErrorText = styled.p`
+  color: #742a2a;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 0;
+  word-break: break-word;
+`;
+
+const ErrorDetailsBox = styled.div`
+  margin-top: 16px;
+  font-size: 13px;
+  color: #9b2c2c;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #fed7d7;
+  font-family: "Fira Code", monospace;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-width: 100%;
+`;
+
 const StatusBadge = styled.span`
   padding: 4px 12px;
   border-radius: 20px;
@@ -125,30 +168,38 @@ const StatusBadge = styled.span`
   font-weight: 700;
   text-transform: uppercase;
   background: ${(props) => {
-    switch (props.status) {
+    const s = String(props.status || "").toUpperCase();
+    switch (s) {
       case "COMPLETE":
+      case "COMPLETED":
         return "#dcfce7";
       case "RUNNING":
         return "#dbeafe";
       case "FAILED":
       case "SYSTEM_ERROR":
+      case "SUBMISSION_ERROR":
         return "#fee2e2";
       case "CANCELED":
+      case "CANCELLED":
         return "#f1f5f9";
       default:
         return "#fef3c7";
     }
   }};
   color: ${(props) => {
-    switch (props.status) {
+    const s = String(props.status || "").toUpperCase();
+    switch (s) {
       case "COMPLETE":
+      case "COMPLETED":
         return "#166534";
       case "RUNNING":
         return "#1e40af";
       case "FAILED":
       case "SYSTEM_ERROR":
+      case "SUBMISSION_ERROR":
         return "#991b1b";
       case "CANCELED":
+      case "CANCELLED":
         return "#475569";
       default:
         return "#92400e";
@@ -176,7 +227,8 @@ const formatStatus = (status) => {
   if (!status) return "UNKNOWN";
   const s = status.toUpperCase();
   if (s === "COMPLETE" || s === "COMPLETED") return "COMPLETE";
-  if (s === "FAILED" || s === "SYSTEM_ERROR") return "FAILED";
+  if (s === "FAILED" || s === "SYSTEM_ERROR" || s === "SUBMISSION_ERROR")
+    return s;
   return s
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -223,7 +275,15 @@ const WorkflowDetails = () => {
         if (cancelled || !data) return;
         setWorkflow(data);
         const s = (data.status || "").toUpperCase();
-        if (["COMPLETE", "FAILED", "CANCELED", "CANCELLED"].includes(s)) {
+        if (
+          [
+            "COMPLETE",
+            "FAILED",
+            "CANCELED",
+            "CANCELLED",
+            "SUBMISSION_ERROR",
+          ].includes(s)
+        ) {
           clearInterval(pollTimer);
           pollTimer = null;
         }
@@ -244,6 +304,12 @@ const WorkflowDetails = () => {
         <LoadingSpinner text="Fetching workflow context..." />
       </PageContainer>
     );
+
+  const hasError =
+    (workflow?.status === "FAILED" ||
+      workflow?.status === "SUBMISSION_ERROR") &&
+    (workflow?.error_message || workflow?.submission_error || workflow?.error);
+
   if (error)
     return (
       <PageContainer>
@@ -264,6 +330,28 @@ const WorkflowDetails = () => {
         Back to Workflows
       </BackButton>
 
+      {hasError && (
+        <ErrorCard>
+          <ErrorTitle>
+            <Activity size={20} />
+            {workflow.error_type || "Submission Error"}
+          </ErrorTitle>
+          <ErrorText>
+            {workflow.error_message ||
+              workflow.submission_error ||
+              workflow.error ||
+              "The workflow submission failed. This is usually due to an unreachable TES instance or invalid configuration."}
+          </ErrorText>
+          {workflow.error_details && (
+            <ErrorDetailsBox>
+              <strong>Technical Details:</strong>
+              <br />
+              {workflow.error_details}
+            </ErrorDetailsBox>
+          )}
+        </ErrorCard>
+      )}
+
       <Header>
         <TitleSection>
           <Title>Workflow Context</Title>
@@ -271,18 +359,18 @@ const WorkflowDetails = () => {
         </TitleSection>
         <StatusBadge
           status={
-            workflow.status === "COMPLETE" &&
-            (!workflow.steps || workflow.steps.length === 0)
-              ? "FAILED"
-              : workflow.status === "COMPLETED"
-                ? "COMPLETE"
-                : workflow.status
+            (workflow.status === "COMPLETE" &&
+              (!workflow.steps || workflow.steps.length === 0)) ||
+            workflow.status === "SUBMISSION_ERROR"
+              ? "SUBMISSION_ERROR"
+              : workflow.status
           }
         >
           {formatStatus(
-            workflow.status === "COMPLETE" &&
-              (!workflow.steps || workflow.steps.length === 0)
-              ? "FAILED"
+            (workflow.status === "COMPLETE" &&
+              (!workflow.steps || workflow.steps.length === 0)) ||
+              workflow.status === "SUBMISSION_ERROR"
+              ? "SUBMISSION_ERROR"
               : workflow.status,
           )}
         </StatusBadge>
@@ -297,9 +385,10 @@ const WorkflowDetails = () => {
             <InfoLabel>Current Progress</InfoLabel>
             <InfoValue>
               {formatStatus(
-                workflow.status === "COMPLETE" &&
-                  (!workflow.steps || workflow.steps.length === 0)
-                  ? "FAILED"
+                (workflow.status === "COMPLETE" &&
+                  (!workflow.steps || workflow.steps.length === 0)) ||
+                  workflow.status === "SUBMISSION_ERROR"
+                  ? "SUBMISSION_ERROR"
                   : workflow.status,
               )}
             </InfoValue>
@@ -335,20 +424,6 @@ const WorkflowDetails = () => {
         </ContentCard>
       </Grid>
 
-      {(workflow.status === "FAILED" ||
-        (workflow.status === "COMPLETE" &&
-          (!workflow.steps || workflow.steps.length === 0))) && (
-        <div style={{ marginBottom: "24px" }}>
-          <ErrorMessage
-            message={
-              workflow.submission_error
-                ? `Submission Error: ${workflow.submission_error}`
-                : "Workflow error: No execution steps were generated. This usually indicates a connection failure or an invalid Snakefile/Nextflow configuration."
-            }
-          />
-        </div>
-      )}
-
       <Grid>
         <ContentCard>
           <CardTitle>
@@ -365,14 +440,14 @@ const WorkflowDetails = () => {
         </ContentCard>
       </Grid>
 
-      <MapSection>
-        <ContentCard>
-          <CardTitle>
-            <Activity size={18} /> Live Global Data Flow
-          </CardTitle>
-          <GeoTopologyMap workflowId={workflow.run_id} workflow={workflow} />
-        </ContentCard>
-      </MapSection>
+      {/* <MapSection>*/}
+      {/* <ContentCard>*/}
+      <CardTitle>
+        <Activity size={18} /> Live Global Data Flow
+      </CardTitle>
+      <GeoTopologyMap workflowId={workflow.run_id} workflow={workflow} />
+      {/* </ContentCard>*/}
+      {/* </MapSection>*/}
     </PageContainer>
   );
 };

@@ -13,16 +13,13 @@ def get_network_topology():
     try:
         current_tes_locations = load_tes_location_data()
 
-        # Ensure all instances have consistent status for the UI
         for loc in current_tes_locations:
             if 'status' not in loc:
                 loc['status'] = 'healthy' if loc.get('lat') != 0 else 'unknown'
 
-        # Fetch status for all instances in parallel
         with ThreadPoolExecutor(max_workers=8) as pool:
             results = list(pool.map(fetch_tes_status, current_tes_locations))
 
-        # Overwrite status in each instance with the real-time checked status
         instance_status_map = {r['url']: r['status'] for r in results if 'url' in r and 'status' in r}
         for loc in current_tes_locations:
             if loc['url'] in instance_status_map:
@@ -49,14 +46,12 @@ def get_network_topology():
         data_flows = []
         workflow_runs = get_workflow_runs()
 
-        # Populate data flows for all active workflows to ensure logical map works
         for workflow in workflow_runs:
             source_instance = next((loc for loc in current_tes_locations if
                                   loc.get('name') == workflow.get('tes_name') or
                                   loc.get('url') == workflow.get('tes_url')), None)
 
             if source_instance:
-                # Add flow from workflow root to executing instance
                 data_flows.append({
                     'workflow_id': workflow['run_id'],
                     'type': workflow.get('type', 'execution'),

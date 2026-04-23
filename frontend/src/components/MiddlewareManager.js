@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { 
-  RefreshCw, 
-  Plus, 
-  Trash2, 
-  ChevronUp, 
-  ChevronDown, 
+import React, { useState, useEffect, useCallback } from "react";
+import styled, { keyframes } from "styled-components";
+import {
+  RefreshCw,
+  Plus,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
   Save,
   X,
   CheckCircle,
@@ -13,24 +13,24 @@ import {
   Loader,
   Eye,
   Code,
-  Info
-} from 'lucide-react';
-import LoadingSpinner from './common/LoadingSpinner';
-import axios from 'axios';
-import MiddlewareTester from './MiddlewareTester';
-import { Play } from 'lucide-react';
+  Info,
+} from "lucide-react";
+import LoadingSpinner from "./common/LoadingSpinner";
+import axios from "axios";
+import MiddlewareTester from "./MiddlewareTester";
+import { Play } from "lucide-react";
 
 // proTES API is running on port 8080
-const PROTES_API_BASE = 'http://localhost:8080';
-const API_BASE = '/api/middlewares';
+const PROTES_API_BASE = "http://localhost:8080";
+const API_BASE = "/api/middlewares";
 
 // Create axios instance for proTES API
 const protesApi = axios.create({
   baseURL: PROTES_API_BASE,
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 const spin = keyframes`
@@ -51,7 +51,8 @@ const Container = styled.div`
   padding: 32px;
   max-width: 1400px;
   margin: 0 auto;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Inter", sans-serif;
   background-color: #f8f9fa;
   min-height: calc(100vh - 80px);
 `;
@@ -92,7 +93,7 @@ const Button = styled.button`
   justify-content: center;
   gap: 8px;
   min-height: 40px;
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -104,7 +105,7 @@ const PrimaryButton = styled(Button)`
   background: #1e40af;
   color: white;
   border-color: #1e40af;
-  
+
   &:hover:not(:disabled) {
     background: #1e3a8a;
     border-color: #1e3a8a;
@@ -116,7 +117,7 @@ const SecondaryButton = styled(Button)`
   background: #ffffff;
   color: #374151;
   border-color: #d1d5db;
-  
+
   &:hover:not(:disabled) {
     background: #f9fafb;
     border-color: #9ca3af;
@@ -127,7 +128,7 @@ const DangerButton = styled(Button)`
   background: #dc2626;
   color: white;
   border-color: #dc2626;
-  
+
   &:hover:not(:disabled) {
     background: #b91c1c;
     border-color: #b91c1c;
@@ -143,7 +144,7 @@ const MessageContainer = styled.div`
   justify-content: space-between;
   gap: 16px;
   animation: slideDown 0.3s ease;
-  
+
   @keyframes slideDown {
     from {
       opacity: 0;
@@ -182,7 +183,7 @@ const CloseButton = styled.button`
   padding: 4px;
   color: inherit;
   opacity: 0.7;
-  
+
   &:hover {
     opacity: 1;
   }
@@ -221,11 +222,11 @@ const TableBody = styled.tbody``;
 const TableRow = styled.tr`
   border-bottom: 1px solid #e5e7eb;
   transition: background-color 0.15s ease;
-  
+
   &:hover {
     background-color: #f9fafb;
   }
-  
+
   &:last-child {
     border-bottom: none;
   }
@@ -239,7 +240,7 @@ const TableCell = styled.td`
 `;
 
 const IDCell = styled(TableCell)`
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
   font-size: 0.75rem;
   color: #6b7280;
 `;
@@ -256,12 +257,15 @@ const SourceBadge = styled.span`
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: capitalize;
-  
-  ${props => props.source === 'local' ? `
+
+  ${(props) =>
+    props.source === "local"
+      ? `
     background: #dbeafe;
     color: #1e40af;
     border: 1px solid #bfdbfe;
-  ` : `
+  `
+      : `
     background: #f3e8ff;
     color: #7c3aed;
     border: 1px solid #c4b5fd;
@@ -285,12 +289,12 @@ const IconButton = styled.button`
   justify-content: center;
   transition: all 0.15s ease;
   color: #374151;
-  
+
   &:hover:not(:disabled) {
     background: #f9fafb;
     border-color: #9ca3af;
   }
-  
+
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
@@ -329,8 +333,10 @@ const Label = styled.label`
   margin-bottom: 8px;
   color: #374151;
   font-size: 0.875rem;
-  
-  ${props => props.required && `
+
+  ${(props) =>
+    props.required &&
+    `
     &::after {
       content: ' *';
       color: #dc2626;
@@ -344,20 +350,22 @@ const Input = styled.input`
   border-radius: 8px;
   font-size: 0.875rem;
   font-family: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
   background: #ffffff;
-  
+
   &:focus {
     outline: none;
     border-color: #1e3a8a;
     box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
   }
-  
+
   &:disabled {
     background: #f3f4f6;
     cursor: not-allowed;
   }
-  
+
   &:invalid {
     border-color: #dc2626;
   }
@@ -448,7 +456,9 @@ const DetailContent = styled.div`
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 `;
 
 const DetailHeader = styled.div`
@@ -479,7 +489,7 @@ const DetailBody = styled.div`
 
 const DetailSection = styled.div`
   margin-bottom: 24px;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -515,9 +525,9 @@ const DetailValue = styled.div`
   color: #111827;
   font-size: 0.875rem;
   word-break: break-word;
-  
+
   &.code {
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
     background: #1f2937;
     color: #10b981;
     padding: 8px 12px;
@@ -534,18 +544,24 @@ const Badge = styled.span`
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: ${props => {
-    switch(props.type) {
-      case 'local': return '#dbeafe';
-      case 'github': return '#e0e7ff';
-      default: return '#f3f4f6';
+  background: ${(props) => {
+    switch (props.type) {
+      case "local":
+        return "#dbeafe";
+      case "github":
+        return "#e0e7ff";
+      default:
+        return "#f3f4f6";
     }
   }};
-  color: ${props => {
-    switch(props.type) {
-      case 'local': return '#1e40af';
-      case 'github': return '#4338ca';
-      default: return '#374151';
+  color: ${(props) => {
+    switch (props.type) {
+      case "local":
+        return "#1e40af";
+      case "github":
+        return "#4338ca";
+      default:
+        return "#374151";
     }
   }};
 `;
@@ -562,7 +578,7 @@ const MetadataRow = styled.div`
   justify-content: space-between;
   padding: 8px 0;
   border-bottom: 1px solid #e5e7eb;
-  
+
   &:last-child {
     border-bottom: none;
   }
@@ -585,7 +601,7 @@ const CodePreview = styled.pre`
   padding: 16px;
   border-radius: 8px;
   font-size: 0.8125rem;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
   overflow-x: auto;
   margin: 0;
   max-height: 400px;
@@ -606,7 +622,7 @@ const CloseIconButton = styled.button`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
-  
+
   &:hover {
     background: #f3f4f6;
     color: #111827;
@@ -643,25 +659,25 @@ export default function MiddlewareManager() {
   const [reorderMode, setReorderMode] = useState(false);
   const [reorderedList, setReorderedList] = useState([]);
   const [testModal, setTestModal] = useState(null);
-  
+
   // Detail modal state
   const [detailModal, setDetailModal] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
   const handleTestMiddleware = (middleware) => {
-  setTestModal(middleware);
-};
+    setTestModal(middleware);
+  };
 
   const closeTestModal = () => {
     setTestModal(null);
   };
-  
+
   const [form, setForm] = useState({
-    name: '',
-    class_path: '',
+    name: "",
+    class_path: "",
     order: 0,
-    github_url: ''
+    github_url: "",
   });
 
   useEffect(() => {
@@ -673,7 +689,7 @@ export default function MiddlewareManager() {
       return () => clearTimeout(timer);
     }
   }, [message, error]);
- 
+
   useEffect(() => {
     fetchMiddlewares();
   }, []);
@@ -684,7 +700,9 @@ export default function MiddlewareManager() {
     try {
       const response = await protesApi.get(API_BASE);
       if (Array.isArray(response.data)) {
-        const sorted = [...response.data].sort((a, b) => (a.order || 0) - (b.order || 0));
+        const sorted = [...response.data].sort(
+          (a, b) => (a.order || 0) - (b.order || 0),
+        );
         setMiddlewares(sorted);
         setReorderedList(sorted);
       } else {
@@ -692,7 +710,10 @@ export default function MiddlewareManager() {
         setReorderedList([]);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch middlewares';
+      const errorMsg =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to fetch middlewares";
       setError(errorMsg);
       setMiddlewares([]);
       setReorderedList([]);
@@ -705,15 +726,18 @@ export default function MiddlewareManager() {
   const fetchMiddlewareDetails = async (middlewareId) => {
     setDetailLoading(true);
     setDetailData(null);
-    
+
     try {
       console.log(`Fetching details for middleware: ${middlewareId}`);
       const response = await protesApi.get(`${API_BASE}/${middlewareId}`);
-      console.log('Middleware details:', response.data);
+      console.log("Middleware details:", response.data);
       setDetailData(response.data);
     } catch (err) {
-      console.error('Error fetching middleware details:', err);
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch middleware details';
+      console.error("Error fetching middleware details:", err);
+      const errorMsg =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to fetch middleware details";
       setError(errorMsg);
       setDetailModal(null);
     } finally {
@@ -733,7 +757,7 @@ export default function MiddlewareManager() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     try {
       return new Date(dateString).toLocaleString();
     } catch {
@@ -743,19 +767,19 @@ export default function MiddlewareManager() {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
-      [name]: name === 'order' ? parseInt(value) || 0 : value
+      [name]: name === "order" ? parseInt(value) || 0 : value,
     }));
   };
 
   const validateForm = () => {
     if (!form.name.trim()) {
-      setError('Name is required');
+      setError("Name is required");
       return false;
     }
     if (!form.github_url && !form.class_path.trim()) {
-      setError('Either class_path or github_url is required');
+      setError("Either class_path or github_url is required");
       return false;
     }
     return true;
@@ -765,7 +789,7 @@ export default function MiddlewareManager() {
     e.preventDefault();
     setError(null);
     setMessage(null);
-    
+
     if (!validateForm()) {
       return;
     }
@@ -775,25 +799,26 @@ export default function MiddlewareManager() {
       const payload = {
         name: form.name.trim(),
         class_path: form.class_path.trim(),
-        order: form.order || 0
+        order: form.order || 0,
       };
-      
+
       if (form.github_url.trim()) {
         payload.github_url = form.github_url.trim();
       }
 
       const response = await protesApi.post(API_BASE, payload);
-      
+
       if (response.data._id) {
         setMessage(`Middleware "${form.name}" added successfully!`);
-        setForm({ name: '', class_path: '', order: 0, github_url: '' });
+        setForm({ name: "", class_path: "", order: 0, github_url: "" });
         setShowForm(false);
         await fetchMiddlewares();
       } else {
-        setError('Unexpected response format');
+        setError("Unexpected response format");
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to add middleware';
+      const errorMsg =
+        err.response?.data?.error || err.message || "Failed to add middleware";
       setError(errorMsg);
     } finally {
       setSubmitting(false);
@@ -804,21 +829,24 @@ export default function MiddlewareManager() {
     setError(null);
     setMessage(null);
     setSubmitting(true);
-    
+
     try {
       const response = await protesApi.delete(`${API_BASE}/${middlewareId}`);
-      
-      if (response.data.status === 'deleted' || response.status === 200) {
-        setMessage('Middleware deleted successfully');
+
+      if (response.data.status === "deleted" || response.status === 200) {
+        setMessage("Middleware deleted successfully");
         setDeleteConfirm(null);
         await fetchMiddlewares();
       } else {
-        setError('Unexpected response format');
+        setError("Unexpected response format");
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to delete middleware';
+      const errorMsg =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to delete middleware";
       if (err.response?.status === 404) {
-        setError('Middleware not found');
+        setError("Middleware not found");
       } else {
         setError(errorMsg);
       }
@@ -830,10 +858,10 @@ export default function MiddlewareManager() {
 
   const moveMiddleware = (index, direction) => {
     const newList = [...reorderedList];
-    const swapWith = direction === 'up' ? index - 1 : index + 1;
-    
+    const swapWith = direction === "up" ? index - 1 : index + 1;
+
     if (swapWith < 0 || swapWith >= newList.length) return;
-    
+
     [newList[index], newList[swapWith]] = [newList[swapWith], newList[index]];
     setReorderedList(newList);
   };
@@ -842,20 +870,23 @@ export default function MiddlewareManager() {
     setError(null);
     setMessage(null);
     setSubmitting(true);
-    
+
     try {
-      const order = reorderedList.map(mw => mw._id);
+      const order = reorderedList.map((mw) => mw._id);
       const response = await protesApi.put(`${API_BASE}/order`, { order });
-      
-      if (response.data.status === 'reordered' || response.status === 200) {
-        setMessage('Middleware order updated successfully');
+
+      if (response.data.status === "reordered" || response.status === 200) {
+        setMessage("Middleware order updated successfully");
         setReorderMode(false);
         await fetchMiddlewares();
       } else {
-        setError('Unexpected response format');
+        setError("Unexpected response format");
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to reorder middlewares';
+      const errorMsg =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to reorder middlewares";
       setError(errorMsg);
     } finally {
       setSubmitting(false);
@@ -874,8 +905,8 @@ export default function MiddlewareManager() {
       <Header>
         <Title>Middleware Management</Title>
         <ActionsBar>
-          <SecondaryButton 
-            onClick={fetchMiddlewares} 
+          <SecondaryButton
+            onClick={fetchMiddlewares}
             disabled={loading || submitting}
           >
             <RefreshCw size={18} />
@@ -883,23 +914,17 @@ export default function MiddlewareManager() {
           </SecondaryButton>
           {reorderMode ? (
             <>
-              <PrimaryButton 
-                onClick={handleSaveOrder}
-                disabled={submitting}
-              >
+              <PrimaryButton onClick={handleSaveOrder} disabled={submitting}>
                 <Save size={18} />
                 Save Order
               </PrimaryButton>
-              <SecondaryButton 
-                onClick={cancelReorder}
-                disabled={submitting}
-              >
+              <SecondaryButton onClick={cancelReorder} disabled={submitting}>
                 Cancel
               </SecondaryButton>
             </>
           ) : (
             <>
-              <PrimaryButton 
+              <PrimaryButton
                 onClick={() => setShowForm(!showForm)}
                 disabled={submitting}
               >
@@ -907,7 +932,7 @@ export default function MiddlewareManager() {
                 Add Middleware
               </PrimaryButton>
               {middlewares.length > 1 && (
-                <SecondaryButton 
+                <SecondaryButton
                   onClick={() => {
                     setReorderMode(true);
                     setReorderedList([...middlewares]);
@@ -919,7 +944,6 @@ export default function MiddlewareManager() {
               )}
             </>
           )}
-          
         </ActionsBar>
       </Header>
 
@@ -948,7 +972,6 @@ export default function MiddlewareManager() {
       )}
 
       {showForm && (
-        
         <FormSection>
           <FormTitle>Add New Middleware</FormTitle>
           <form onSubmit={handleSubmit}>
@@ -1013,11 +1036,16 @@ export default function MiddlewareManager() {
                 )}
                 Add Middleware
               </PrimaryButton>
-              <SecondaryButton 
-                type="button" 
+              <SecondaryButton
+                type="button"
                 onClick={() => {
                   setShowForm(false);
-                  setForm({ name: '', class_path: '', order: 0, github_url: '' });
+                  setForm({
+                    name: "",
+                    class_path: "",
+                    order: 0,
+                    github_url: "",
+                  });
                   setError(null);
                 }}
                 disabled={submitting}
@@ -1035,7 +1063,8 @@ export default function MiddlewareManager() {
         <EmptyState>
           <EmptyStateTitle>No Middlewares Found</EmptyStateTitle>
           <EmptyStateText>
-            Get started by adding your first middleware using the "Add Middleware" button above.
+            Get started by adding your first middleware using the "Add
+            Middleware" button above.
           </EmptyStateText>
         </EmptyState>
       ) : (
@@ -1058,18 +1087,26 @@ export default function MiddlewareManager() {
                     {reorderMode ? (
                       <ActionButtons>
                         <IconButton
-                          onClick={() => moveMiddleware(index, 'up')}
+                          onClick={() => moveMiddleware(index, "up")}
                           disabled={index === 0 || submitting}
                           title="Move up"
                         >
                           <ChevronUp size={16} />
                         </IconButton>
-                        <span style={{ minWidth: '24px', display: 'inline-block', textAlign: 'center' }}>
+                        <span
+                          style={{
+                            minWidth: "24px",
+                            display: "inline-block",
+                            textAlign: "center",
+                          }}
+                        >
                           {middleware.order}
                         </span>
                         <IconButton
-                          onClick={() => moveMiddleware(index, 'down')}
-                          disabled={index === displayList.length - 1 || submitting}
+                          onClick={() => moveMiddleware(index, "down")}
+                          disabled={
+                            index === displayList.length - 1 || submitting
+                          }
                           title="Move down"
                         >
                           <ChevronDown size={16} />
@@ -1081,12 +1118,14 @@ export default function MiddlewareManager() {
                   </OrderCell>
                   <IDCell>{middleware._id}</IDCell>
                   <TableCell>{middleware.name}</TableCell>
-                  <TableCell style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                  <TableCell
+                    style={{ fontFamily: "monospace", fontSize: "0.75rem" }}
+                  >
                     {middleware.class_path}
                   </TableCell>
                   <TableCell>
-                    <SourceBadge source={middleware.source || 'local'}>
-                      {middleware.source || 'local'}
+                    <SourceBadge source={middleware.source || "local"}>
+                      {middleware.source || "local"}
                     </SourceBadge>
                   </TableCell>
                   <TableCell>
@@ -1096,7 +1135,7 @@ export default function MiddlewareManager() {
                           onClick={() => handleTestMiddleware(middleware)}
                           disabled={submitting}
                           title="Test Middleware"
-                          style={{ color: '#059669', borderColor: '#059669' }}
+                          style={{ color: "#059669", borderColor: "#059669" }}
                         >
                           <Play size={16} />
                         </IconButton>
@@ -1104,7 +1143,7 @@ export default function MiddlewareManager() {
                           onClick={() => handleViewDetails(middleware)}
                           disabled={submitting}
                           title="View Details"
-                          style={{ color: '#3b82f6', borderColor: '#3b82f6' }}
+                          style={{ color: "#3b82f6", borderColor: "#3b82f6" }}
                         >
                           <Eye size={16} />
                         </IconButton>
@@ -1112,7 +1151,7 @@ export default function MiddlewareManager() {
                           onClick={() => setDeleteConfirm(middleware)}
                           disabled={submitting}
                           title="Delete"
-                          style={{ color: '#dc2626', borderColor: '#dc2626' }}
+                          style={{ color: "#dc2626", borderColor: "#dc2626" }}
                         >
                           <Trash2 size={16} />
                         </IconButton>
@@ -1128,9 +1167,11 @@ export default function MiddlewareManager() {
 
       {/* Detail Modal */}
       {detailModal && (
-        <DetailModal onClick={(e) => {
-          if (e.target === e.currentTarget) closeDetailModal();
-        }}>
+        <DetailModal
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeDetailModal();
+          }}
+        >
           <DetailContent>
             <DetailHeader>
               <DetailTitle>
@@ -1141,7 +1182,7 @@ export default function MiddlewareManager() {
                 <X size={24} />
               </CloseIconButton>
             </DetailHeader>
-            
+
             <DetailBody>
               {detailLoading ? (
                 <LoadingOverlay>
@@ -1157,33 +1198,40 @@ export default function MiddlewareManager() {
                     </SectionTitle>
                     <DetailGrid>
                       <DetailLabel>ID:</DetailLabel>
-                      <DetailValue className="code">{detailData._id}</DetailValue>
-                      
+                      <DetailValue className="code">
+                        {detailData._id}
+                      </DetailValue>
+
                       <DetailLabel>Name:</DetailLabel>
                       <DetailValue>{detailData.name}</DetailValue>
-                      
+
                       <DetailLabel>Order:</DetailLabel>
                       <DetailValue>{detailData.order}</DetailValue>
-                      
+
                       <DetailLabel>Source:</DetailLabel>
                       <DetailValue>
-                        <Badge type={detailData.source || 'local'}>
-                          {detailData.source || 'local'}
+                        <Badge type={detailData.source || "local"}>
+                          {detailData.source || "local"}
                         </Badge>
                       </DetailValue>
-                      
+
                       <DetailLabel>Class Path:</DetailLabel>
-                      <DetailValue className="code">{detailData.class_path}</DetailValue>
-                      
+                      <DetailValue className="code">
+                        {detailData.class_path}
+                      </DetailValue>
+
                       {detailData.github_url && (
                         <>
                           <DetailLabel>GitHub URL:</DetailLabel>
                           <DetailValue>
-                            <a 
-                              href={detailData.github_url} 
-                              target="_blank" 
+                            <a
+                              href={detailData.github_url}
+                              target="_blank"
                               rel="noopener noreferrer"
-                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                              style={{
+                                color: "#3b82f6",
+                                textDecoration: "underline",
+                              }}
                             >
                               {detailData.github_url}
                             </a>
@@ -1193,26 +1241,29 @@ export default function MiddlewareManager() {
                     </DetailGrid>
                   </DetailSection>
 
-                  {detailData.metadata && Object.keys(detailData.metadata).length > 0 && (
-                    <DetailSection>
-                      <SectionTitle>
-                        <Code size={18} />
-                        Metadata
-                      </SectionTitle>
-                      <MetadataBox>
-                        {Object.entries(detailData.metadata).map(([key, value]) => (
-                          <MetadataRow key={key}>
-                            <MetadataLabel>{key}:</MetadataLabel>
-                            <MetadataValue>
-                              {typeof value === 'object' 
-                                ? JSON.stringify(value, null, 2) 
-                                : String(value)}
-                            </MetadataValue>
-                          </MetadataRow>
-                        ))}
-                      </MetadataBox>
-                    </DetailSection>
-                  )}
+                  {detailData.metadata &&
+                    Object.keys(detailData.metadata).length > 0 && (
+                      <DetailSection>
+                        <SectionTitle>
+                          <Code size={18} />
+                          Metadata
+                        </SectionTitle>
+                        <MetadataBox>
+                          {Object.entries(detailData.metadata).map(
+                            ([key, value]) => (
+                              <MetadataRow key={key}>
+                                <MetadataLabel>{key}:</MetadataLabel>
+                                <MetadataValue>
+                                  {typeof value === "object"
+                                    ? JSON.stringify(value, null, 2)
+                                    : String(value)}
+                                </MetadataValue>
+                              </MetadataRow>
+                            ),
+                          )}
+                        </MetadataBox>
+                      </DetailSection>
+                    )}
 
                   {detailData.code && (
                     <DetailSection>
@@ -1230,7 +1281,7 @@ export default function MiddlewareManager() {
                       Additional Information
                     </SectionTitle>
                     <MetadataBox>
-                  {/*<MetadataRow>
+                      {/*<MetadataRow>
                         <MetadataLabel>Created At:</MetadataLabel>
                         <MetadataValue>{formatDate(detailData.created_at)}</MetadataValue>
                       </MetadataRow>
@@ -1240,11 +1291,16 @@ export default function MiddlewareManager() {
                       </MetadataRow>
                       */}
                       <MetadataRow>
-                      
                         <MetadataLabel>Status:</MetadataLabel>
                         <MetadataValue>
-                          <Badge type={detailData.status === 'active' ? 'local' : 'github'}>
-                            {detailData.status || 'active'}
+                          <Badge
+                            type={
+                              detailData.status === "active"
+                                ? "local"
+                                : "github"
+                            }
+                          >
+                            {detailData.status || "active"}
                           </Badge>
                         </MetadataValue>
                       </MetadataRow>
@@ -1264,23 +1320,26 @@ export default function MiddlewareManager() {
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm && (
-        <ConfirmationDialog onClick={(e) => {
-          if (e.target === e.currentTarget) setDeleteConfirm(null);
-        }}>
+        <ConfirmationDialog
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirm(null);
+          }}
+        >
           <DialogContent>
             <DialogTitle>Delete Middleware</DialogTitle>
             <DialogMessage>
-              Are you sure you want to delete middleware <strong>"{deleteConfirm.name}"</strong>?
-              This action cannot be undone.
+              Are you sure you want to delete middleware{" "}
+              <strong>"{deleteConfirm.name}"</strong>? This action cannot be
+              undone.
             </DialogMessage>
             <DialogActions>
-              <SecondaryButton 
+              <SecondaryButton
                 onClick={() => setDeleteConfirm(null)}
                 disabled={submitting}
               >
                 Cancel
               </SecondaryButton>
-              <DangerButton 
+              <DangerButton
                 onClick={() => handleDelete(deleteConfirm._id)}
                 disabled={submitting}
               >
@@ -1298,10 +1357,7 @@ export default function MiddlewareManager() {
         </ConfirmationDialog>
       )}
       {testModal && (
-        <MiddlewareTester 
-          middleware={testModal}
-          onClose={closeTestModal}
-        />
+        <MiddlewareTester middleware={testModal} onClose={closeTestModal} />
       )}
     </Container>
   );

@@ -10,44 +10,44 @@ submitted_tasks = []
 def fetch_task_status_from_tes(task_id, tes_url, tes_name='Unknown'):
     if not task_id or not tes_url:
         return False, None, "Missing task_id or tes_url"
-    
+
     try:
         credentials = get_instance_credentials(tes_name, tes_url)
-        
-        
+
+
         tes_endpoints = [
             f"{tes_url.rstrip('/')}/ga4gh/tes/v1/tasks/{task_id}?view=FULL",
             f"{tes_url.rstrip('/')}/v1/tasks/{task_id}?view=FULL",
             f"{tes_url.rstrip('/')}/tasks/{task_id}?view=FULL"
         ]
-        
+
         headers = {'Accept': 'application/json'}
         auth = None
-        
+
         if credentials.get('token'):
             headers['Authorization'] = f"Bearer {credentials['token']}"
         elif credentials.get('user') and credentials.get('password'):
             auth = (credentials['user'], credentials['password'])
-        
+
         last_error = None
         for tes_endpoint in tes_endpoints:
             try:
                 response = requests.get(tes_endpoint, headers=headers, auth=auth, timeout=10)
-                
+
                 if response.status_code == 200:
                     task_data = response.json()
                     return True, task_data, None
                 elif response.status_code == 404:
-                    
+
                     last_error = f"Task {task_id} not found at {tes_endpoint}"
                     continue
                 else:
                     last_error = f"HTTP {response.status_code} error from {tes_endpoint}"
                     if response.status_code not in [401, 403]:
-                        
+
                         continue
                     else:
-                        
+
                         return False, None, last_error
             except requests.exceptions.Timeout:
                 last_error = f"Timeout fetching from {tes_endpoint}"
@@ -58,10 +58,10 @@ def fetch_task_status_from_tes(task_id, tes_url, tes_name='Unknown'):
             except Exception as e:
                 last_error = f"Error: {str(e)[:100]}"
                 continue
-        
-        
+
+
         return False, None, last_error or f"Task {task_id} not found on TES instance {tes_url}"
-    
+
     except Exception as e:
         return False, None, f"Unexpected error: {str(e)[:100]}"
 
@@ -69,21 +69,22 @@ def update_single_task_status(task):
     task_id = task.get('task_id') or task.get('id')
     tes_url = task.get('tes_url')
     tes_name = task.get('tes_name', 'Unknown')
-    
+
     if not task_id or not tes_url:
         return False
-    
+
     success, task_data, error = fetch_task_status_from_tes(task_id, tes_url, tes_name)
-    
+
     if not success:
         if error:
             print(f"Warning: {error}")
         return False
-    
-    new_state = task_data.get('state', 'UNKNOWN')
+
+    new_state = task_data.get('state', 'UNKNOWN').upper()
+
     terminal_states_with_end = ['COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED', 'SUBMISSION_ERROR']
     now_iso = datetime.now(timezone.utc).isoformat()
-    
+
     with task_update_lock:
         for t in submitted_tasks:
             if (t.get('task_id') == task_id or t.get('id') == task_id) and t.get('tes_url') == tes_url:
@@ -94,7 +95,6 @@ def update_single_task_status(task):
                     t['creation_time'] = task_data['creation_time']
                 if task_data.get('start_time'):
                     t['start_time'] = task_data['start_time']
-                # Set end_time if in terminal state and not already set
                 if new_state in terminal_states_with_end:
                     if not task_data.get('end_time') and not t.get('end_time'):
                         t['end_time'] = now_iso
@@ -113,7 +113,7 @@ def update_single_task_status(task):
 
 def update_task_statuses():
     terminal_states = ['COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED', 'SUBMISSION_ERROR']
-    
+
     while True:
         try:
             tasks_to_update = []
@@ -122,23 +122,23 @@ def update_task_statuses():
                     current_state = task.get('state') or task.get('status', 'UNKNOWN')
                     if current_state not in terminal_states:
                         tasks_to_update.append(task)
-            
+
             if not tasks_to_update:
                 time.sleep(30)
                 continue
-            
+
             print(f"Updating status for {len(tasks_to_update)} active tasks...")
-            
+
             updated_count = 0
             for task in tasks_to_update:
                 if update_single_task_status(task):
                     updated_count += 1
-            
+
             if updated_count > 0:
                 print(f"Updated {updated_count} task statuses")
-            
+
             time.sleep(30)
-            
+
         except Exception as e:
             print(f"Error in task status update loop: {str(e)}")
             time.sleep(60)
@@ -148,10 +148,10 @@ def start_task_status_updater():
     global task_updater_started
     if not hasattr(start_task_status_updater, 'started'):
         start_task_status_updater.started = False
-    
+
     if start_task_status_updater.started:
         return None
-    
+
     updater_thread = threading.Thread(target=update_task_statuses, daemon=True)
     updater_thread.start()
     start_task_status_updater.started = True

@@ -24,25 +24,17 @@
     "country": "Czech Republic",
     "lat": 50.0755,
     "lng": 14.4378,
-    "lon": 14.4378
-  },
-  {
-    "id": "tesk-cz-na",
-    "name": "TESK/Kubernetes @ ELIXIR-CZ (NA)",
-    "url": "https://tesk-na.cloud.e-infra.cz",
-    "country": "Czech Republic",
-    "lat": 50.0755,
-    "lng": 14.4378,
-    "lon": 14.4378
+    "lon": 14.4378,
+    "description": "Production TESK instance at ELIXIR-CZ"
   },
   {
     "id": "tesk-de",
     "name": "TESK/Kubernetes @ ELIXIR-DE",
     "url": "https://tesk.elixir-cloud.bi.denbi.de",
     "country": "Germany",
-    "lat": 52.5200,
-    "lng": 13.4050,
-    "lon": 13.4050
+    "lat": 52.52,
+    "lng": 13.405,
+    "lon": 13.405
   },
   {
     "id": "tesk-gr",

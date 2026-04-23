@@ -143,40 +143,38 @@ const TableCell = styled.td`
 `;
 
 const StatusBadge = styled.span`
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   background: ${(props) => {
-    switch (props.status) {
-      case "RUNNING":
-        return "#dbeafe";
-      case "COMPLETE":
-        return "#dcfce7";
-      case "FAILED":
-      case "SYSTEM_ERROR":
-        return "#fee2e2";
-      case "CANCELED":
-        return "#f1f5f9";
-      default:
-        return "#fef3c7";
-    }
+    const s = String(props.status || "").toUpperCase();
+    if (s === "COMPLETE" || s === "COMPLETED") return "#dcfce7";
+    if (s === "RUNNING") return "#dbeafe";
+    if (
+      s === "FAILED" ||
+      s === "SYSTEM_ERROR" ||
+      s === "SUBMISSION_ERROR" ||
+      s.includes("ERROR")
+    )
+      return "#fee2e2";
+    if (s === "CANCELED" || s === "CANCELLED") return "#f1f5f9";
+    return "#fef3c7";
   }};
   color: ${(props) => {
-    switch (props.status) {
-      case "RUNNING":
-        return "#1e40af";
-      case "COMPLETE":
-        return "#166534";
-      case "FAILED":
-      case "SYSTEM_ERROR":
-        return "#991b1b";
-      case "CANCELED":
-        return "#475569";
-      default:
-        return "#92400e";
-    }
+    const s = String(props.status || "").toUpperCase();
+    if (s === "COMPLETE" || s === "COMPLETED") return "#166534";
+    if (s === "RUNNING") return "#1e40af";
+    if (
+      s === "FAILED" ||
+      s === "SYSTEM_ERROR" ||
+      s === "SUBMISSION_ERROR" ||
+      s.includes("ERROR")
+    )
+      return "#991b1b";
+    if (s === "CANCELED" || s === "CANCELLED") return "#475569";
+    return "#92400e";
   }};
 `;
 
@@ -320,15 +318,17 @@ const Workflows = () => {
                 <TableCell>
                   <StatusBadge
                     status={
-                      run.status === "COMPLETE" &&
-                      (!run.steps || run.steps.length === 0)
-                        ? "FAILED"
+                      (run.status === "COMPLETE" &&
+                        (!run.steps || run.steps.length === 0)) ||
+                      run.status === "SUBMISSION_ERROR"
+                        ? "SUBMISSION_ERROR"
                         : run.status
                     }
                   >
-                    {run.status === "COMPLETE" &&
-                    (!run.steps || run.steps.length === 0)
-                      ? "FAILED"
+                    {(run.status === "COMPLETE" &&
+                      (!run.steps || run.steps.length === 0)) ||
+                    run.status === "SUBMISSION_ERROR"
+                      ? "SUBMISSION_ERROR"
                       : run.status}
                   </StatusBadge>
                 </TableCell>

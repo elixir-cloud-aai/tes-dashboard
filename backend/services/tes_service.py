@@ -13,7 +13,6 @@ def get_healthy_instances():
     import requests
     import time
 
-    # Load all configured instances
     tes_locations_file = Path(__file__).parent.parent / 'tes_instance_locations.json'
     if not tes_locations_file.exists():
         return []
@@ -104,7 +103,6 @@ def fetch_tes_status(instance):
         if not tes_base_url:
             return {**instance, "status": "Error: Missing URL", "status_detail": "No URL provided for this instance."}
 
-        # List of endpoints to check for service-info
         endpoints_to_try = [
             f"{tes_base_url}/v1/service-info",
             f"{tes_base_url}/ga4gh/tes/v1/service-info",
@@ -126,7 +124,6 @@ def fetch_tes_status(instance):
         best_http_status = None
         best_content = None
 
-        # Try each endpoint for reachability and info, keep the best/most informative result
         for endpoint in endpoints_to_try:
             try:
                 start_time = time.time()
@@ -138,7 +135,6 @@ def fetch_tes_status(instance):
                     response_content = resp.json()
                 except Exception:
                     response_content = resp.text
-                # Special case: Funnel @ ELIXIR-CZ always requires authentication
                 if tes_base_url == "https://funnel.cloud.e-infra.cz":
                     status = "Auth Required (401)"
                     status_detail = f"Authentication required at {endpoint}. (Funnel @ ELIXIR-CZ)"
@@ -148,7 +144,6 @@ def fetch_tes_status(instance):
                     best_http_status = 401
                     best_content = response_content
                     break
-                # Prefer 200, then 401, then 403, then 404, then others
                 if http_status == 200:
                     status = "Healthy"
                     status_detail = f"Service-info endpoint responded OK at {endpoint}."
@@ -161,7 +156,6 @@ def fetch_tes_status(instance):
                 elif http_status == 401:
                     status = "Auth Required (401)"
                     status_detail = f"Authentication required at {endpoint}."
-                    # Prefer 401 over 403/404/other errors, but not over 200
                     if not best_status or best_http_status not in [200, 401]:
                         best_status = status
                         best_detail = status_detail
@@ -171,7 +165,6 @@ def fetch_tes_status(instance):
                 elif http_status == 403:
                     status = "Forbidden (403)"
                     status_detail = f"Forbidden: Authentication/authorization required at {endpoint}."
-                    # Prefer 403 over 404/other errors, but not over 200/401
                     if not best_status or best_http_status not in [200, 401, 403]:
                         best_status = status
                         best_detail = status_detail
@@ -181,7 +174,6 @@ def fetch_tes_status(instance):
                 elif http_status == 404:
                     status = "Not Found (404)"
                     status_detail = f"Service-info endpoint not found at {endpoint}."
-                    # Prefer 404 over other errors, but not over 200/401/403
                     if not best_status or best_http_status not in [200, 401, 403, 404]:
                         best_status = status
                         best_detail = status_detail
@@ -191,7 +183,6 @@ def fetch_tes_status(instance):
                 else:
                     status = f"HTTP {http_status}"
                     status_detail = f"HTTP {http_status} at {endpoint}."
-                    # Only set as best if nothing else has been set
                     if not best_status:
                         best_status = status
                         best_detail = status_detail
@@ -229,7 +220,6 @@ def fetch_tes_status(instance):
                     best_content = None
                 continue
 
-        # Compose result
         tasks_for_instance = 0
         try:
             base_url_normalized = tes_base_url.rstrip("/")
@@ -348,7 +338,6 @@ def get_service_info(tes_url):
                 last_error = str(e)
                 continue
 
-        # Get instance name from config
         instance_name = tes_url
         try:
             instances = load_tes_location_data()
@@ -388,7 +377,6 @@ def get_service_info(tes_url):
         error_message = f"Could not retrieve service info from {tes_url}. Reason: {last_error}"
         print(f"❌ All endpoints failed: {error_message}")
 
-        # Return a proper service info structure even for errors
         return {
             'name': instance_name,
             'id': tes_url,
@@ -417,7 +405,6 @@ def get_service_info(tes_url):
     except Exception as e:
         print(f"❌ Unexpected error: {type(e).__name__}: {e}")
 
-        # Get instance name from config
         instance_name = tes_url
         try:
             instances = load_tes_location_data()
