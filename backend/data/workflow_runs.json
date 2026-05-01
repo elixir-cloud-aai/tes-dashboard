@@ -1,266 +1,475 @@
 [
   {
-    "run_id": "23be01e9-6b87-4ef6-88d8-693b1637a528",
-    "type": "nextflow",
-    "tes_url": "https://tesk-na.cloud.e-infra.cz",
-    "tes_name": "TESK/Kubernetes @ ELIXIR-CZ (NA)",
-    "status": "COMPLETE",
-    "submitted_at": "2026-04-22T21:16:53.661201",
-    "files": [
-      {
-        "key": "snakefile",
-        "filename": "23be01e9-6b87-4ef6-88d8-693b1637a528_main.nf",
-        "path": "uploads/23be01e9-6b87-4ef6-88d8-693b1637a528_main.nf"
-      }
-    ],
-    "steps": [
-      {
-        "name": "NEXTFLOW execution",
-        "status": "complete",
-        "tes_instance_id": "tesk-kubernetes-@-elixir-cz-(na)",
-        "tes_instance_name": "TESK/Kubernetes @ ELIXIR-CZ (NA)",
-        "start_time": null,
-        "end_time": null,
-        "tes_state": "FAILED"
-      }
-    ],
-    "data_flow": [
-      {
-        "from": "start",
-        "to": "tesk-kubernetes-@-elixir-cz-(na)"
-      }
-    ],
-    "error_message": "Submission Failed: Could not discover TES API for https://tesk-na.cloud.e-infra.cz: no service-info URL returned HTTP 200. Check URL and credentials.",
-    "error_type": "SUBMISSION_ERROR",
-    "error_details": "Could not discover TES API for https://tesk-na.cloud.e-infra.cz: no service-info URL returned HTTP 200. Check URL and credentials."
-  },
-  {
-    "run_id": "d9f9b69b-8672-4989-8468-80973e2e4274",
-    "type": "nextflow",
-    "tes_url": "https://tesk.elixir-cloud.bi.denbi.de",
-    "tes_name": "TESK/Kubernetes @ ELIXIR-DE",
-    "status": "SUBMISSION_ERROR",
-    "submitted_at": "2026-04-22T21:21:40.849259",
-    "files": [
-      {
-        "key": "snakefile",
-        "filename": "d9f9b69b-8672-4989-8468-80973e2e4274_main.nf",
-        "path": "uploads/d9f9b69b-8672-4989-8468-80973e2e4274_main.nf"
-      }
-    ],
-    "steps": [
-      {
-        "name": "NEXTFLOW execution",
-        "status": "failed",
-        "tes_instance_id": "tesk-de",
-        "tes_instance_name": "TESK/Kubernetes @ ELIXIR-DE",
-        "start_time": null,
-        "end_time": null,
-        "tes_state": "FAILED"
-      }
-    ],
-    "data_flow": [
-      {
-        "from": "start",
-        "to": "tesk-de"
-      }
-    ],
-    "error_message": "Submission Failed: Could not discover TES API for https://tesk.elixir-cloud.bi.denbi.de: no service-info URL returned HTTP 200. Check URL and credentials.",
-    "error_type": "SUBMISSION_ERROR",
-    "error_details": "Could not discover TES API for https://tesk.elixir-cloud.bi.denbi.de: no service-info URL returned HTTP 200. Check URL and credentials."
-  },
-  {
-    "run_id": "3ceb453e-913f-4f3a-aed1-7516405b98c2",
-    "type": "nextflow",
-    "tes_url": "https://vm4816.kaj.pouta.csc.fi",
-    "tes_name": "Funnel/Slurm @ ELIXIR-FI",
-    "status": "SUBMISSION_ERROR",
-    "submitted_at": "2026-04-22T21:22:55.676786",
-    "files": [
-      {
-        "key": "snakefile",
-        "filename": "3ceb453e-913f-4f3a-aed1-7516405b98c2_main.nf",
-        "path": "uploads/3ceb453e-913f-4f3a-aed1-7516405b98c2_main.nf"
-      }
-    ],
-    "steps": [
-      {
-        "name": "NEXTFLOW execution",
-        "status": "failed",
-        "tes_instance_id": "funnel-fi",
-        "tes_instance_name": "Funnel/Slurm @ ELIXIR-FI",
-        "start_time": null,
-        "end_time": null,
-        "tes_state": "FAILED"
-      }
-    ],
-    "data_flow": [
-      {
-        "from": "start",
-        "to": "funnel-fi"
-      }
-    ],
-    "error_message": "Submission Failed: Could not discover TES API for https://vm4816.kaj.pouta.csc.fi: no service-info URL returned HTTP 200. Check URL and credentials.",
-    "error_type": "SUBMISSION_ERROR",
-    "error_details": "Could not discover TES API for https://vm4816.kaj.pouta.csc.fi: no service-info URL returned HTTP 200. Check URL and credentials."
-  },
-  {
-    "run_id": "33fa0d72-b51c-4111-959a-70c2f70e6688",
-    "type": "snakemake",
-    "tes_url": "https://funnel.cloud.e-infra.cz",
-    "tes_name": "Funnel/OpenPBS @ ELIXIR-CZ",
-    "status": "SUBMISSION_ERROR",
-    "submitted_at": "2026-04-22T21:23:06.924148",
-    "files": [
-      {
-        "key": "snakefile",
-        "filename": "33fa0d72-b51c-4111-959a-70c2f70e6688_Snakefile",
-        "path": "uploads/33fa0d72-b51c-4111-959a-70c2f70e6688_Snakefile"
-      }
-    ],
-    "steps": [
-      {
-        "name": "Process",
-        "status": "failed",
-        "tes_task_id": null,
-        "tes_instance_id": "funnel-cz",
-        "tes_instance_name": "Funnel/OpenPBS @ ELIXIR-CZ",
-        "command_raw": "",
-        "tes_state": "FAILED"
-      },
-      {
-        "name": "Summarize",
-        "status": "failed",
-        "tes_task_id": null,
-        "tes_instance_id": "funnel-cz",
-        "tes_instance_name": "Funnel/OpenPBS @ ELIXIR-CZ",
-        "command_raw": "",
-        "tes_state": "FAILED"
-      },
-      {
-        "name": "All",
-        "status": "failed",
-        "tes_task_id": null,
-        "tes_instance_id": "funnel-cz",
-        "tes_instance_name": "Funnel/OpenPBS @ ELIXIR-CZ",
-        "command_raw": "",
-        "tes_state": "FAILED"
-      }
-    ],
-    "data_flow": [],
-    "tes_tasks": [],
-    "error_message": "Submission Failed: Could not discover TES API for https://funnel.cloud.e-infra.cz: no service-info URL returned HTTP 200. Check URL and credentials.",
-    "error_type": "SUBMISSION_ERROR",
-    "error_details": "Could not discover TES API for https://funnel.cloud.e-infra.cz: no service-info URL returned HTTP 200. Check URL and credentials."
-  },
-  {
-    "run_id": "8d1f46cb-865e-43b3-ac32-45e7bd70ea07",
-    "type": "snakemake",
-    "tes_url": "https://csc-tesk-noauth.rahtiapp.fi",
-    "tes_name": "TESK/OpenShift @ ELIXIR-FI",
-    "status": "COMPLETE",
-    "submitted_at": "2026-04-22T21:23:15.435594",
-    "files": [
-      {
-        "key": "snakefile",
-        "filename": "8d1f46cb-865e-43b3-ac32-45e7bd70ea07_Snakefile",
-        "path": "uploads/8d1f46cb-865e-43b3-ac32-45e7bd70ea07_Snakefile"
-      }
-    ],
-    "steps": [
-      {
-        "name": "Process",
-        "status": "complete",
-        "tes_task_id": "task-28c161d8",
-        "tes_instance_id": "csc-tesk-noauth",
-        "tes_instance_name": "TESK/OpenShift @ ELIXIR-FI",
-        "command_raw": "",
-        "tes_state": "COMPLETE"
-      },
-      {
-        "name": "Summarize",
-        "status": "complete",
-        "tes_task_id": null,
-        "tes_instance_id": "csc-tesk-noauth",
-        "tes_instance_name": "TESK/OpenShift @ ELIXIR-FI",
-        "command_raw": ""
-      },
-      {
-        "name": "All",
-        "status": "complete",
-        "tes_task_id": null,
-        "tes_instance_id": "csc-tesk-noauth",
-        "tes_instance_name": "TESK/OpenShift @ ELIXIR-FI",
-        "command_raw": ""
-      }
-    ],
-    "data_flow": [
-      {
-        "from": "start",
-        "to": "csc-tesk-noauth"
-      },
-      {
-        "from": "csc-tesk-noauth",
-        "to": "end"
-      }
-    ],
-    "tes_tasks": [
-      "task-28c161d8"
-    ]
-  },
-  {
-    "run_id": "8b9a4536-75f4-4733-a4e7-030179d02291",
+    "run_id": "cbc0545c-ac2f-431f-9588-ae06e529ded5",
     "type": "snakemake",
     "tes_url": "https://tesk-eu.hypatia-comp.athenarc.gr",
     "tes_name": "TESK/Kubernetes @ ELIXIR-GR",
     "status": "COMPLETE",
-    "submitted_at": "2026-04-23T02:21:54.650722",
+    "submitted_at": "2026-05-01T16:25:45.430281",
     "files": [
       {
         "key": "snakefile",
-        "filename": "8b9a4536-75f4-4733-a4e7-030179d02291_Snakefile",
-        "path": "uploads/8b9a4536-75f4-4733-a4e7-030179d02291_Snakefile"
+        "filename": "cbc0545c-ac2f-431f-9588-ae06e529ded5_Snakefile",
+        "path": "uploads/cbc0545c-ac2f-431f-9588-ae06e529ded5_Snakefile"
       }
     ],
     "steps": [
       {
-        "name": "Process",
+        "name": "SNAKEMAKE workflow execution",
         "status": "complete",
-        "tes_task_id": "task-7f83b02b",
-        "tes_instance_id": "tesk-gr",
-        "tes_instance_name": "TESK/Kubernetes @ ELIXIR-GR",
-        "command_raw": "",
+        "tes_task_id": null,
+        "tes_instance_id": "dashboard-local",
+        "tes_instance_name": "Dashboard Host (local engine)",
+        "start_time": "2026-05-01T16:25:50.726935",
+        "end_time": "2026-05-01T16:26:05.790622",
         "tes_state": "COMPLETE"
-      },
-      {
-        "name": "Summarize",
-        "status": "complete",
-        "tes_task_id": null,
-        "tes_instance_id": "tesk-gr",
-        "tes_instance_name": "TESK/Kubernetes @ ELIXIR-GR",
-        "command_raw": ""
-      },
-      {
-        "name": "All",
-        "status": "complete",
-        "tes_task_id": null,
-        "tes_instance_id": "tesk-gr",
-        "tes_instance_name": "TESK/Kubernetes @ ELIXIR-GR",
-        "command_raw": ""
       }
     ],
     "data_flow": [
       {
         "from": "start",
-        "to": "tesk-gr"
+        "to": "dashboard-local"
       },
       {
-        "from": "tesk-gr",
+        "from": "dashboard-local",
         "to": "end"
       }
     ],
-    "tes_tasks": [
-      "task-7f83b02b"
-    ]
+    "execution_backend": "native_engine",
+    "execution_location": "dashboard-local",
+    "selected_tes_instance_id": "tesk-gr",
+    "selected_tes_instance_name": "TESK/Kubernetes @ ELIXIR-GR",
+    "engine": "snakemake",
+    "engine_command": [
+      "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+      "-m",
+      "snakemake",
+      "--snakefile",
+      "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/uploads/cbc0545c-ac2f-431f-9588-ae06e529ded5_Snakefile",
+      "--cores",
+      "1",
+      "--printshellcmds"
+    ],
+    "engine_log_path": "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/data/workflow_logs/cbc0545c-ac2f-431f-9588-ae06e529ded5.log",
+    "engine_pid": 42181
+  },
+  {
+    "run_id": "c65f353e-8e89-4ee7-9374-228877177bd0",
+    "type": "snakemake",
+    "tes_url": "https://csc-tesk-noauth.rahtiapp.fi",
+    "tes_name": "TESK/OpenShift @ ELIXIR-FI",
+    "status": "COMPLETE",
+    "submitted_at": "2026-05-01T16:25:56.009996",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "c65f353e-8e89-4ee7-9374-228877177bd0_Snakefile",
+        "path": "uploads/c65f353e-8e89-4ee7-9374-228877177bd0_Snakefile"
+      }
+    ],
+    "steps": [
+      {
+        "name": "SNAKEMAKE workflow execution",
+        "status": "complete",
+        "tes_task_id": null,
+        "tes_instance_id": "dashboard-local",
+        "tes_instance_name": "Dashboard Host (local engine)",
+        "start_time": "2026-05-01T16:26:01.079597",
+        "end_time": "2026-05-01T16:26:16.123850",
+        "tes_state": "COMPLETE"
+      }
+    ],
+    "data_flow": [
+      {
+        "from": "start",
+        "to": "dashboard-local"
+      },
+      {
+        "from": "dashboard-local",
+        "to": "end"
+      }
+    ],
+    "execution_backend": "native_engine",
+    "execution_location": "dashboard-local",
+    "selected_tes_instance_id": "csc-tesk-noauth",
+    "selected_tes_instance_name": "TESK/OpenShift @ ELIXIR-FI",
+    "engine": "snakemake",
+    "engine_command": [
+      "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+      "-m",
+      "snakemake",
+      "--snakefile",
+      "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/uploads/c65f353e-8e89-4ee7-9374-228877177bd0_Snakefile",
+      "--cores",
+      "1",
+      "--printshellcmds"
+    ],
+    "engine_log_path": "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/data/workflow_logs/c65f353e-8e89-4ee7-9374-228877177bd0.log",
+    "engine_pid": 42389
+  },
+  {
+    "run_id": "d502a688-fc27-4362-9295-e1566a78209e",
+    "type": "nextflow",
+    "tes_url": "https://csc-tesk-noauth.rahtiapp.fi",
+    "tes_name": "TESK/OpenShift @ ELIXIR-FI",
+    "status": "COMPLETE",
+    "submitted_at": "2026-05-01T16:26:05.782144",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "d502a688-fc27-4362-9295-e1566a78209e_main.nf",
+        "path": "uploads/d502a688-fc27-4362-9295-e1566a78209e_main.nf"
+      }
+    ],
+    "steps": [
+      {
+        "name": "NEXTFLOW workflow execution",
+        "status": "complete",
+        "tes_task_id": null,
+        "tes_instance_id": "dashboard-local",
+        "tes_instance_name": "Dashboard Host (local engine)",
+        "start_time": "2026-05-01T16:26:05.794467",
+        "end_time": "2026-05-01T16:26:30.912540",
+        "tes_state": "COMPLETE"
+      }
+    ],
+    "data_flow": [
+      {
+        "from": "start",
+        "to": "dashboard-local"
+      },
+      {
+        "from": "dashboard-local",
+        "to": "end"
+      }
+    ],
+    "execution_backend": "native_engine",
+    "execution_location": "dashboard-local",
+    "selected_tes_instance_id": "csc-tesk-noauth",
+    "selected_tes_instance_name": "TESK/OpenShift @ ELIXIR-FI",
+    "engine": "nextflow",
+    "engine_command": [
+      "nextflow",
+      "run",
+      "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/uploads/d502a688-fc27-4362-9295-e1566a78209e_main.nf"
+    ],
+    "engine_log_path": "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/data/workflow_logs/d502a688-fc27-4362-9295-e1566a78209e.log",
+    "engine_pid": 42474
+  },
+  {
+    "run_id": "6ccbbb39-2ff0-48ae-a6d8-3766e5667264",
+    "type": "snakemake",
+    "tes_url": "https://vm4816.kaj.pouta.csc.fi",
+    "tes_name": "Funnel/Slurm @ ELIXIR-FI",
+    "status": "COMPLETE",
+    "submitted_at": "2026-05-01T16:26:16.531657",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "6ccbbb39-2ff0-48ae-a6d8-3766e5667264_Snakefile",
+        "path": "uploads/6ccbbb39-2ff0-48ae-a6d8-3766e5667264_Snakefile"
+      }
+    ],
+    "steps": [
+      {
+        "name": "SNAKEMAKE workflow execution",
+        "status": "complete",
+        "tes_task_id": null,
+        "tes_instance_id": "dashboard-local",
+        "tes_instance_name": "Dashboard Host (local engine)",
+        "start_time": "2026-05-01T16:26:22.488566",
+        "end_time": "2026-05-01T16:26:32.547359",
+        "tes_state": "COMPLETE"
+      }
+    ],
+    "data_flow": [
+      {
+        "from": "start",
+        "to": "dashboard-local"
+      },
+      {
+        "from": "dashboard-local",
+        "to": "end"
+      }
+    ],
+    "execution_backend": "native_engine",
+    "execution_location": "dashboard-local",
+    "selected_tes_instance_id": "funnel-fi",
+    "selected_tes_instance_name": "Funnel/Slurm @ ELIXIR-FI",
+    "engine": "snakemake",
+    "engine_command": [
+      "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+      "-m",
+      "snakemake",
+      "--snakefile",
+      "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/uploads/6ccbbb39-2ff0-48ae-a6d8-3766e5667264_Snakefile",
+      "--cores",
+      "1",
+      "--printshellcmds"
+    ],
+    "engine_log_path": "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/data/workflow_logs/6ccbbb39-2ff0-48ae-a6d8-3766e5667264.log",
+    "engine_pid": 42807
+  },
+  {
+    "run_id": "8049fd5f-8604-4a4c-9f58-ca9ada5c017e",
+    "type": "nextflow",
+    "tes_url": "https://tesk-na.cloud.e-infra.cz",
+    "tes_name": "TESK/Kubernetes @ ELIXIR-CZ (NA)",
+    "status": "COMPLETE",
+    "submitted_at": "2026-05-01T16:26:49.618236",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "8049fd5f-8604-4a4c-9f58-ca9ada5c017e_main.nf",
+        "path": "uploads/8049fd5f-8604-4a4c-9f58-ca9ada5c017e_main.nf"
+      }
+    ],
+    "steps": [
+      {
+        "name": "NEXTFLOW workflow execution",
+        "status": "complete",
+        "tes_task_id": null,
+        "tes_instance_id": "dashboard-local",
+        "tes_instance_name": "Dashboard Host (local engine)",
+        "start_time": "2026-05-01T16:26:49.627214",
+        "end_time": "2026-05-01T16:27:20.362006",
+        "tes_state": "COMPLETE"
+      }
+    ],
+    "data_flow": [
+      {
+        "from": "start",
+        "to": "dashboard-local"
+      },
+      {
+        "from": "dashboard-local",
+        "to": "end"
+      }
+    ],
+    "execution_backend": "native_engine",
+    "execution_location": "dashboard-local",
+    "selected_tes_instance_id": "tesk-kubernetes-@-elixir-cz-(na)",
+    "selected_tes_instance_name": "TESK/Kubernetes @ ELIXIR-CZ (NA)",
+    "engine": "nextflow",
+    "engine_command": [
+      "nextflow",
+      "run",
+      "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/uploads/8049fd5f-8604-4a4c-9f58-ca9ada5c017e_main.nf"
+    ],
+    "engine_log_path": "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/data/workflow_logs/8049fd5f-8604-4a4c-9f58-ca9ada5c017e.log",
+    "engine_pid": 43344
+  },
+  {
+    "run_id": "46f41e11-83fe-4288-af15-47bcb2b21cc5",
+    "type": "snakemake",
+    "tes_url": "https://csc-tesk-noauth.rahtiapp.fi",
+    "tes_name": "TESK/OpenShift @ ELIXIR-FI",
+    "status": "COMPLETE",
+    "submitted_at": "2026-05-01T17:16:04.643871",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "46f41e11-83fe-4288-af15-47bcb2b21cc5_Snakefile",
+        "path": "uploads/46f41e11-83fe-4288-af15-47bcb2b21cc5_Snakefile"
+      }
+    ],
+    "steps": [
+      {
+        "name": "SNAKEMAKE workflow execution",
+        "status": "complete",
+        "tes_task_id": null,
+        "tes_instance_id": "dashboard-local",
+        "tes_instance_name": "Dashboard Host (local engine)",
+        "start_time": "2026-05-01T17:16:07.894919",
+        "end_time": "2026-05-01T17:16:12.909200",
+        "tes_state": "COMPLETE"
+      }
+    ],
+    "data_flow": [
+      {
+        "from": "start",
+        "to": "dashboard-local"
+      },
+      {
+        "from": "dashboard-local",
+        "to": "end"
+      }
+    ],
+    "execution_backend": "native_engine",
+    "execution_location": "dashboard-local",
+    "selected_tes_instance_id": "csc-tesk-noauth",
+    "selected_tes_instance_name": "TESK/OpenShift @ ELIXIR-FI",
+    "engine": "snakemake",
+    "engine_command": [
+      "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+      "-m",
+      "snakemake",
+      "--snakefile",
+      "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/uploads/46f41e11-83fe-4288-af15-47bcb2b21cc5_Snakefile",
+      "--cores",
+      "1",
+      "--printshellcmds"
+    ],
+    "engine_log_path": "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/data/workflow_logs/46f41e11-83fe-4288-af15-47bcb2b21cc5.log",
+    "engine_pid": 18665
+  },
+  {
+    "run_id": "454643da-93c4-4608-be36-76cd04054b61",
+    "type": "snakemake",
+    "tes_url": "https://csc-tesk-noauth.rahtiapp.fi",
+    "tes_name": "TESK/OpenShift @ ELIXIR-FI",
+    "status": "COMPLETE",
+    "submitted_at": "2026-05-01T17:16:14.494651",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "454643da-93c4-4608-be36-76cd04054b61_Snakefile",
+        "path": "uploads/454643da-93c4-4608-be36-76cd04054b61_Snakefile"
+      }
+    ],
+    "steps": [
+      {
+        "name": "SNAKEMAKE workflow execution",
+        "status": "complete",
+        "tes_task_id": null,
+        "tes_instance_id": "dashboard-local",
+        "tes_instance_name": "Dashboard Host (local engine)",
+        "start_time": "2026-05-01T17:16:16.258235",
+        "end_time": "2026-05-01T17:16:21.270828",
+        "tes_state": "COMPLETE"
+      }
+    ],
+    "data_flow": [
+      {
+        "from": "start",
+        "to": "dashboard-local"
+      },
+      {
+        "from": "dashboard-local",
+        "to": "end"
+      }
+    ],
+    "execution_backend": "native_engine",
+    "execution_location": "dashboard-local",
+    "selected_tes_instance_id": "csc-tesk-noauth",
+    "selected_tes_instance_name": "TESK/OpenShift @ ELIXIR-FI",
+    "engine": "snakemake",
+    "engine_command": [
+      "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+      "-m",
+      "snakemake",
+      "--snakefile",
+      "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/uploads/454643da-93c4-4608-be36-76cd04054b61_Snakefile",
+      "--cores",
+      "1",
+      "--printshellcmds"
+    ],
+    "engine_log_path": "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/data/workflow_logs/454643da-93c4-4608-be36-76cd04054b61.log",
+    "engine_pid": 18745
+  },
+  {
+    "run_id": "6e900455-0fae-46cc-a220-b122b011e1c0",
+    "type": "nextflow",
+    "tes_url": "https://csc-tesk-noauth.rahtiapp.fi",
+    "tes_name": "TESK/OpenShift @ ELIXIR-FI",
+    "status": "COMPLETE",
+    "submitted_at": "2026-05-01T17:16:20.434476",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "6e900455-0fae-46cc-a220-b122b011e1c0_main.nf",
+        "path": "uploads/6e900455-0fae-46cc-a220-b122b011e1c0_main.nf"
+      }
+    ],
+    "steps": [
+      {
+        "name": "NEXTFLOW workflow execution",
+        "status": "complete",
+        "tes_task_id": null,
+        "tes_instance_id": "dashboard-local",
+        "tes_instance_name": "Dashboard Host (local engine)",
+        "start_time": "2026-05-01T17:16:21.301536",
+        "end_time": "2026-05-01T17:16:26.318042",
+        "tes_state": "COMPLETE"
+      }
+    ],
+    "data_flow": [
+      {
+        "from": "start",
+        "to": "dashboard-local"
+      },
+      {
+        "from": "dashboard-local",
+        "to": "end"
+      }
+    ],
+    "execution_backend": "native_engine",
+    "execution_location": "dashboard-local",
+    "selected_tes_instance_id": "csc-tesk-noauth",
+    "selected_tes_instance_name": "TESK/OpenShift @ ELIXIR-FI",
+    "engine": "nextflow",
+    "engine_command": [
+      "nextflow",
+      "run",
+      "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/uploads/6e900455-0fae-46cc-a220-b122b011e1c0_main.nf"
+    ],
+    "engine_log_path": "/Users/keshavdayal/Desktop/pacificanalytics/tes-dashboard/backend/data/workflow_logs/6e900455-0fae-46cc-a220-b122b011e1c0.log",
+    "engine_pid": 18795
+  },
+  {
+    "run_id": "8f61c406-fec2-4f3e-8029-6ff9e09f4f19",
+    "type": "snakemake",
+    "tes_url": "https://tesk-na.cloud.e-infra.cz",
+    "tes_name": "TESK/Kubernetes @ ELIXIR-CZ (NA)",
+    "status": "SUBMISSION_ERROR",
+    "submitted_at": "2026-05-01T17:16:32.072477",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "8f61c406-fec2-4f3e-8029-6ff9e09f4f19_Snakefile",
+        "path": "uploads/8f61c406-fec2-4f3e-8029-6ff9e09f4f19_Snakefile"
+      }
+    ],
+    "steps": [
+      {
+        "name": "SNAKEMAKE execution",
+        "status": "failed",
+        "tes_state": "FAILED",
+        "tes_instance_id": "error-node",
+        "tes_instance_name": "TESK/Kubernetes @ ELIXIR-CZ (NA)"
+      }
+    ],
+    "data_flow": [],
+    "error_message": "Submission Failed: TES endpoint reachable but unauthorized (403) at https://tesk-na.cloud.e-infra.cz/ga4gh/tes/v1/service-info. Configure credentials/token for this instance.",
+    "error_type": "SUBMISSION_ERROR",
+    "error_details": "TES endpoint reachable but unauthorized (403) at https://tesk-na.cloud.e-infra.cz/ga4gh/tes/v1/service-info. Configure credentials/token for this instance."
+  },
+  {
+    "run_id": "613411d0-5267-491b-9927-c2a222beaf24",
+    "type": "snakemake",
+    "tes_url": "https://tesk.elixir-cloud.bi.denbi.de",
+    "tes_name": "TESK/Kubernetes @ ELIXIR-DE",
+    "status": "SUBMISSION_ERROR",
+    "submitted_at": "2026-05-01T17:16:36.907048",
+    "files": [
+      {
+        "key": "snakefile",
+        "filename": "613411d0-5267-491b-9927-c2a222beaf24_Snakefile",
+        "path": "uploads/613411d0-5267-491b-9927-c2a222beaf24_Snakefile"
+      }
+    ],
+    "steps": [
+      {
+        "name": "SNAKEMAKE execution",
+        "status": "failed",
+        "tes_state": "FAILED",
+        "tes_instance_id": "error-node",
+        "tes_instance_name": "TESK/Kubernetes @ ELIXIR-DE"
+      }
+    ],
+    "data_flow": [],
+    "error_message": "Submission Failed: Selected TES instance is not reachable/healthy for workflow submission. https://tesk.elixir-cloud.bi.denbi.de/ga4gh/tes/v1/service-info -> connection error: HTTPSConnectionPool(host='tesk.elixir-cloud.bi.denbi.de', port=443): Max retries exceeded with url: /ga4gh/tes/v1/service-info (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x103dbe480>: Failed to resolve 'tesk.elixir-cloud.bi.denbi.de' ([Errno 8] nodename nor servname provided, or not known)\")); https://tesk.elixir-cloud.bi.denbi.de/v1/service-info -> connection error: HTTPSConnectionPool(host='tesk.elixir-cloud.bi.denbi.de', port=443): Max retries exceeded with url: /v1/service-info (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x103dbdd30>: Failed to resolve 'tesk.elixir-cloud.bi.denbi.de' ([Errno 8] nodename nor servname provided, or not known)\")); https://tesk.elixir-cloud.bi.denbi.de/service-info -> connection error: HTTPSConnectionPool(host='tesk.elixir-cloud.bi.denbi.de', port=443): Max retries exceeded with url: /service-info (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x103dece90>: Failed to resolve 'tesk.elixir-cloud.bi.denbi.de' ([Errno 8] nodename nor servname provided, or not known)\"))",
+    "error_type": "SUBMISSION_ERROR",
+    "error_details": "Selected TES instance is not reachable/healthy for workflow submission. https://tesk.elixir-cloud.bi.denbi.de/ga4gh/tes/v1/service-info -> connection error: HTTPSConnectionPool(host='tesk.elixir-cloud.bi.denbi.de', port=443): Max retries exceeded with url: /ga4gh/tes/v1/service-info (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x103dbe480>: Failed to resolve 'tesk.elixir-cloud.bi.denbi.de' ([Errno 8] nodename nor servname provided, or not known)\")); https://tesk.elixir-cloud.bi.denbi.de/v1/service-info -> connection error: HTTPSConnectionPool(host='tesk.elixir-cloud.bi.denbi.de', port=443): Max retries exceeded with url: /v1/service-info (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x103dbdd30>: Failed to resolve 'tesk.elixir-cloud.bi.denbi.de' ([Errno 8] nodename nor servname provided, or not known)\")); https://tesk.elixir-cloud.bi.denbi.de/service-info -> connection error: HTTPSConnectionPool(host='tesk.elixir-cloud.bi.denbi.de', port=443): Max retries exceeded with url: /service-info (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x103dece90>: Failed to resolve 'tesk.elixir-cloud.bi.denbi.de' ([Errno 8] nodename nor servname provided, or not known)\"))"
   }
 ]

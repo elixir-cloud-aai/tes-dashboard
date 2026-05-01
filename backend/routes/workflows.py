@@ -76,11 +76,17 @@ def submit_workflow():
                 time.sleep(5)
 
         try:
-            if wf_lower == 'snakemake' and uploaded_files:
-                snakefile_path = uploaded_files[0]['path']
-                submit_real_workflow(run_id, tes_instance, snakefile_path, tes_name=tes_name)
+            if wf_lower in ('snakemake', 'nextflow') and uploaded_files:
+                workflow_file_path = uploaded_files[0]['path']
+                submit_real_workflow(
+                    run_id,
+                    tes_instance,
+                    workflow_file_path,
+                    workflow_type=wf_lower,
+                    tes_name=tes_name
+                )
                 threading.Thread(target=_monitor_tes, daemon=True).start()
-            elif wf_lower in ('nextflow', 'cwl'):
+            elif wf_lower == 'cwl':
                 submit_single_tes_probe_task(
                     run_id, tes_instance, tes_name, wf_label=wf_lower
                 )
@@ -109,6 +115,10 @@ def submit_workflow():
                     }]
                 save_workflow_runs()
 
+            status_code = 500
+            if 'not reachable/healthy' in error_msg.lower() or 'unauthorized' in error_msg.lower():
+                status_code = 503
+
             return jsonify({
                 'success': False,
                 'error': f'Failed to submit {workflow_type.upper()} workflow: {error_msg}',
@@ -116,7 +126,7 @@ def submit_workflow():
                 'run_id': run_id,
                 'tes_url': tes_instance,
                 'tes_name': tes_name
-            }), 500
+            }), status_code
 
         global current_workflow_step, latest_workflow_path
         current_workflow_step = 2

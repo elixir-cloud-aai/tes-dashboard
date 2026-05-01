@@ -30,6 +30,50 @@ def resolve_tes_tasks_base_url(tes_name, tes_url):
     return None
 
 
+def preflight_tes_endpoint(tes_name, tes_url):
+    """
+    Validate TES endpoint reachability and auth before accepting workflow submission.
+    Returns resolved tasks base URL on success, raises RuntimeError with actionable details on failure.
+    """
+    base_url = (tes_url or "").rstrip("/")
+    if not base_url:
+        raise RuntimeError("TES URL is missing")
+
+    patterns = [
+        (f"{base_url}/ga4gh/tes/v1/service-info", f"{base_url}/ga4gh/tes/v1/tasks"),
+        (f"{base_url}/v1/service-info", f"{base_url}/v1/tasks"),
+        (f"{base_url}/service-info", f"{base_url}/tasks"),
+    ]
+    headers, auth = _auth_for_tes(tes_name, base_url)
+    probe_headers = {**headers, "Accept": "application/json"}
+    errors = []
+
+    for service_info_url, tasks_base in patterns:
+        try:
+            r = requests.get(service_info_url, headers=probe_headers, auth=auth, timeout=15)
+            if r.status_code == 200:
+                return tasks_base.rstrip("/")
+            if r.status_code in (401, 403):
+                raise RuntimeError(
+                    f"TES endpoint reachable but unauthorized ({r.status_code}) at {service_info_url}. "
+                    "Configure credentials/token for this instance."
+                )
+            errors.append(f"{service_info_url} -> HTTP {r.status_code}")
+        except requests.exceptions.Timeout:
+            errors.append(f"{service_info_url} -> timeout")
+        except requests.exceptions.SSLError as exc:
+            errors.append(f"{service_info_url} -> SSL error: {exc}")
+        except requests.exceptions.ConnectionError as exc:
+            errors.append(f"{service_info_url} -> connection error: {exc}")
+        except requests.RequestException as exc:
+            errors.append(f"{service_info_url} -> request error: {exc}")
+
+    raise RuntimeError(
+        "Selected TES instance is not reachable/healthy for workflow submission. "
+        + "; ".join(errors[:3])
+    )
+
+
 def _auth_for_tes(tes_name, tes_url):
     creds = get_instance_credentials(tes_name or '', tes_url or '')
     headers = {

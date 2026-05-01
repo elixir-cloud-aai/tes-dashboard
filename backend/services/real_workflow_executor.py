@@ -1,5 +1,57 @@
-from services.tes_api import TESApiClient
+import os
+import shutil
+import subprocess
+import sys
+from datetime import datetime
+
+from services.tes_api import TESApiClient, preflight_tes_endpoint
 from services.workflow_service import get_workflow_run_by_id, save_workflow_runs, update_workflow_status, _instance_for_tes_url
+
+
+_LOCAL_ENGINE_PROCS = {}
+
+
+def _ensure_snakemake_command():
+    snakemake_bin = shutil.which('snakemake')
+    if snakemake_bin:
+        return [snakemake_bin]
+
+    mod_check = subprocess.run(
+        [sys.executable, '-m', 'snakemake', '--version'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if mod_check.returncode == 0:
+        return [sys.executable, '-m', 'snakemake']
+
+    install_cmd = [sys.executable, '-m', 'pip', 'install']
+    if sys.prefix == sys.base_prefix:
+        install_cmd.append('--user')
+    install_cmd.append('snakemake')
+
+    install = subprocess.run(
+        install_cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if install.returncode != 0:
+        raise RuntimeError(
+            'snakemake is not installed and automatic installation failed. '
+            f'pip output: {install.stdout[-500:]}'
+        )
+
+    final_check = subprocess.run(
+        [sys.executable, '-m', 'snakemake', '--version'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if final_check.returncode == 0:
+        return [sys.executable, '-m', 'snakemake']
+
+    raise RuntimeError('snakemake installation finished but command is still unavailable')
 
 
 def _normalize_step_status(tes_state):
@@ -43,86 +95,65 @@ def _aggregate_status_from_steps(step_states_raw):
     return 'RUNNING'
 
 
-def parse_snakemake_workflow(snakefile_path):
-    import re
-    steps = []
-    try:
-        with open(snakefile_path, 'r') as f:
-            content = f.read()
-            rules = re.findall(r'rule\s+(\w+):.*?(?:shell|run):\s*["\'](.*?)["\']', content, re.DOTALL)
-            for name, cmd in rules:
-                steps.append({
-                    'name': name.replace('_', ' ').title(),
-                    'command': cmd.strip(),
-                    'inputs': [],
-                    'outputs': []
-                })
-    except Exception as e:
-        print(f"Error parsing Snakefile: {e}")
-
-    if not steps:
-        steps = [{'name': 'Workflow Execution', 'command': 'echo running snakemake', 'inputs': [], 'outputs': []}]
-
-    return steps
+def _build_engine_command(workflow_type, workflow_path):
+    wf_type = (workflow_type or '').lower()
+    if wf_type == 'snakemake':
+        snakemake_cmd = _ensure_snakemake_command()
+        return [*snakemake_cmd, '--snakefile', workflow_path, '--cores', '1', '--printshellcmds']
+    if wf_type == 'nextflow':
+        if not shutil.which('nextflow'):
+            raise RuntimeError('nextflow is not installed on the backend host')
+        return ['nextflow', 'run', workflow_path]
+    raise RuntimeError(f'Workflow type "{workflow_type}" does not have a native engine runner')
 
 
-def submit_real_workflow(run_id, tes_url, snakefile_path, tes_name=None):
-    tes_client = TESApiClient(tes_url, tes_name=tes_name)
+def submit_real_workflow(run_id, tes_url, workflow_path, workflow_type='snakemake', tes_name=None):
     inst = _instance_for_tes_url(tes_url)
-    instance_id = inst.get('id') if inst else tes_url
-    instance_name = inst.get('name') if inst else (tes_name or tes_url)
-    raw_steps = parse_snakemake_workflow(snakefile_path)
-
-    steps = sorted(raw_steps, key=lambda x: 1 if x['name'].lower() == 'all' else 0)
+    selected_instance_id = inst.get('id') if inst else tes_url
+    selected_instance_name = inst.get('name') if inst else (tes_name or tes_url)
+    # Strict gate: selected TES must be reachable/auth-valid before accepting execution.
+    preflight_tes_endpoint(selected_instance_name, tes_url)
+    engine = (workflow_type or '').lower()
+    workflow_path = os.path.abspath(workflow_path)
+    command = _build_engine_command(engine, workflow_path)
+    log_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../data/workflow_logs'))
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, f'{run_id}.log')
 
     workflow_run = get_workflow_run_by_id(run_id)
     workflow_run['status'] = 'RUNNING'
-    workflow_run['steps'] = []
-    workflow_run['tes_tasks'] = []
+    workflow_run['execution_backend'] = 'native_engine'
+    workflow_run['execution_location'] = 'dashboard-local'
+    workflow_run['selected_tes_instance_id'] = selected_instance_id
+    workflow_run['selected_tes_instance_name'] = selected_instance_name
+    workflow_run['engine'] = engine
+    workflow_run['engine_command'] = command
+    workflow_run['engine_log_path'] = log_path
+    workflow_run['steps'] = [{
+        'name': f'{engine.upper()} workflow execution',
+        'status': 'running',
+        'tes_task_id': None,
+        'tes_instance_id': 'dashboard-local',
+        'tes_instance_name': 'Dashboard Host (local engine)',
+        'start_time': datetime.utcnow().isoformat(),
+        'end_time': None,
+    }]
+    workflow_run['data_flow'] = [
+        {'from': 'start', 'to': 'dashboard-local'},
+        {'from': 'dashboard-local', 'to': 'end'}
+    ]
 
-    for step in steps:
-        workflow_run['steps'].append({
-            'name': step['name'],
-            'status': 'pending',
-            'tes_task_id': None,
-            'tes_instance_id': instance_id,
-            'tes_instance_name': instance_name,
-            'command_raw': step['command']
-        })
-    save_workflow_runs()
+    with open(log_path, 'w', encoding='utf-8') as log_file:
+        proc = subprocess.Popen(
+            command,
+            cwd=os.path.dirname(workflow_path) or '.',
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
 
-    first_step = steps[0]
-    tes_task = {
-        'name': first_step['name'],
-        'executors': [{
-            'image': 'ubuntu:latest',
-            'command': ['/bin/bash', '-c', first_step['command']],
-        }],
-        'inputs': first_step['inputs'],
-        'outputs': first_step['outputs'],
-    }
-
-    task_resp = tes_client.submit_task(tes_task)
-    task_id = task_resp.get('id')
-
-    workflow_run['steps'][0]['tes_task_id'] = task_id
-    workflow_run['steps'][0]['status'] = 'running'
-    workflow_run['tes_tasks'].append(task_id)
-    save_workflow_runs()
-    steps_list = workflow_run['steps']
-    workflow_run['data_flow'] = []
-
-    if steps_list:
-        workflow_run['data_flow'].append({'from': 'start', 'to': steps_list[0]['tes_instance_id']})
-
-        for i in range(1, len(steps_list)):
-            prev_inst = steps_list[i-1]['tes_instance_id']
-            curr_inst = steps_list[i]['tes_instance_id']
-            if prev_inst != curr_inst:
-                workflow_run['data_flow'].append({'from': prev_inst, 'to': curr_inst})
-
-        workflow_run['data_flow'].append({'from': steps_list[-1]['tes_instance_id'], 'to': 'end'})
-
+    _LOCAL_ENGINE_PROCS[run_id] = proc
+    workflow_run['engine_pid'] = proc.pid
     save_workflow_runs()
     return workflow_run
 
@@ -183,11 +214,45 @@ def submit_single_tes_probe_task(run_id, tes_url, tes_name, wf_label='workflow')
 
 
 def poll_and_update_workflow(run_id, tes_url, tes_name=None):
-    tes_client = TESApiClient(tes_url, tes_name=tes_name)
     workflow_run = get_workflow_run_by_id(run_id)
     if not workflow_run or not workflow_run.get('steps'):
         return
 
+    if workflow_run.get('execution_backend') == 'native_engine':
+        proc = _LOCAL_ENGINE_PROCS.get(run_id)
+        step = workflow_run['steps'][0]
+        if not proc:
+            if workflow_run.get('status') == 'RUNNING':
+                step['status'] = 'failed'
+                step['tes_state'] = 'SYSTEM_ERROR'
+                step['end_time'] = datetime.utcnow().isoformat()
+                workflow_run['error_message'] = 'Workflow process handle unavailable; backend restart may have occurred.'
+                update_workflow_status(run_id, 'FAILED')
+                save_workflow_runs()
+            return
+
+        rc = proc.poll()
+        if rc is None:
+            step['status'] = 'running'
+            step['tes_state'] = 'RUNNING'
+            save_workflow_runs()
+            return
+
+        if rc == 0:
+            step['status'] = 'complete'
+            step['tes_state'] = 'COMPLETE'
+            update_workflow_status(run_id, 'COMPLETE')
+        else:
+            step['status'] = 'failed'
+            step['tes_state'] = 'FAILED'
+            workflow_run['error_message'] = f'Native engine exited with code {rc}. See engine_log_path for details.'
+            update_workflow_status(run_id, 'FAILED')
+        step['end_time'] = datetime.utcnow().isoformat()
+        _LOCAL_ENGINE_PROCS.pop(run_id, None)
+        save_workflow_runs()
+        return
+
+    tes_client = TESApiClient(tes_url, tes_name=tes_name)
     any_step_changed = False
     for idx, step in enumerate(workflow_run['steps']):
         tid = step.get('tes_task_id')
