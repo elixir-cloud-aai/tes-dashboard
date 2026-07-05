@@ -36,8 +36,6 @@ export const serviceInfoService = {
       
       console.log('Got service info response:', response.data);
       
-      // Backend now always returns proper structure, even for errors
-      // Just check if there's an error flag and show a warning if needed
       if (response.data.error) {
         console.warn('Service info returned with error flag:', response.data.error_message || response.data.description);
       }

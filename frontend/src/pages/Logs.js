@@ -1,1 +1,0 @@
-// This file has been removed. Logs are now integrated into Task Details.
