@@ -2,20 +2,14 @@ import { useState, useEffect } from 'react';
 import instanceService from '../services/instanceService';
 
 const useInstances = () => {
-  const [state, setState] = useState({
-    instances: [],
-    loading: true,
-    error: null,
-    lastUpdate: null
-  });
+  const [state, setState] = useState(() => instanceService.getState());
 
   useEffect(() => {
     const handleUpdate = (newState) => {
       setState(newState);
     };
     instanceService.addListener(handleUpdate);
-    const initialState = instanceService.getHealthyInstances();
-    setState(initialState);
+    setState(instanceService.getState());
     return () => {
       instanceService.removeListener(handleUpdate);
     };
@@ -26,6 +20,7 @@ const useInstances = () => {
 
   return {
     instances: state.instances,
+    allInstances: state.allInstances,
     loading: state.loading,
     error: state.error,
     lastUpdate: state.lastUpdate,

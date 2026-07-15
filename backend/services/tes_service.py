@@ -25,15 +25,66 @@ def fetch_tes_status(instance):
             return {**instance, "status": "unreachable"}
 
         start_time = time.time()
-        r = requests.get(f"{tes_base_url}/ga4gh/tes/v1/service-info", timeout=5)
+        service_info_result = get_service_info(tes_base_url)
         latency_ms = int((time.time() - start_time) * 1000)
 
-        status = "healthy" if r.status_code == 200 else "unhealthy"
+        service_info_payload = None
+        service_info_status_code = None
+        if isinstance(service_info_result, tuple):
+            service_info_payload, service_info_status_code = service_info_result
+        else:
+            service_info_payload = service_info_result
+            service_info_status_code = 403 if service_info_payload.get("auth_required") else 200
+
+        service_info_reachable = not isinstance(service_info_result, tuple)
+        service_info_auth_required = bool(service_info_payload and service_info_payload.get("auth_required"))
+        task_submission_available = None
+        task_access = "unknown"
+
+        if not service_info_reachable:
+            status = "unhealthy"
+        else:
+            status = "healthy"
+
+            # Probe task listing separately so the UI can still discover authenticated
+            # instances without misclassifying the entire TES service as unhealthy.
+            try:
+                instance_name = instance.get("name", "")
+                credentials = get_instance_credentials(instance_name, tes_base_url)
+
+                headers = {'Accept': 'application/json'}
+                auth = None
+                if credentials.get('token'):
+                    headers['Authorization'] = f"Bearer {credentials['token']}"
+                elif credentials.get('user') and credentials.get('password'):
+                    auth = (credentials['user'], credentials['password'])
+
+                tasks_response = requests.get(
+                    f"{tes_base_url}/ga4gh/tes/v1/tasks?view=MINIMAL",
+                    headers=headers,
+                    auth=auth,
+                    timeout=5
+                )
+
+                if tasks_response.status_code == 200:
+                    task_submission_available = True
+                    task_access = "available"
+                elif tasks_response.status_code in [401, 403]:
+                    print(f"⚠️ {instance.get('name')} tasks endpoint requires authentication (status {tasks_response.status_code})")
+                    task_submission_available = False
+                    task_access = "authentication_required"
+                else:
+                    print(f"⚠️ {instance.get('name')} tasks endpoint returned status {tasks_response.status_code}")
+                    task_submission_available = False
+                    task_access = f"http_{tasks_response.status_code}"
+            except Exception as tasks_error:
+                print(f"⚠️ Could not check tasks endpoint for {instance.get('name')}: {tasks_error}")
+                task_submission_available = None
+                task_access = "unknown"
+        
         version = ""
-        try:
-            version = r.json().get("version", "")
-        except Exception:
-            version = ""
+        if isinstance(service_info_payload, dict):
+            version = service_info_payload.get("version", "")
 
         tasks_for_instance = 0
         try:
@@ -53,6 +104,11 @@ def fetch_tes_status(instance):
             "status": status,
             "version": version,
             "latency": latency_ms,
+            "service_info_status_code": service_info_status_code,
+            "service_info_reachable": service_info_reachable,
+            "service_info_auth_required": service_info_auth_required,
+            "task_submission_available": task_submission_available,
+            "task_access": task_access,
             "tasks": tasks_for_instance,
             "taskCount": tasks_for_instance,
             "cpuUsage": 0,

@@ -3,6 +3,7 @@ import api from './api';
 class InstanceService {
   constructor() {
     this.healthyInstances = [];
+    this.allInstancesWithStatus = [];
     this.loading = false;
     this.error = null;
     this.lastUpdate = null;
@@ -20,23 +21,38 @@ class InstanceService {
   }
 
   notifyListeners() {
+    const state = this.getState();
     this.listeners.forEach(callback => {
       try {
-        callback({
-          instances: this.healthyInstances,
-          loading: this.loading,
-          error: this.error,
-          lastUpdate: this.lastUpdate
-        });
+        callback(state);
       } catch (err) {
         console.error('Error notifying listener:', err);
       }
     });
   }
 
+  getState() {
+    return {
+      instances: this.healthyInstances,
+      allInstances: this.allInstancesWithStatus,
+      loading: this.loading,
+      error: this.error,
+      lastUpdate: this.lastUpdate
+    };
+  }
+
   getHealthyInstances() {
     return {
       instances: this.healthyInstances,
+      loading: this.loading,
+      error: this.error,
+      lastUpdate: this.lastUpdate
+    };
+  }
+
+  getAllInstancesWithStatus() {
+    return {
+      allInstances: this.allInstancesWithStatus,
       loading: this.loading,
       error: this.error,
       lastUpdate: this.lastUpdate
@@ -50,24 +66,31 @@ class InstanceService {
       if (isInitialLoad) {
         this.loading = true;
         this.notifyListeners();
-        console.log('🔄 Loading initial healthy TES instances...');
+        console.log('🔄 Loading TES instances with status...');
       } else {
-        console.log('🔄 Refreshing cached healthy TES instances...');
+        console.log('🔄 Refreshing TES instances with status...');
       }
       
-      const response = await api.get('/api/healthy-instances', {
-        timeout: 5000
+      const response = await api.get('/api/instances-with-status', {
+        timeout: 10000
       });
 
       const data = response.data;
-      this.healthyInstances = data.instances || [];
+      const allInstances = data.instances || [];
+      
+      // Filter to only healthy instances, but keep status info
+      this.healthyInstances = allInstances.filter(inst => inst.status === 'healthy');
+      
+      // Store all instances (including unhealthy) for dropdown display
+      this.allInstancesWithStatus = allInstances;
+      
       this.lastUpdate = data.last_updated ? new Date(data.last_updated) : new Date();
       this.error = null;
       
-      console.log(`✅ Got ${this.healthyInstances.length} cached healthy TES instances (updated: ${this.lastUpdate.toLocaleTimeString()})`);
+      console.log(`✅ Got ${this.healthyInstances.length} healthy instances out of ${allInstances.length} total (updated: ${this.lastUpdate.toLocaleTimeString()})`);
       
     } catch (err) {
-      console.error('Error fetching healthy instances:', err);
+      console.error('Error fetching instances with status:', err);
       
       if (err.code === 'ECONNABORTED') {
         this.error = 'Connection timeout - using cached data';
@@ -84,11 +107,7 @@ class InstanceService {
         console.log(`Using ${this.healthyInstances.length} cached healthy instances during error`);
       }
     } finally {
-      if (this.healthyInstances.length === 0) {
-        this.loading = false;
-      } else {
-        this.loading = false;
-      }
+      this.loading = false;
       this.notifyListeners();
     }
   }

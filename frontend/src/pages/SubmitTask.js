@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { testConnection } from '../services/api';
@@ -196,10 +196,82 @@ const SubmitTask = () => {
  
   const { 
     instances, 
+    allInstances,
     loading: instancesLoading, 
     error: instancesError,
     refresh: refreshInstances 
   } = useInstances();
+
+  const isReachableInstance = (instance) => (
+    instance?.status === 'healthy' && instance?.service_info_reachable !== false
+  );
+
+  const requiresAuthorization = (instance) => (
+    instance?.service_info_auth_required === true || instance?.task_access === 'authentication_required'
+  );
+
+  const isRunnableInstance = (instance) => (
+    isReachableInstance(instance) && instance?.task_submission_available === true && !requiresAuthorization(instance)
+  );
+
+  const getInstanceCapabilitySymbol = (instance) => {
+    if (isRunnableInstance(instance)) {
+      return '✅';
+    }
+
+    if (requiresAuthorization(instance)) {
+      return '🔒';
+    }
+
+    if (isReachableInstance(instance)) {
+      return '⚠️';
+    }
+
+    return '❌';
+  };
+
+  const getInstanceCapabilityLabel = (instance) => {
+    if (isRunnableInstance(instance)) {
+      return 'ready';
+    }
+
+    if (requiresAuthorization(instance)) {
+      return 'auth required';
+    }
+
+    if (isReachableInstance(instance)) {
+      return 'not runnable';
+    }
+
+    return 'unreachable';
+  };
+
+  const hasUsableUrl = (instance) => {
+    return typeof instance?.url === 'string' && instance.url.trim() !== '';
+  };
+
+  const instanceOptions = (allInstances.length > 0 ? allInstances : instances).filter(hasUsableUrl);
+  const selectedInstance = instanceOptions.find(instance => instance.url === formData.tes_instance);
+  const hasInvalidSelectedInstance = Boolean(formData.tes_instance) && (!selectedInstance || !isRunnableInstance(selectedInstance));
+
+  useEffect(() => {
+    // Auto-select the first instance that is healthy, reachable, and does not require authorization.
+    const runnableInstance = instanceOptions.find(
+      instance => isRunnableInstance(instance)
+    );
+
+    if (!runnableInstance) {
+      return;
+    }
+
+    setFormData(prev => {
+      if (prev.tes_instance) {
+        return prev;
+      }
+
+      return { ...prev, tes_instance: runnableInstance.url };
+    });
+  }, [instances, allInstances]);
 
   const handleTestConnection = async () => {
     try {
@@ -238,46 +310,52 @@ const SubmitTask = () => {
   };
  
   const getDemoTaskData = (demoType = 'basic') => { 
-    const defaultTesInstance = instances.length > 0 
-      ? instances[0].url 
-      : 'https://csc-tesk-noauth.rahtiapp.fi/v1/tasks';
+    // Use the first runnable instance as default for demos.
+    let defaultTesInstance = '';
+    
+    if (instanceOptions.length > 0) {
+      const runnableInstance = instanceOptions.find(
+        instance => isRunnableInstance(instance)
+      );
+      defaultTesInstance = runnableInstance ? runnableInstance.url : '';
+    }
     
     const demoTasks = {
       basic: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo Hello World Task',
-        docker_image: 'ubuntu:20.04',
-        command: 'echo "Hello from TES Demo Task!" && echo "Current time: $(date)" && echo "System info: $(uname -a)" && echo "Task completed successfully"',
+        docker_image: 'alpine:latest',
+        command: 'echo "Hello from TES!" && date && uname -a',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A simple demo task that prints system information and a hello message. Safe to run and completes quickly for testing purposes.'
+        disk_gb: '1',
+        description: 'Simple demo task using Alpine Linux (5MB). Note: If you see SYSTEM_ERROR, the TES instance may be experiencing infrastructure issues. Try a different instance or wait a few minutes.'
       },
       python: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo Python Script Task',
-        docker_image: 'python:3.9-slim',
-        command: 'python3 -c "import sys; import datetime; print(f\'Hello from Python {sys.version}\'); print(f\'Current time: {datetime.datetime.now()}\'); print(\'Demo task completed successfully!\')"',
+        docker_image: 'python:3.11-alpine',
+        command: 'python3 -c "import sys; import datetime; print(sys.version); print(datetime.datetime.now())"',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A Python demo task that prints version info and timestamp using a Python container.'
+        disk_gb: '1',
+        description: 'Python demo using Alpine-based image (51MB). Faster than standard Python images.'
       },
       fileops: {
         tes_instance: defaultTesInstance,
         task_name: 'Demo File Operations Task',
-        docker_image: 'ubuntu:20.04',
-        command: 'echo "Creating demo files..." && echo "Hello World" > /tmp/output.txt && echo "File contents:" && cat /tmp/output.txt && ls -la /tmp/',
+        docker_image: 'alpine:latest',
+        command: 'echo "Hello World" > /tmp/demo.txt && cat /tmp/demo.txt && ls -lh /tmp/demo.txt',
         input_url: '',
         output_url: '',
         cpu_cores: '1',
         ram_gb: '1',
-        disk_gb: '5',
-        description: 'A demo task that creates and reads files, demonstrating basic file operations within the container.'
+        disk_gb: '1',
+        description: 'Demonstrates file creation and reading in Alpine Linux.'
       }
     };
     
@@ -287,15 +365,7 @@ const SubmitTask = () => {
   const handleRunDemo = (demoType = 'basic') => {
     const demoData = getDemoTaskData(demoType);
     setFormData(demoData);
-    setError(null);  
-     
-    const taskNames = {
-      basic: 'Basic Hello World',
-      python: 'Python Script',
-      fileops: 'File Operations'
-    };
-    
-    alert(`${taskNames[demoType] || 'Demo'} task data loaded! Review the form and click "Submit Task" when ready.`);
+    setError(null);
   };
 
   const handleSubmit = async (e) => {
@@ -303,6 +373,11 @@ const SubmitTask = () => {
     
     if (!formData.tes_instance || !formData.docker_image) {
       setError(new Error('TES instance and Docker image are required'));
+      return;
+    }
+
+    if (!selectedInstance || !isRunnableInstance(selectedInstance)) {
+      setError(new Error('Please select a TES instance that is healthy, reachable, and does not require authorization before submitting.'));
       return;
     }
     
@@ -329,12 +404,7 @@ const SubmitTask = () => {
       const result = await taskService.submitTask(submitData);
       
       console.log('Task submission result:', result);
-       
-      if (result && result.message) {
-        alert(`Success: ${result.message}`);
-      } else {
-        alert('Task submitted successfully!');
-      }
+      
       navigate('/tasks');
     } catch (err) {
       console.error('Task submission error:', err);
@@ -380,7 +450,7 @@ const SubmitTask = () => {
   if (instancesLoading) {
     return (
       <PageContainer>
-        <LoadingSpinner text="Loading healthy TES instances..." />
+        <LoadingSpinner text="Loading TES instances..." />
       </PageContainer>
     );
   }
@@ -418,10 +488,16 @@ const SubmitTask = () => {
         
         {error && <ErrorMessage error={error} />}
         {instancesError && <ErrorMessage error={instancesError} />}
-        
-        {instances.length === 0 && !instancesLoading && (
+
+        {hasInvalidSelectedInstance && (
           <StatusNotification>
-            ⚠️ No healthy TES instances found. 
+            ⚠️ The selected TES instance is not suitable for examples. Choose one marked ✅ ready to ensure it is healthy, reachable, and does not require authorization.
+          </StatusNotification>
+        )}
+        
+        {instanceOptions.filter(isRunnableInstance).length === 0 && !instancesLoading && (
+          <StatusNotification>
+            ⚠️ No runnable TES instances found. Examples need an instance that is healthy, reachable, and does not require authorization.
             <Button type="button" variant="demo" onClick={refreshInstances} style={{marginLeft: '10px', padding: '5px 10px'}}>
               <RefreshCw size={14} style={{ marginRight: '5px' }} />
               Refresh Instances
@@ -440,12 +516,30 @@ const SubmitTask = () => {
               required
             >
               <option value="">Select TES Instance</option>
-              {instances.map((instance, index) => (
-                <option key={index} value={instance.url}>
-                  {instance.name} 
-                </option>
-              ))}
+              {instanceOptions
+                .slice()
+                .sort((a, b) => {
+                  if (isRunnableInstance(a) && !isRunnableInstance(b)) return -1;
+                  if (!isRunnableInstance(a) && isRunnableInstance(b)) return 1;
+                  if (requiresAuthorization(a) && !requiresAuthorization(b)) return 1;
+                  if (!requiresAuthorization(a) && requiresAuthorization(b)) return -1;
+                  if (isReachableInstance(a) && !isReachableInstance(b)) return -1;
+                  if (!isReachableInstance(a) && isReachableInstance(b)) return 1;
+                  return 0;
+                })
+                .map((instance) => (
+                  <option 
+                    key={instance.url} 
+                    value={instance.url}
+                    disabled={!isRunnableInstance(instance)}
+                  >
+                    {getInstanceCapabilitySymbol(instance)} {instance.name} ({getInstanceCapabilityLabel(instance)})
+                  </option>
+                ))}
             </Select>
+            <HelpText>
+              ✅ ready: healthy, reachable, and runnable without authorization. 🔒 auth required: reachable but task submission will fail without credentials. ⚠️ not runnable: reachable, but task submission is unavailable. ❌ unreachable: service-info could not be reached.
+            </HelpText>
           </FormGroup>
 
           <FormGroup>
