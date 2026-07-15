@@ -52,7 +52,7 @@ class InstanceService {
 
   getAllInstancesWithStatus() {
     return {
-      instances: this.allInstancesWithStatus,
+      allInstances: this.allInstancesWithStatus,
       loading: this.loading,
       error: this.error,
       lastUpdate: this.lastUpdate

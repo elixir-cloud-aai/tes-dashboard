@@ -364,16 +364,18 @@ def submit_task():
             })
             
             error_msg = f'TES submission failed with status {response.status_code}'
-            print(f"❌ TES returned status {response.status_code}")
-            print(f"Response headers: {dict(response.headers)}")
-            print(f"Response body: {response.text[:500]}")
+            logger.debug("TES returned status %s", response.status_code)
+            logger.debug("TES response header names: %s", list(response.headers.keys()))
+            logger.debug(
+                "TES response body (truncated): %s",
+                response.text[:200] + "..." if response.text and len(response.text) > 200 else response.text
+            )
             
             try:
                 error_data = response.json()
                 logger.debug(
-                    "TES response body (truncated): %s", 
-                    ( response.text[:200] + "..." if response.text and len(response.text) > 200 
-                    else response.text )
+                    "TES response body (truncated): %s",
+                    response.text[:200] + "..." if response.text and len(response.text) > 200 else response.text
                 )
                 if error_data.get('message'):
                     error_msg = error_data.get('message')

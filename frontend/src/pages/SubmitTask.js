@@ -491,7 +491,7 @@ const SubmitTask = () => {
 
         {hasInvalidSelectedInstance && (
           <StatusNotification>
-            ⚠️ The selected TES instance is not suitable for examples. Choose one marked `✅ ready` to ensure it is healthy, reachable, and does not require authorization.
+            ⚠️ The selected TES instance is not suitable for examples. Choose one marked ✅ ready to ensure it is healthy, reachable, and does not require authorization.
           </StatusNotification>
         )}
         
