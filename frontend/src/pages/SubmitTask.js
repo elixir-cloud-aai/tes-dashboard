@@ -202,9 +202,48 @@ const SubmitTask = () => {
     refresh: refreshInstances 
   } = useInstances();
 
-  // Helper function to get status badge
-  const getStatusBadge = (status) => {
-    return status === 'healthy' ? '✅' : '❌';
+  const isReachableInstance = (instance) => (
+    instance?.status === 'healthy' && instance?.service_info_reachable !== false
+  );
+
+  const requiresAuthorization = (instance) => (
+    instance?.service_info_auth_required === true || instance?.task_access === 'authentication_required'
+  );
+
+  const isRunnableInstance = (instance) => (
+    isReachableInstance(instance) && instance?.task_submission_available === true && !requiresAuthorization(instance)
+  );
+
+  const getInstanceCapabilitySymbol = (instance) => {
+    if (isRunnableInstance(instance)) {
+      return '✅';
+    }
+
+    if (requiresAuthorization(instance)) {
+      return '🔒';
+    }
+
+    if (isReachableInstance(instance)) {
+      return '⚠️';
+    }
+
+    return '❌';
+  };
+
+  const getInstanceCapabilityLabel = (instance) => {
+    if (isRunnableInstance(instance)) {
+      return 'ready';
+    }
+
+    if (requiresAuthorization(instance)) {
+      return 'auth required';
+    }
+
+    if (isReachableInstance(instance)) {
+      return 'not runnable';
+    }
+
+    return 'unreachable';
   };
 
   const hasUsableUrl = (instance) => {
@@ -213,15 +252,15 @@ const SubmitTask = () => {
 
   const instanceOptions = (allInstances.length > 0 ? allInstances : instances).filter(hasUsableUrl);
   const selectedInstance = instanceOptions.find(instance => instance.url === formData.tes_instance);
-  const hasInvalidSelectedInstance = Boolean(formData.tes_instance) && (!selectedInstance || selectedInstance.status !== 'healthy');
+  const hasInvalidSelectedInstance = Boolean(formData.tes_instance) && (!selectedInstance || !isRunnableInstance(selectedInstance));
 
   useEffect(() => {
-    // Auto-select first healthy instance if no instance is selected.
-    const healthyInstance = instanceOptions.find(
-      instance => instance.status === 'healthy'
+    // Auto-select the first instance that is healthy, reachable, and does not require authorization.
+    const runnableInstance = instanceOptions.find(
+      instance => isRunnableInstance(instance)
     );
 
-    if (!healthyInstance) {
+    if (!runnableInstance) {
       return;
     }
 
@@ -230,7 +269,7 @@ const SubmitTask = () => {
         return prev;
       }
 
-      return { ...prev, tes_instance: healthyInstance.url };
+      return { ...prev, tes_instance: runnableInstance.url };
     });
   }, [instances, allInstances]);
 
@@ -271,15 +310,14 @@ const SubmitTask = () => {
   };
  
   const getDemoTaskData = (demoType = 'basic') => { 
-    // Use first healthy instance as default for demos
+    // Use the first runnable instance as default for demos.
     let defaultTesInstance = '';
     
     if (instanceOptions.length > 0) {
-      const healthyInstance = instanceOptions.find(
-        instance => instance.status === 'healthy'
+      const runnableInstance = instanceOptions.find(
+        instance => isRunnableInstance(instance)
       );
-      // Only use an instance if it's healthy, otherwise leave empty
-      defaultTesInstance = healthyInstance ? healthyInstance.url : '';
+      defaultTesInstance = runnableInstance ? runnableInstance.url : '';
     }
     
     const demoTasks = {
@@ -338,8 +376,8 @@ const SubmitTask = () => {
       return;
     }
 
-    if (!selectedInstance || selectedInstance.status !== 'healthy') {
-      setError(new Error('Please select a healthy TES instance before submitting.'));
+    if (!selectedInstance || !isRunnableInstance(selectedInstance)) {
+      setError(new Error('Please select a TES instance that is healthy, reachable, and does not require authorization before submitting.'));
       return;
     }
     
@@ -412,7 +450,7 @@ const SubmitTask = () => {
   if (instancesLoading) {
     return (
       <PageContainer>
-        <LoadingSpinner text="Loading healthy TES instances..." />
+        <LoadingSpinner text="Loading TES instances..." />
       </PageContainer>
     );
   }
@@ -453,13 +491,13 @@ const SubmitTask = () => {
 
         {hasInvalidSelectedInstance && (
           <StatusNotification>
-            ⚠️ The selected TES instance is not healthy or no longer available. Please choose a healthy instance to continue.
+            ⚠️ The selected TES instance is not suitable for examples. Choose one marked `✅ ready` to ensure it is healthy, reachable, and does not require authorization.
           </StatusNotification>
         )}
         
-        {instances.length === 0 && !instancesLoading && (
+        {instanceOptions.filter(isRunnableInstance).length === 0 && !instancesLoading && (
           <StatusNotification>
-            ⚠️ No healthy TES instances found. 
+            ⚠️ No runnable TES instances found. Examples need an instance that is healthy, reachable, and does not require authorization.
             <Button type="button" variant="demo" onClick={refreshInstances} style={{marginLeft: '10px', padding: '5px 10px'}}>
               <RefreshCw size={14} style={{ marginRight: '5px' }} />
               Refresh Instances
@@ -481,22 +519,27 @@ const SubmitTask = () => {
               {instanceOptions
                 .slice()
                 .sort((a, b) => {
-                  // Sort by status: healthy (reachable without auth) first, then others
-                  // Note: Backend marks instances requiring auth as 'unhealthy'
-                  if (a.status === 'healthy' && b.status !== 'healthy') return -1;
-                  if (a.status !== 'healthy' && b.status === 'healthy') return 1;
+                  if (isRunnableInstance(a) && !isRunnableInstance(b)) return -1;
+                  if (!isRunnableInstance(a) && isRunnableInstance(b)) return 1;
+                  if (requiresAuthorization(a) && !requiresAuthorization(b)) return 1;
+                  if (!requiresAuthorization(a) && requiresAuthorization(b)) return -1;
+                  if (isReachableInstance(a) && !isReachableInstance(b)) return -1;
+                  if (!isReachableInstance(a) && isReachableInstance(b)) return 1;
                   return 0;
                 })
                 .map((instance) => (
                   <option 
                     key={instance.url} 
                     value={instance.url}
-                    disabled={instance.status !== 'healthy'}
+                    disabled={!isRunnableInstance(instance)}
                   >
-                    {getStatusBadge(instance.status)} {instance.name}{instance.status !== 'healthy' ? ' (unavailable)' : ''}
+                    {getInstanceCapabilitySymbol(instance)} {instance.name} ({getInstanceCapabilityLabel(instance)})
                   </option>
                 ))}
             </Select>
+            <HelpText>
+              ✅ ready: healthy, reachable, and runnable without authorization. 🔒 auth required: reachable but task submission will fail without credentials. ⚠️ not runnable: reachable, but task submission is unavailable. ❌ unreachable: service-info could not be reached.
+            </HelpText>
           </FormGroup>
 
           <FormGroup>
