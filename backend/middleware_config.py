@@ -178,6 +178,7 @@ class MiddlewareConfigManager:
                     'cacheable_methods': ['GET'],
                     'cache_patterns': [
                         r'/api/instances',
+                        r'/api/instances-with-status',
                         r'/api/service_info',
                         r'/api/tes_locations'
                     ]

@@ -243,7 +243,7 @@ def submit_task():
          
         tes_endpoint = working_endpoint
         print(f"🚀 Submitting task to {tes_endpoint}")
-        print(f"📦 Task payload: {json.dumps(tes_task, indent=2)}")
+        logger.debug("📦 Task payload keys: %s", list(tes_task.keys()))
          
         credentials = get_instance_credentials(tes_name, tes_url)
         headers = {
@@ -370,7 +370,11 @@ def submit_task():
             
             try:
                 error_data = response.json()
-                print(f"Error data JSON: {error_data}")
+                logger.debug(
+                    "TES response body (truncated): %s", 
+                    ( response.text[:200] + "..." if response.text and len(response.text) > 200 
+                    else response.text )
+                )
                 if error_data.get('message'):
                     error_msg = error_data.get('message')
                 elif error_data.get('error'):

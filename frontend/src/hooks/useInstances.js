@@ -2,25 +2,14 @@ import { useState, useEffect } from 'react';
 import instanceService from '../services/instanceService';
 
 const useInstances = () => {
-  const [state, setState] = useState({
-    instances: [],
-    allInstances: [],
-    loading: true,
-    error: null,
-    lastUpdate: null
-  });
+  const [state, setState] = useState(() => instanceService.getState());
 
   useEffect(() => {
     const handleUpdate = (newState) => {
       setState(newState);
     };
     instanceService.addListener(handleUpdate);
-    const initialState = instanceService.getHealthyInstances();
-    const allInstancesState = instanceService.getAllInstancesWithStatus();
-    setState({
-      ...initialState,
-      allInstances: allInstancesState.instances
-    });
+    setState(instanceService.getState());
     return () => {
       instanceService.removeListener(handleUpdate);
     };

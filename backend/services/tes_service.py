@@ -35,7 +35,7 @@ def fetch_tes_status(instance):
             status = "unhealthy"
         else:
             # Service-info is accessible, but we need to check if tasks endpoint is usable
-            # Try a HEAD/OPTIONS request to tasks endpoint to see if it requires auth
+            # Try a request to the tasks endpoint to see if it requires auth
             try:
                 instance_name = instance.get("name", "")
                 credentials = get_instance_credentials(instance_name, tes_base_url)
@@ -60,9 +60,11 @@ def fetch_tes_status(instance):
                 if tasks_response.status_code in [401, 403]:
                     print(f"⚠️ {instance.get('name')} tasks endpoint requires authentication (status {tasks_response.status_code})")
                     status = "unhealthy"
-                else:
-                    # Tasks endpoint is accessible (200) or returns other non-auth error
+                elif tasks_response.status_code == 200:
                     status = "healthy"
+                else:
+                    print(f"⚠️ {instance.get('name')} tasks endpoint returned status {tasks_response.status_code}")
+                    status = "unhealthy"
             except Exception as tasks_error:
                 print(f"⚠️ Could not check tasks endpoint for {instance.get('name')}: {tasks_error}")
                 # If we can't check tasks endpoint, assume healthy based on service-info

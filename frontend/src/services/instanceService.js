@@ -21,19 +21,24 @@ class InstanceService {
   }
 
   notifyListeners() {
+    const state = this.getState();
     this.listeners.forEach(callback => {
       try {
-        callback({
-          instances: this.healthyInstances,
-          allInstances: this.allInstancesWithStatus,
-          loading: this.loading,
-          error: this.error,
-          lastUpdate: this.lastUpdate
-        });
+        callback(state);
       } catch (err) {
         console.error('Error notifying listener:', err);
       }
     });
+  }
+
+  getState() {
+    return {
+      instances: this.healthyInstances,
+      allInstances: this.allInstancesWithStatus,
+      loading: this.loading,
+      error: this.error,
+      lastUpdate: this.lastUpdate
+    };
   }
 
   getHealthyInstances() {

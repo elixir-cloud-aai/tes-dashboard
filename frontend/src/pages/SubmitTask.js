@@ -207,20 +207,31 @@ const SubmitTask = () => {
     return status === 'healthy' ? '✅' : '❌';
   };
 
+  const hasUsableUrl = (instance) => {
+    return typeof instance?.url === 'string' && instance.url.trim() !== '';
+  };
+
+  const instanceOptions = (allInstances.length > 0 ? allInstances : instances).filter(hasUsableUrl);
+  const selectedInstance = instanceOptions.find(instance => instance.url === formData.tes_instance);
+  const hasInvalidSelectedInstance = Boolean(formData.tes_instance) && (!selectedInstance || selectedInstance.status !== 'healthy');
+
   useEffect(() => {
-    // Auto-select first healthy instance if no instance is selected
-    if (instances.length > 0 && !formData.tes_instance) {
-      // Try to find a healthy instance from allInstances (if available)
-      const healthyInstance = (allInstances.length > 0 ? allInstances : instances).find(
-        instance => instance.status === 'healthy'
-      );
-      
-      // Only set default if a healthy instance exists
-      if (healthyInstance) {
-        setFormData(prev => ({ ...prev, tes_instance: healthyInstance.url }));
-      }
+    // Auto-select first healthy instance if no instance is selected.
+    const healthyInstance = instanceOptions.find(
+      instance => instance.status === 'healthy'
+    );
+
+    if (!healthyInstance) {
+      return;
     }
 
+    setFormData(prev => {
+      if (prev.tes_instance) {
+        return prev;
+      }
+
+      return { ...prev, tes_instance: healthyInstance.url };
+    });
   }, [instances, allInstances]);
 
   const handleTestConnection = async () => {
@@ -263,8 +274,8 @@ const SubmitTask = () => {
     // Use first healthy instance as default for demos
     let defaultTesInstance = '';
     
-    if (instances.length > 0) {
-      const healthyInstance = (allInstances.length > 0 ? allInstances : instances).find(
+    if (instanceOptions.length > 0) {
+      const healthyInstance = instanceOptions.find(
         instance => instance.status === 'healthy'
       );
       // Only use an instance if it's healthy, otherwise leave empty
@@ -324,6 +335,11 @@ const SubmitTask = () => {
     
     if (!formData.tes_instance || !formData.docker_image) {
       setError(new Error('TES instance and Docker image are required'));
+      return;
+    }
+
+    if (!selectedInstance || selectedInstance.status !== 'healthy') {
+      setError(new Error('Please select a healthy TES instance before submitting.'));
       return;
     }
     
@@ -434,6 +450,12 @@ const SubmitTask = () => {
         
         {error && <ErrorMessage error={error} />}
         {instancesError && <ErrorMessage error={instancesError} />}
+
+        {hasInvalidSelectedInstance && (
+          <StatusNotification>
+            ⚠️ The selected TES instance is not healthy or no longer available. Please choose a healthy instance to continue.
+          </StatusNotification>
+        )}
         
         {instances.length === 0 && !instancesLoading && (
           <StatusNotification>
@@ -456,7 +478,7 @@ const SubmitTask = () => {
               required
             >
               <option value="">Select TES Instance</option>
-              {(allInstances.length > 0 ? allInstances : instances)
+              {instanceOptions
                 .slice()
                 .sort((a, b) => {
                   // Sort by status: healthy (reachable without auth) first, then others
@@ -469,8 +491,9 @@ const SubmitTask = () => {
                   <option 
                     key={instance.url} 
                     value={instance.url}
+                    disabled={instance.status !== 'healthy'}
                   >
-                    {getStatusBadge(instance.status)} {instance.name}
+                    {getStatusBadge(instance.status)} {instance.name}{instance.status !== 'healthy' ? ' (unavailable)' : ''}
                   </option>
                 ))}
             </Select>
