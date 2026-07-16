@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request
 from datetime import datetime, timezone
 import uuid
 import json
@@ -38,10 +38,12 @@ def build_failed_task(tes_task, tes_url, tes_name, tes_endpoint=None,
         Dict containing failed task with SUBMISSION_FAILED state
     """
     now_iso = datetime.now(timezone.utc).isoformat()
+    dashboard_task_id = str(uuid.uuid4())
     
     failed_task = {
-        'id': str(uuid.uuid4()),
-        'task_id': 'N/A',
+        'id': dashboard_task_id,
+        'task_id': dashboard_task_id,
+        'tes_task_id': None,
         'name': tes_task['name'],
         'task_name': tes_task['name'],
         'description': tes_task['description'],
@@ -71,7 +73,7 @@ def build_failed_task(tes_task, tes_url, tes_name, tes_endpoint=None,
         failed_task['error_code'] = error_code
     if error_reason:
         failed_task['error_reason'] = error_reason
-    if http_status_code:
+    if http_status_code is not None:
         failed_task['http_status_code'] = http_status_code
     
     return failed_task
