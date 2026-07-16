@@ -6,6 +6,7 @@ from utils.auth_utils import get_instance_credentials
 
 task_update_lock = threading.Lock()
 submitted_tasks = []
+TERMINAL_STATES = ['COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED', 'SUBMISSION_FAILED']
 
 def fetch_task_status_from_tes(task_id, tes_url, tes_name='Unknown'):
     if not task_id or not tes_url:
@@ -77,7 +78,7 @@ def update_single_task_status(task):
                 if new_state != old_state:
                     print(f"Updated task {task_id}: {old_state} -> {new_state}")
                     return True
-                elif new_state in ['COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED']:
+                elif new_state in TERMINAL_STATES:
                     print(f"Verified task {task_id} in terminal state: {new_state}")
                     return True
                 
@@ -86,15 +87,13 @@ def update_single_task_status(task):
     return False
 
 def update_task_statuses():
-    terminal_states = ['COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED', 'SUBMISSION_FAILED']
-    
     while True:
         try:
             tasks_to_update = []
             with task_update_lock:
                 for task in submitted_tasks:
                     current_state = task.get('state') or task.get('status', 'UNKNOWN')
-                    if current_state not in terminal_states:
+                    if current_state not in TERMINAL_STATES:
                         tasks_to_update.append(task)
             
             if not tasks_to_update:

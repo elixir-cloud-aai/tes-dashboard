@@ -13,8 +13,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 tasks_bp = Blueprint('tasks', __name__)
 
 def build_failed_task(tes_task, tes_url, tes_name, tes_endpoint=None, 
