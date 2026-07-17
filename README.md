@@ -9,25 +9,24 @@ A comprehensive, modern dashboard for monitoring and managing Task Execution Ser
 
 ### 🔍 **Service Monitoring**
 - **Real-time Service Status**: Monitor health of TES gateway and all federated nodes
-- **Network Topology Visualization**: Interactive map showing TES instances across ELIXIR federation
+- **Network Topology Visualization**: Interactive map showing TES instances across the ELIXIR federation
 - **Performance Metrics**: Response times, connectivity status, and service availability
-- **Automated Health Checks**: Continuous monitoring with 3-second refresh intervals
+- **Automated Health Checks**: Continuous monitoring with configurable refresh intervals
 
 ### 📊 **Task & Workflow Management**
 - **Task Submission**: Submit and track computational tasks across the federation
 - **Workflow Orchestration**: Support for CWL, Nextflow, and Snakemake workflows
-- **Batch Processing**: Manage large-scale batch job submissions
+- **Batch Processing**: Submit CWL, Nextflow, and Snakemake batch jobs
 - **Real-time Task Tracking**: Monitor task progress, logs, and execution status
 
 ### 🛠 **Administrative Tools**
-- **Node Management**: Add, remove, and configure TES nodes in the federation
-- **Service Administration**: Comprehensive control panel for system administrators
-- **Authentication System**: Secure admin access with role-based permissions
-- **Configuration Management**: Dynamic service configuration and monitoring
+- **Node Management**: Add, remove, update, and test TES nodes in the federation
+- **Instance Management**: View and manage TES instances and their locations
+- **Middleware Manager**: Configure and monitor the middleware pipeline
+- **Authentication System**: Secure admin access with session-based permissions
 
 ### 🎨 **Modern User Experience**
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
-- **Dark Theme Support**: Modern authentication interface with clean aesthetics
 - **Interactive Components**: Rich data visualizations and intuitive navigation
 - **Real-time Updates**: Live data refresh without page reloads
 
@@ -35,44 +34,38 @@ A comprehensive, modern dashboard for monitoring and managing Task Execution Ser
 
 ### Prerequisites
 
-- **Python 3.8+** (recommended: 3.9 or higher)
-- **Node.js 16+** (recommended: 18 LTS or higher)
-- **npm** or **yarn** package manager
+- **Docker** and **Docker Compose** (for containerised deployment)
+- **Python 3.9+** (for local backend development)
+- **Node.js 18+** and **npm** (for local frontend development)
 - **Git** for cloning the repository
 
-### 🏃‍♂️ One-Command Setup
+### 🐳 Docker Deployment (Recommended)
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/elixir-cloud-aai/elixir-cloud-demos.git
-   cd elixir-cloud-demos
-   ```
+Run both services with a single command:
 
-2. Start the complete dashboard:
-   ```bash
-   ./run.sh
-   ```
+```bash
+# Build and start frontend + backend
+docker compose up --build -d
 
-   The startup script will:
-   - ✅ Create and activate Python virtual environment
-   - ✅ Install all backend dependencies
-   - ✅ Install all frontend dependencies  
-   - ✅ Start Flask backend server on `http://localhost:8000`
-   - ✅ Start React development server on `http://localhost:3000`
+# Follow logs
+docker compose logs -f
 
-3. **Open your browser** and navigate to:
-   - 🌐 **Frontend Dashboard**: http://localhost:3000
-   - 🔧 **Backend API**: http://localhost:8000
+# Stop services
+docker compose down
+```
 
-### 🔧 Manual Setup
+This starts:
+- 🌐 **Frontend Dashboard**: http://localhost:3000
+- 🔧 **Backend API**: http://localhost:8000
 
-If you prefer to run the services separately:
+### 🔧 Local Development Setup
 
 #### Backend (Flask API)
 ```bash
 cd backend
+cp .env.example .env          # configure environment variables
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
@@ -86,154 +79,154 @@ npm start
 ```
 The frontend will be available at `http://localhost:3000`
 
-### 🐳 Docker Deployment
-
-Build and run with Docker:
-
-```bash
-# Build images
-./build-and-push-images.sh
-
-# Deploy with Docker Compose (if available)
-docker-compose up -d
-```
-
 ## 📁 Project Structure
 
 ```
 tes-dashboard/
-├── 📄 README.md                    # This file
-├── 📁 backend/                     # Flask Backend API (Modular Architecture)
-│   ├── app.py                      # Main Flask application entry point
-│   ├── config.py                   # Configuration management
-│   ├── requirements.txt            # Python dependencies
-│   ├── tes_instance_locations.json # TES federation configuration
-│   ├── Dockerfile                  # Backend container image
-│   ├── 📁 routes/                  # API route handlers
-│   │   ├── dashboard.py            # Dashboard endpoints
-│   │   ├── tasks.py                # Task management endpoints
-│   │   ├── workflows.py            # Workflow endpoints
-│   │   ├── batch.py                # Batch processing endpoints
-│   │   ├── nodes.py                # Node management endpoints
-│   │   ├── instances.py            # TES instance endpoints
-│   │   ├── network.py              # Network topology endpoints
-│   │   ├── health.py               # Health check endpoints
-│   │   └── logs.py                 # Log endpoints
-│   ├── 📁 services/                # Business logic layer
-│   │   ├── tes_service.py          # TES API interactions
-│   │   ├── task_service.py         # Task operations
-│   │   ├── workflow_service.py     # Workflow orchestration
-│   │   └── batch_service.py        # Batch processing
-│   ├── 📁 middleware/              # Custom middleware
-│   │   └── middleware_api.py       # Middleware API handlers
-│   ├── 📁 utils/                   # Helper utilities
-│   │   ├── tes_utils.py            # TES utility functions
-│   │   ├── file_utils.py           # File handling
-│   │   └── auth_utils.py           # Authentication helpers
-│   ├── 📁 logs/                    # Application logs (gitignored)
-│   └── 📁 uploads/                 # File upload directory (gitignored)
-├── 📁 frontend/                    # React Frontend Application
-│   ├── package.json                # Node.js dependencies
-│   ├── Dockerfile                  # Frontend container image
-│   ├── src/
-│   │   ├── components/             # Reusable UI components
-│   │   │   ├── auth/               # Authentication components
-│   │   │   ├── charts/             # Data visualization
-│   │   │   ├── common/             # Shared components
-│   │   │   ├── forms/              # Input forms
-│   │   │   ├── logs/               # Log viewing
-│   │   │   └── tables/             # Data tables
-│   │   ├── pages/                  # Application pages
-│   │   │   ├── Dashboard.js        # Main dashboard
-│   │   │   ├── Utilities.js        # Service status monitoring
-│   │   │   ├── NodeManagement.js   # Admin node management
-│   │   │   ├── Tasks.js            # Task management
-│   │   │   ├── Workflows.js        # Workflow management
-│   │   │   └── NetworkTopology.js  # Network visualization
-│   │   ├── contexts/               # React contexts
-│   │   │   └── AuthContext.js      # Authentication state
-│   │   ├── services/               # API communication
-│   │   ├── hooks/                  # Custom React hooks
-│   │   ├── utils/                  # Utility functions
-│   │   └── styles/                 # CSS stylesheets
-│   └── public/                     # Static assets
+├── README.md
+├── docker-compose.yml                   # Single-command deployment
+├── backend/                             # Flask Backend API
+│   ├── app.py                           # Application entry point & blueprint registration
+│   ├── config.py                        # Configuration (env vars, CORS, paths)
+│   ├── requirements.txt                 # Python dependencies
+│   ├── .env.example                     # Environment variable template
+│   ├── tes_instance_locations.json      # TES federation node geo-data
+│   ├── .tes_instances                   # Persisted TES instance list
+│   ├── Dockerfile                       # Development container image
+│   ├── Dockerfile.production            # Hardened production image
+│   ├── middleware_manager.py            # Middleware chain orchestration
+│   ├── middleware_config.py             # Middleware configuration & wiring
+│   ├── middleware_implementations.py    # Middleware implementations
+│   ├── middleware/
+│   │   └── middleware_api.py            # Middleware REST API blueprint
+│   ├── routes/                          # Flask blueprints (one per domain)
+│   │   ├── health.py                    # GET /api/health
+│   │   ├── dashboard.py                 # GET /api/dashboard_data
+│   │   ├── instances.py                 # /api/instances, /api/tes_locations, /api/service_info
+│   │   ├── nodes.py                     # /api/nodes CRUD, /api/service_status
+│   │   ├── tasks.py                     # /api/tasks, /api/submit_task
+│   │   ├── workflows.py                 # /api/workflows, /api/submit_workflow
+│   │   ├── batch.py                     # /api/batch_runs, /api/batch_cwl|nextflow|snakemake
+│   │   ├── logs.py                      # /api/task_log, /api/workflow_log, /api/batch_log
+│   │   └── network.py                   # /api/network_topology, /api/network_metrics
+│   ├── services/                        # Business logic layer
+│   │   ├── tes_service.py               # TES API interactions
+│   │   ├── task_service.py              # Task operations & auto-updater
+│   │   ├── workflow_service.py          # Workflow orchestration
+│   │   └── batch_service.py             # Batch job processing
+│   └── utils/
+│       ├── tes_utils.py                 # TES utility functions
+│       ├── file_utils.py                # File handling helpers
+│       └── auth_utils.py               # Authentication helpers
+├── frontend/                            # React Frontend Application
+│   ├── package.json                     # Node.js dependencies
+│   ├── nginx.conf                       # Nginx config (proxies /api → backend)
+│   ├── server.js                        # Express server for k8s deployments
+│   ├── Dockerfile                       # Development container image
+│   ├── Dockerfile.production            # Hardened production image
+│   ├── public/                          # Static assets (index.html, icons, manifest)
+│   └── src/
+│       ├── App.js                       # Router & top-level layout
+│       ├── components/
+│       │   ├── MiddlewareManager.js     # Middleware manager component
+│       │   ├── auth/
+│       │   │   ├── AdminLogin.js        # Admin login form
+│       │   │   └── ProtectedRoute.js    # Route guard for admin pages
+│       │   └── common/
+│       │       ├── Header.js            # Top navigation bar
+│       │       ├── Sidebar.js           # Side navigation
+│       │       ├── ServiceStatus.js     # Service status widget
+│       │       ├── ServiceStatusIndicator.js
+│       │       ├── LoadingSpinner.js
+│       │       └── ErrorMessage.js
+│       ├── contexts/
+│       │   └── AuthContext.js           # Global auth state
+│       ├── hooks/
+│       │   ├── useInstances.js          # TES instance data hook
+│       │   └── usePolling.js            # Generic polling hook
+│       ├── pages/
+│       │   ├── Dashboard.js             # Main overview dashboard
+│       │   ├── Tasks.js                 # Task list & management
+│       │   ├── TaskDetails.js           # Individual task detail view
+│       │   ├── SubmitTask.js            # Task submission form
+│       │   ├── Workflows.js             # Workflow list & submission
+│       │   ├── BatchProcessing.js       # Batch job submission
+│       │   ├── BatchRuns.js             # Batch run history
+│       │   ├── Logs.js                  # Task / workflow / batch log viewer
+│       │   ├── NetworkTopology.js       # Network topology visualisation
+│       │   ├── NetworkTopologyPage.tsx  # Network topology page wrapper
+│       │   ├── RealTimeNetworkTopology.tsx # Live network topology
+│       │   ├── NodeManagement.js        # Admin: manage TES nodes
+│       │   ├── InstanceManagement.js    # TES instance management
+│       │   ├── MiddlewareManager.js     # Middleware configuration page
+│       │   ├── ServiceInfo.js           # TES service info viewer
+│       │   ├── SystemStatus.js          # System-wide status overview
+│       │   ├── Utilities.js             # Service health & utilities
+│       │   ├── Settings.js              # Application settings
+│       │   └── ApiTest.js              # API connectivity tester
+│       ├── services/                    # API client layer
+│       │   ├── api.js                   # Axios instance & base URL config
+│       │   ├── taskService.js           # Task API calls
+│       │   ├── workflowService.js       # Workflow API calls
+│       │   ├── batchService.js          # Batch API calls
+│       │   ├── instanceService.js       # Instance API calls
+│       │   ├── logService.js            # Log API calls
+│       │   ├── serviceInfoService.js    # TES service info calls
+│       │   ├── serviceService.js        # General service calls
+│       │   ├── serviceStatusService.js  # Service status polling
+│       │   ├── statusService.js         # System status calls
+│       │   └── mapService.js            # Map/geo data service
+│       ├── styles/
+│       │   └── MiddlewareManager.css
+│       └── utils/
+│           ├── constants.js             # App-wide constants
+│           ├── formatters.js            # Data formatting helpers
+│           ├── helpers.js               # General helper functions
+│           └── validators.js            # Input validation
+└── test-data/                           # Sample payloads for manual testing
+    ├── config.json
+    ├── sample-data.csv
+    ├── sample-input.txt
+    ├── tasks/                           # Example TES task JSON payloads
+    │   ├── hello-world-task.json
+    │   ├── data-processing-task.json
+    │   ├── bioinformatics-analysis.json
+    │   └── gpu-ml-training.json
+    ├── batch-processing/                # Example batch submission payloads
+    │   ├── hello-world-batch.json
+    │   ├── data-analysis-batch.json
+    │   ├── genomics-pipeline-batch.json
+    │   └── ml-hyperparameter-batch.json
+    └── workflows/                       # Example workflow definitions
+        ├── hello-world.cwl
+        ├── data-processing.cwl
+        ├── hello-world.nf
+        ├── rna-seq-analysis.nf
+        ├── Snakefile
+        ├── bioinformatics-pipeline.smk
+        └── config.yaml
 ```
-
-## 🎯 Key Components
-
-### Backend API (`/backend`)
-- **Modular Flask Architecture** with separate routes, services, and middleware layers
-- **Service Layer Pattern** for clean separation of business logic
-- **Middleware System** for request/response processing and cross-cutting concerns
-- **Flask REST API** with comprehensive TES management endpoints
-- **Service Health Monitoring** with real-time status checks
-- **Node Management API** for federated TES network administration
-- **Batch Processing** support for large-scale job submissions
-- **CORS-enabled** for seamless frontend integration
-
-### Frontend Dashboard (`/frontend`)
-- **React 18** with modern hooks and context API
-- **Styled Components** for component-scoped styling
-- **Axios** for HTTP client communication
-- **Lucide React** for consistent iconography
-- **Responsive Design** with mobile-first approach
-
-### Authentication System
-- **Admin Authentication** with session management
-- **Protected Routes** for administrative functions
-- **Role-based Access** for sensitive operations
-- **24-hour Sessions** with automatic logout
-
-## 📖 Usage Guide
-
-### 🔍 **Service Status Monitoring**
-
-Navigate to **Utilities → Service Status** to monitor the health of your TES federation:
-
-- **Gateway Status**: Monitor the main TES gateway service
-- **Node Health**: Real-time status of all federated TES nodes  
-- **Response Times**: Performance metrics for each service
-- **Auto-refresh**: Status updates every 3 seconds while viewing
-
-### 👥 **Node Management** (Admin Only)
-
-Access **Administration → Node Management** to manage your TES federation:
-
-1. **Login**: Use admin credentials (`tesadmin` / `admin@dashboard`)
-2. **Add Nodes**: Configure new TES instances in the federation
-3. **Test Connectivity**: Verify node health and connectivity
-4. **Remove Nodes**: Safely remove outdated or offline nodes
-
-### 📊 **Task & Workflow Management**
-
-- **Submit Tasks**: Use the task submission interface for individual jobs
-- **Batch Processing**: Submit multiple jobs with batch processing
-- **Monitor Progress**: Track task execution in real-time
-- **View Logs**: Access detailed execution logs and error messages
-
-### 🌐 **Network Topology**
-
-Visualize your TES federation:
-- **Geographic View**: See TES nodes distributed across regions
-- **Connection Status**: Monitor network connectivity between nodes
-- **Performance Metrics**: View latency and throughput statistics
 
 ## ⚙️ Configuration
 
-### Backend Configuration
+### Backend
 
-The backend can be configured through environment variables:
+Copy `.env.example` to `.env` in the `backend/` directory and fill in your values:
 
-```bash
-# Backend configuration
-export TES_GATEWAY_URL="http://localhost:8000"
-export FLASK_ENV="development"  # or "production"
-export CORS_ORIGINS="http://localhost:3000"
+```env
+SECRET_KEY=your-secret-key-here
+FLASK_ENV=development
+
+# TES gateway credentials (optional)
+FUNNEL_SERVER_USER=
+FUNNEL_SERVER_PASSWORD=
+TES_TOKEN=
+TES_GATEWAY=
 ```
 
-### TES Federation Setup
+### TES Federation Nodes
 
-Configure your TES instances in `backend/tes_instance_locations.json`:
+Add or edit nodes in `backend/tes_instance_locations.json`:
 
 ```json
 {
@@ -248,190 +241,94 @@ Configure your TES instances in `backend/tes_instance_locations.json`:
 }
 ```
 
-### Frontend Configuration
+## 🔌 API Reference
 
-Frontend settings in `frontend/.env`:
-
-```env
-REACT_APP_API_URL=http://localhost:8000
-REACT_APP_REFRESH_INTERVAL=30000
-```
-
-## 🔌 API Documentation
-
-### Service Status Endpoints
-
+### Health
 ```http
-GET /api/service-status        # Get all service statuses
-GET /api/service-health/{id}   # Get specific service health
-GET /api/nodes                 # List all TES nodes
+GET  /api/health                          # Backend health check
 ```
 
-### Node Management Endpoints
-
+### Dashboard & Instances
 ```http
-POST /api/nodes                # Add new TES node
-PUT /api/nodes/{id}            # Update TES node
-DELETE /api/nodes/{id}         # Remove TES node
-GET /api/nodes/{id}/test       # Test node connectivity
+GET  /api/dashboard_data                  # Aggregated dashboard data
+GET  /api/instances                       # All TES instances
+GET  /api/tes_locations                   # Instance geo-locations
+GET  /api/healthy-instances               # Healthy instances only
+GET  /api/service_info?tes_url=<url>      # Service info for a specific instance
 ```
 
-### Task Management Endpoints
-
+### Nodes
 ```http
-GET /api/tasks                 # List tasks
-POST /api/tasks                # Submit new task
-GET /api/tasks/{id}            # Get task details
-GET /api/tasks/{id}/logs       # Get task logs
+GET    /api/nodes                         # List nodes
+POST   /api/nodes                         # Add a node
+GET    /api/nodes/<id>                    # Get node details
+PUT    /api/nodes/<id>                    # Update a node
+DELETE /api/nodes/<id>                    # Remove a node
+GET    /api/nodes/<id>/health             # Node health check
+GET    /api/service_status                # All nodes service status
+GET    /api/test_connection               # Test backend connectivity
 ```
 
-## 🧪 Testing
-
-### Backend Tests
-```bash
-cd backend
-python -m pytest tests/
+### Tasks
+```http
+GET  /api/tasks                           # List tasks
+POST /api/submit_task                     # Submit a new task
+GET  /api/task_details?task_id=<id>&tes_url=<url>  # Task details
+GET  /api/task_log/<task_id>              # Task logs
 ```
 
-### Frontend Tests
-```bash
-cd frontend
-npm test
+### Workflows
+```http
+GET  /api/workflows                       # List workflows
+POST /api/submit_workflow                 # Submit a workflow (CWL/NF/Snakemake)
+GET  /api/latest_workflow_status          # Latest workflow run status
+GET  /api/workflow_log/<run_id>           # Workflow logs
 ```
 
-### Integration Tests
-```bash
-./test-integration.sh
+### Batch
+```http
+GET  /api/batch_runs                      # Batch run history
+POST /api/batch_cwl                       # Submit CWL batch
+POST /api/batch_nextflow                  # Submit Nextflow batch
+POST /api/batch_snakemake                 # Submit Snakemake batch
+GET  /api/batch_log/<run_id>              # Batch run logs
 ```
 
-## 🛠 Development
-
-### Adding New Pages
-
-1. Create page component in `frontend/src/pages/`
-2. Add route in `frontend/src/App.js`
-3. Update navigation in `frontend/src/components/common/Sidebar.js`
-
-### Adding New API Endpoints
-
-1. Add endpoint in `backend/app.py`
-2. Create service function in `frontend/src/services/`
-3. Use service in React components
-
-### Styling Guidelines
-
-- Use **Styled Components** for component styling
-- Follow **mobile-first** responsive design
-- Use **Lucide React** icons for consistency
-- Maintain **dark theme** support
+### Network
+```http
+GET  /api/network_topology                # Full network topology
+GET  /api/network_status                  # Network connectivity status
+GET  /api/network_metrics                 # Aggregated network metrics
+GET  /api/instance_metrics/<id>           # Per-instance metrics
+GET  /api/data_transfers                  # Active data transfers
+GET  /api/storage_locations               # Storage endpoint list
+```
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+**TES instances not loading (Network Error)**
+- When running via Docker Compose the frontend proxies `/api` requests through nginx to the backend container. Ensure `REACT_APP_API_URL` is left empty (the default) so the proxy is used.
+- Verify both containers are running: `docker compose ps`
+- Check backend logs: `docker compose logs tes-dashboard-backend-service`
 
-**Backend won't start:**
-- Check Python version (3.8+ required)
-- Verify virtual environment activation
-- Install dependencies: `pip install -r requirements.txt`
+**Backend container not healthy**
+- The health check calls `GET /api/health`. Confirm the backend started without import errors: `docker compose logs tes-dashboard-backend-service`
 
-**Frontend won't start:**
-- Check Node.js version (16+ required)
-- Clear node_modules: `rm -rf node_modules && npm install`
-- Check port 3000 availability
+**Admin login not working**
+- Default credentials: `tesadmin` / `admin@dashboard`
+- Check browser console for CORS errors — the backend must be reachable from the origin used by the browser.
 
-**Service status shows all offline:**
-- Verify backend is running on port 8000
-- Check CORS configuration
-- Validate TES node URLs in configuration
+**Frontend won't start locally**
+- Requires Node.js 18+. Clear cached modules with `rm -rf node_modules && npm install`.
 
-**Admin login not working:**
-- Use credentials: `tesladmin` / `admin@dashboard`
-- Check browser local storage
-- Clear browser cache if needed
-
-## 📈 Performance Optimization
-
-### Backend Optimization
-
-- Use **connection pooling** for TES node communications
-- Implement **caching** for service status responses
-- Add **rate limiting** for API endpoints
-- Use **async/await** for concurrent node health checks
-
-### Frontend Optimization
-
-- Implement **React.memo** for expensive components
-- Use **lazy loading** for pages and components
-- Add **service worker** for offline functionality
-- Optimize **bundle size** with code splitting
-
-## 🔒 Security Considerations
-
-### Authentication
-
-- Admin sessions expire after 24 hours
-- Passwords are validated client-side
-- Consider implementing JWT tokens for production
-
-### Network Security
-
-- All TES communications use HTTPS in production
-- CORS is properly configured for frontend-backend communication
-- API rate limiting prevents abuse
-
-### Data Protection
-
-- No sensitive data stored in local storage
-- All user inputs are sanitized
-- TES node credentials handled securely
-
-## 📚 Additional Resources
-
-### TES Specification
-- [GA4GH TES API](https://github.com/ga4gh/task-execution-schemas)
-- [TES Implementation Guide](https://ga4gh.github.io/task-execution-schemas/)
-
-### Elixir Cloud Documentation
-- [Elixir Cloud Portal](https://elixir-cloud.dcc.sib.swiss/)
-- [Federation Architecture](https://github.com/elixir-cloud-aai)
-
-### Technology Stack Documentation
-- [React Documentation](https://react.dev/)
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [Styled Components](https://styled-components.com/)
+**Backend won't start locally**
+- Requires Python 3.9+. Activate the virtual environment before running `python app.py`.
 
 ## 🤝 Contributing
 
-We welcome contributions to the TES Dashboard! Here's how to get started:
-
-### **How to Contribute**
-
 1. **Fork** the repository
-2. **Clone** your fork locally
-3. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-4. **Make** your changes and test thoroughly
-5. **Commit** with descriptive messages: `git commit -m 'Add amazing feature'`
-6. **Push** to your branch: `git push origin feature/amazing-feature`
-7. **Submit** a pull request
-
-### **Contribution Guidelines**
-
-- **Code Style**: Follow existing patterns and linting rules
-- **Testing**: Add tests for new functionality
-- **Documentation**: Update README and inline comments
-- **Backwards Compatibility**: Ensure existing features still work
-
-### **Reporting Bugs**
-
-1. Check existing issues first
-2. Provide detailed reproduction steps
-3. Include system information (OS, browser, versions)
-4. Add screenshots or logs if helpful
-
-### **Feature Requests**
-
-1. Describe the use case clearly
-2. Explain the expected behavior
-3. Consider implementation approaches
-4. Discuss with maintainers first for large changes
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** your changes: `git commit -m 'Add amazing feature'`
+4. **Push** to your branch: `git push origin feature/amazing-feature`
+5. **Open** a pull request
 

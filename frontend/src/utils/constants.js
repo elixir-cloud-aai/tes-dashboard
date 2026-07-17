@@ -88,13 +88,12 @@ export const THEME = {
 };
 
 export const TES_INSTANCES = [
-  { name: 'Funnel/OpenPBS @ ELIXIR-CZ', url: 'https://funnel.cloud.e-infra.cz', id: 'funnel-cz' },
-  { name: 'Funnel/Slurm @ ELIXIR-FI', url: 'https://vm4816.kaj.pouta.csc.fi', id: 'funnel-fi' },
-  { name: 'TESK/Kubernetes @ ELIXIR-CZ (Prod)', url: 'https://tesk-prod.cloud.e-infra.cz', id: 'elixir-cz-prod' },
-  { name: 'TESK/Kubernetes @ ELIXIR-CZ (NA)', url: 'https://tesk-na.cloud.e-infra.cz', id: 'elixir-cz-na' },
-  { name: 'TESK/Kubernetes @ ELIXIR-DE', url: 'https://tesk.elixir-cloud.bi.denbi.de', id: 'elixir-de' },
-  { name: 'TESK/Kubernetes @ ELIXIR-GR', url: 'https://tesk-eu.hypatia-comp.athenarc.gr', id: 'elixir-gr' },
-  { name: 'TESK/OpenShift @ ELIXIR-FI', url: 'https://csc-tesk-noauth.rahtiapp.fi', id: 'elixir-fi' },
-  { name: 'TESK North America', url: 'https://tesk-na.cloud.e-infra.cz', id: 'tesk-na' },
-  { name: 'Local TES', url: 'http://localhost:8080', id: 'local-tes' }
+  { name: 'Funnel/OpenPBS @ ELIXIR-CZ', url: 'https://funnel.cloud.e-infra.cz', id: 'elixir:cz:1' },
+  { name: 'Poiesis @ ELIXIR-CZ', url: 'https://poiesis.dyn.cloud.e-infra.cz/', id: 'elixir:cz:2' },
+  { name: 'TESK @ ELIXIR-FI', url: 'https://csc-tesk-noauth.rahtiapp.fi', id: 'elixir:fi:1' },
+  { name: 'Funnel/Slurm @ ELIXIR-FI', url: 'https://fip-86-50-228-254.kaj.poutavm.fi/', id: 'elixir:fi:2' },
+  { name: 'Poiesis @ ELIXIR-FI', url: 'https://poiesis.rahtiapp.fi/', id: 'elixir:fi:3' },
+  { name: 'Test Poiesis @ ELIXIR-FI', url: 'https://test-poiesis.rahtiapp.fi/', id: 'elixir:fi:4' },
+  { name: 'Funnel/Slurm @ BIH', url: 'https://spe4hd.tes.bihealth.org', id: 'elixir:de:1' },
+  { name: 'TESK @ ELIXIR-GR', url: 'https://tesk-eu.hypatia-comp.athenarc.gr', id: 'elixir:gr:1' }
 ];
