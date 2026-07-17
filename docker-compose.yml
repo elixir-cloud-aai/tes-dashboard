@@ -2,7 +2,7 @@ services:
   tes-dashboard-backend-service:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.production
     container_name: tes-dashboard-backend
     environment:
       PORT: 8000
