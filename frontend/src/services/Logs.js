@@ -265,11 +265,11 @@ const Logs = () => {
   }, [logs, searchTerm, logType]);
 
   const loadLogs = async () => {
-  try {
+    const allLogs = [];
+
+    try {
     setLoading(true);
     setError('');
-
-    const allLogs = [];
     
     const taskIdParam = searchParams.get('taskId');
     const tesUrlParam = searchParams.get('tesUrl');
@@ -355,8 +355,6 @@ const Logs = () => {
           .filter(Boolean);
 
         allLogs.push(...taskLogs);
-        setLogs([...allLogs]);
-        setLoading(false);
       }
 
         if (Array.isArray(dashboardData.workflow_runs)) {
@@ -452,11 +450,10 @@ const Logs = () => {
       }
 
         allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      
-      setLogs(allLogs);
     } catch (err) {
       setError('Failed to load logs: ' + err.message);
     } finally {
+      setLogs(allLogs);
       setLoading(false);
     }
   };

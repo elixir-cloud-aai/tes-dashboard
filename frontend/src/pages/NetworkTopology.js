@@ -914,6 +914,7 @@ setInstances(enhancedInstances);
   });
 
   const markerOffsetsById = new Map();
+  const markerOffsetKeysByInstance = new Map();
   const instancesByCoordinate = new Map();
 
   instances.forEach(instance => {
@@ -928,19 +929,25 @@ setInstances(enhancedInstances);
     instancesByCoordinate.set(coordinateKey, instancesAtCoordinate);
   });
 
-  instancesByCoordinate.forEach(instancesAtCoordinate => {
+  instancesByCoordinate.forEach((instancesAtCoordinate, coordinateKey) => {
     if (instancesAtCoordinate.length < 2) return;
 
-    [...instancesAtCoordinate]
-      .sort((firstInstance, secondInstance) => firstInstance.id.localeCompare(secondInstance.id))
-      .forEach((instance, index) => {
+    const sortedInstances = [...instancesAtCoordinate].sort(
+      (firstInstance, secondInstance) =>
+        String(firstInstance.id ?? '').localeCompare(String(secondInstance.id ?? ''))
+    );
+
+    sortedInstances.forEach((instance, index) => {
         const angle = (Math.PI * 2 * index) / instancesAtCoordinate.length - Math.PI / 2;
         const radius = 20;
+        const normalizedId = instance.id != null ? String(instance.id) : '';
+        const markerKey = `${coordinateKey}-${normalizedId || 'instance'}-${index}`;
 
-        markerOffsetsById.set(instance.id, {
+        markerOffsetsById.set(markerKey, {
           x: Math.cos(angle) * radius,
           y: Math.sin(angle) * radius
         });
+        markerOffsetKeysByInstance.set(instance, markerKey);
       });
   });
 
@@ -1491,7 +1498,7 @@ const ConnectionLine = styled.div`
                                       (instance.lat !== 0 || instance.lng !== 0);
                 if (!hasValidCoords) return null;
 
-                const markerOffset = markerOffsetsById.get(instance.id);
+                const markerOffset = markerOffsetsById.get(markerOffsetKeysByInstance.get(instance));
                 
                 return (
                   <Marker
