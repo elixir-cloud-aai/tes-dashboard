@@ -232,18 +232,18 @@ const SubmitTask = () => {
 
   const getInstanceCapabilityLabel = (instance) => {
     if (isRunnableInstance(instance)) {
-      return 'ready';
+      return 'ready: healthy';
     }
 
     if (requiresAuthorization(instance)) {
-      return 'auth required';
+      return 'not ready: healthy, auth required';
     }
 
     if (isReachableInstance(instance)) {
-      return 'not runnable';
+      return 'not ready: healthy, unavailable';
     }
 
-    return 'unreachable';
+    return 'not ready: unhealthy, unreachable';
   };
 
   const hasUsableUrl = (instance) => {

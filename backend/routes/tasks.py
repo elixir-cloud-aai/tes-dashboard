@@ -7,6 +7,7 @@ import requests
 import shlex
 import logging
 from services.task_service import get_submitted_tasks, add_task, update_single_task_status
+from services.tes_service import resolve_task_endpoint
 from utils.tes_utils import load_tes_instances
 from utils.auth_utils import get_instance_credentials
 import logging
@@ -202,19 +203,23 @@ def submit_task():
                 "path": data.get('output_path', '/tmp/output'),
                 "type": "FILE"
             }) 
+        endpoint_resolution = resolve_task_endpoint(tes_name, tes_url)
         base_url = tes_url.rstrip('/')
         endpoint_patterns = [
             {'service_info': f'{base_url}/ga4gh/tes/v1/service-info', 'tasks': f'{base_url}/ga4gh/tes/v1/tasks'},
             {'service_info': f'{base_url}/v1/service-info', 'tasks': f'{base_url}/v1/tasks'},
             {'service_info': f'{base_url}/service-info', 'tasks': f'{base_url}/tasks'},
         ] 
-        service_is_reachable = False
-        working_endpoint = None
+        service_is_reachable = endpoint_resolution['reachable']
+        working_endpoint = endpoint_resolution['endpoint']
         connectivity_error_info = None
         
         print(f"🔍 Testing connectivity to {tes_name} ({tes_url})...")
+
+        if service_is_reachable:
+            print(f"  ✅ Task endpoint reachable at {working_endpoint} ({endpoint_resolution['access']})")
         
-        for pattern in endpoint_patterns:
+        for pattern in endpoint_patterns if not service_is_reachable else []:
             service_info_url = pattern['service_info']
             tasks_url = pattern['tasks']
             

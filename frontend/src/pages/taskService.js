@@ -1,43 +1,5 @@
 import api from './api';
 
-const TERMINAL_TASK_STATES = new Set([
-  'COMPLETE',
-  'CANCELED',
-  'SYSTEM_ERROR',
-  'EXECUTOR_ERROR',
-  'PREEMPTED'
-]);
-
-const normalizeTaskState = (value) => {
-  if (!value || typeof value !== 'string') {
-    return 'UNKNOWN';
-  }
-  return value.toUpperCase();
-};
-
-const resolveEffectiveTaskState = (task) => {
-  const statusState = normalizeTaskState(task?.status);
-  const stateState = normalizeTaskState(task?.state);
-
-  if (TERMINAL_TASK_STATES.has(statusState) && !TERMINAL_TASK_STATES.has(stateState)) {
-    return statusState;
-  }
-
-  if (TERMINAL_TASK_STATES.has(stateState) && !TERMINAL_TASK_STATES.has(statusState)) {
-    return stateState;
-  }
-
-  if (statusState !== 'UNKNOWN') {
-    return statusState;
-  }
-
-  if (stateState !== 'UNKNOWN') {
-    return stateState;
-  }
-
-  return 'UNKNOWN';
-};
-
 export const taskService = {
   
   getTaskDetails: async (tesUrl, taskId, viewLevel = 'FULL') => {
@@ -134,18 +96,18 @@ export const taskService = {
       try {
         tasks = backendTasks
           .filter(task => {
-            const taskState = resolveEffectiveTaskState(task);
+            const taskState = task.state || task.status;
             return task && 
                    (task.task_id || task.id) && 
                    task.tes_url && 
-                   taskState !== 'UNKNOWN' &&
+                   taskState &&
                    !task.connection_error &&
                    !task.timeout_error &&
                    taskState !== 'CONNECTION_ERROR' &&
                    taskState !== 'TIMEOUT_ERROR';
           })
           .map(task => {
-            const taskState = resolveEffectiveTaskState(task);
+            const taskState = task.state || task.status || 'UNKNOWN';
             const taskId = task.task_id || task.id;
             return {
               id: taskId,
@@ -154,9 +116,11 @@ export const taskService = {
               tes_url: task.tes_url,
               type: task.type,
               creation_time: task.creation_time || new Date().toISOString(),
+              submitted_at: task.submitted_at,
               end_time: task.end_time,
               tes_name: task.tes_name,
               task_name: task.task_name || task.name,
+              logs: task.logs || [],
               instance_healthy: true
             };
           });

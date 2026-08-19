@@ -913,9 +913,40 @@ setInstances(enhancedInstances);
     return matchesSearch && matchesStatus && matchesRegion;
   });
 
+  const markerOffsetsById = new Map();
+  const instancesByCoordinate = new Map();
+
+  instances.forEach(instance => {
+    const latitude = Number(instance.lat);
+    const longitude = Number(instance.lng);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+    const coordinateKey = `${latitude.toFixed(7)},${longitude.toFixed(7)}`;
+    const instancesAtCoordinate = instancesByCoordinate.get(coordinateKey) || [];
+    instancesAtCoordinate.push(instance);
+    instancesByCoordinate.set(coordinateKey, instancesAtCoordinate);
+  });
+
+  instancesByCoordinate.forEach(instancesAtCoordinate => {
+    if (instancesAtCoordinate.length < 2) return;
+
+    [...instancesAtCoordinate]
+      .sort((firstInstance, secondInstance) => firstInstance.id.localeCompare(secondInstance.id))
+      .forEach((instance, index) => {
+        const angle = (Math.PI * 2 * index) / instancesAtCoordinate.length - Math.PI / 2;
+        const radius = 20;
+
+        markerOffsetsById.set(instance.id, {
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius
+        });
+      });
+  });
+
   const regions = [...new Set(instances.map(i => i.region))];
 
-  const createTESIcon = (status, instanceType, isSelected = false) => {
+  const createTESIcon = (status, instanceType, isSelected = false, offset = { x: 0, y: 0 }) => {
     const color = status === 'healthy' ? '#38a169' : 
                   status === 'processing' ? '#ed8936' : '#e53e3e';
     
@@ -948,7 +979,8 @@ setInstances(enhancedInstances);
       </div>`,
       className: 'tes-marker',
       iconSize: [size, size],
-      iconAnchor: [size/2, size/2]
+      iconAnchor: [size / 2 - offset.x, size / 2 - offset.y],
+      popupAnchor: [offset.x, offset.y - size / 2]
     });
   };
 
@@ -1458,6 +1490,8 @@ const ConnectionLine = styled.div`
                 const hasValidCoords = instance.lat && instance.lng && 
                                       (instance.lat !== 0 || instance.lng !== 0);
                 if (!hasValidCoords) return null;
+
+                const markerOffset = markerOffsetsById.get(instance.id);
                 
                 return (
                   <Marker
@@ -1466,7 +1500,8 @@ const ConnectionLine = styled.div`
                     icon={createTESIcon(
                       instance.status, 
                       instance.instanceType || 'compute',
-                      selectedInstance?.id === instance.id
+                      selectedInstance?.id === instance.id,
+                      markerOffset
                     )}
                     eventHandlers={{
                       click: () => setSelectedInstance(instance)

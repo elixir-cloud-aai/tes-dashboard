@@ -1,20 +1,40 @@
+import json
+import os
 import requests
 import time
 import threading
 from datetime import datetime, timezone
 from utils.auth_utils import get_instance_credentials
+from config import SUBMITTED_TASKS_FILE
 
 task_update_lock = threading.Lock()
-submitted_tasks = []
 TERMINAL_STATES = ['COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED', 'SUBMISSION_FAILED']
 
-def fetch_task_status_from_tes(task_id, tes_url, tes_name='Unknown'):
+def load_submitted_tasks():
+    if not os.path.exists(SUBMITTED_TASKS_FILE):
+        return []
+    try:
+        with open(SUBMITTED_TASKS_FILE, 'r') as task_file:
+            tasks = json.load(task_file)
+        return tasks if isinstance(tasks, list) else []
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"Warning: could not load submitted tasks: {error}")
+        return []
+
+def save_submitted_tasks():
+    temporary_file = f"{SUBMITTED_TASKS_FILE}.tmp"
+    with open(temporary_file, 'w') as task_file:
+        json.dump(submitted_tasks, task_file)
+    os.replace(temporary_file, SUBMITTED_TASKS_FILE)
+
+submitted_tasks = load_submitted_tasks()
+
+def fetch_task_status_from_tes(task_id, tes_url, tes_name='Unknown', tes_endpoint=None):
     if not task_id or not tes_url:
         return False, None, "Missing task_id or tes_url"
     
     try:
         credentials = get_instance_credentials(tes_name, tes_url)
-        tes_endpoint = f"{tes_url.rstrip('/')}/ga4gh/tes/v1/tasks/{task_id}?view=FULL"
         headers = {'Accept': 'application/json'}
         auth = None
         
@@ -23,15 +43,22 @@ def fetch_task_status_from_tes(task_id, tes_url, tes_name='Unknown'):
         elif credentials.get('user') and credentials.get('password'):
             auth = (credentials['user'], credentials['password'])
         
-        response = requests.get(tes_endpoint, headers=headers, auth=auth, timeout=10)
-        
-        if response.status_code == 200:
-            task_data = response.json()
-            return True, task_data, None
-        elif response.status_code == 404:
-            return False, None, f"Task {task_id} not found on TES instance {tes_url}"
-        else:
-            return False, None, f"HTTP {response.status_code} error from TES instance"
+        base_url = tes_url.rstrip('/')
+        endpoint_candidates = [
+            f"{base_url}/ga4gh/tes/v1/tasks/{task_id}?view=FULL",
+            f"{base_url}/v1/tasks/{task_id}?view=FULL",
+        ]
+        if tes_endpoint:
+            endpoint_candidates.insert(0, f"{tes_endpoint.rstrip('/')}/{task_id}?view=FULL")
+
+        last_error = None
+        for endpoint in dict.fromkeys(endpoint_candidates):
+            response = requests.get(endpoint, headers=headers, auth=auth, timeout=10)
+            if response.status_code == 200:
+                return True, response.json(), None
+            last_error = f"HTTP {response.status_code} from {endpoint}"
+
+        return False, None, last_error
     
     except requests.exceptions.Timeout:
         return False, None, f"Timeout fetching task {task_id} status"
@@ -44,11 +71,12 @@ def update_single_task_status(task):
     task_id = task.get('task_id') or task.get('id')
     tes_url = task.get('tes_url')
     tes_name = task.get('tes_name', 'Unknown')
+    tes_endpoint = task.get('tes_endpoint')
     
     if not task_id or not tes_url:
         return False
     
-    success, task_data, error = fetch_task_status_from_tes(task_id, tes_url, tes_name)
+    success, task_data, error = fetch_task_status_from_tes(task_id, tes_url, tes_name, tes_endpoint)
     
     if not success:
         if error:
@@ -74,6 +102,8 @@ def update_single_task_status(task):
                 
                 if task_data.get('logs'):
                     t['logs'] = task_data['logs']
+
+                save_submitted_tasks()
                 
                 if new_state != old_state:
                     print(f"Updated task {task_id}: {old_state} -> {new_state}")
@@ -135,4 +165,6 @@ def get_submitted_tasks():
     return submitted_tasks
 
 def add_task(task):
-    submitted_tasks.append(task)
+    with task_update_lock:
+        submitted_tasks.append(task)
+        save_submitted_tasks()
