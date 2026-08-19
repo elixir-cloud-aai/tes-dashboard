@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify
 from datetime import datetime, timezone
 import json
 from utils.tes_utils import load_tes_location_data
-from services.task_service import get_submitted_tasks
+from services.task_service import get_submitted_tasks, update_single_task_status
 from services.workflow_service import get_workflow_runs
 from services.batch_service import get_batch_runs
 from utils.tes_utils import load_tes_instances
@@ -11,6 +11,18 @@ dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/api/dashboard_data', methods=['GET'])
 def get_dashboard_data():
+    # Refresh non-terminal task states before returning dashboard data so
+    # Task Management remains consistent with Task Details.
+    terminal_states = {'COMPLETE', 'CANCELED', 'SYSTEM_ERROR', 'EXECUTOR_ERROR', 'PREEMPTED'}
+    current_tasks = get_submitted_tasks()
+    for task in list(current_tasks):
+        try:
+            task_state = (task.get('state') or task.get('status') or 'UNKNOWN').upper()
+            if task_state not in terminal_states:
+                update_single_task_status(task)
+        except Exception as refresh_error:
+            print(f"Warning: dashboard task refresh failed for {task.get('task_id') or task.get('id')}: {refresh_error}")
+
     current_tes_locations = load_tes_location_data()
     
     fresh_instances = []
@@ -23,7 +35,7 @@ def get_dashboard_data():
         })
     
     data = {
-        'tasks': get_submitted_tasks(),
+        'tasks': current_tasks,
         'workflow_runs': get_workflow_runs(),
         'batch_runs': get_batch_runs(),
         'tes_instances': current_tes_locations,

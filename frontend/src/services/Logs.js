@@ -208,9 +208,13 @@ const NoLogsMessage = styled.div`
 `;
 
 const formatSubmittedTaskLog = (task, taskId) => {
-  let content = `=== Task Execution Log ===\nTask ID: ${taskId}\nTask Name: ${task.name || task.task_name || 'Unknown'}\nState: ${task.state || task.status || 'Unknown'}\nSubmitted: ${task.submitted_at || task.creation_time || 'Unknown'}\n`;
-  const executionLogs = task.logs || [];
+  let content = '=== Task Execution Log ===\n'
+    + `Task ID: ${taskId}\n`
+    + `Task Name: ${task.name || task.task_name || 'Unknown'}\n`
+    + `State: ${task.state || task.status || 'Unknown'}\n`
+    + `Submitted: ${task.submitted_at || task.creation_time || 'Unknown'}\n`;
 
+  const executionLogs = task.logs || [];
   if (executionLogs.length === 0) {
     return `${content}\nNo execution output has been captured yet.`;
   }
@@ -219,8 +223,12 @@ const formatSubmittedTaskLog = (task, taskId) => {
     content += `\n=== Execution Log ${entryIndex + 1} ===\n`;
     (entry.logs || []).forEach((executorLog, executorIndex) => {
       content += `Executor ${executorIndex + 1} (exit code: ${executorLog.exit_code ?? 'N/A'})\n`;
-      if (executorLog.stdout) content += `--- STDOUT ---\n${executorLog.stdout}\n`;
-      if (executorLog.stderr) content += `--- STDERR ---\n${executorLog.stderr}\n`;
+      if (executorLog.stdout) {
+        content += `--- STDOUT ---\n${executorLog.stdout}\n`;
+      }
+      if (executorLog.stderr) {
+        content += `--- STDERR ---\n${executorLog.stderr}\n`;
+      }
     });
   });
 
@@ -240,14 +248,12 @@ const Logs = () => {
   useEffect(() => {
     const typeParam = searchParams.get('type');
     const taskIdParam = searchParams.get('taskId');
-    
-    if (typeParam === 'task') {
-      setLogType('task');
-    }
-    
-    if (taskIdParam) {
-      setSearchTerm(taskIdParam);
-    }
+
+    const allowedTypes = new Set(['all', 'task', 'workflow', 'batch', 'system']);
+    const nextType = allowedTypes.has(typeParam) ? typeParam : 'all';
+
+    setLogType(nextType);
+    setSearchTerm(taskIdParam || '');
   }, [searchParams]);
 
   useEffect(() => {
@@ -259,11 +265,11 @@ const Logs = () => {
   }, [logs, searchTerm, logType]);
 
   const loadLogs = async () => {
-  try {
+    const allLogs = [];
+
+    try {
     setLoading(true);
     setError('');
-
-    const allLogs = [];
     
     const taskIdParam = searchParams.get('taskId');
     const tesUrlParam = searchParams.get('tesUrl');
@@ -313,32 +319,42 @@ const Logs = () => {
         });
       }
     } else {
-      const dashboardData = await taskService.getDashboardData();
+      const [dashboardData, taskListResult] = await Promise.all([
+        taskService.getDashboardData(),
+        taskService.listTasks()
+      ]);
 
       console.log('Dashboard data for logs:', dashboardData);
       console.log('Tasks found:', dashboardData.tasks?.length || 0);
 
-      if (Array.isArray(dashboardData.tasks)) {
-        dashboardData.tasks.slice(-20).forEach(task => {
-          const taskId = task.task_id || task.id;
-          if (!taskId) return;
+      const normalizedTasks = Array.isArray(taskListResult?.tasks)
+        ? taskListResult.tasks
+        : [];
 
-          allLogs.push({
-            id: taskId,
-            type: 'task',
-            title: `Task ${task.name || task.task_name || taskId} (${task.tes_name || 'Unknown'})`,
-            content: formatSubmittedTaskLog(task, taskId),
-            timestamp: task.submitted_at || task.creation_time || new Date().toISOString(),
-            metadata: {
-              status: task.status || task.state,
-              tesInstance: task.tes_name || 'Unknown'
+      if (Array.isArray(normalizedTasks)) {
+        const taskLogs = normalizedTasks.slice(-20)
+          .map(task => {
+            const taskId = task.id || task.task_id;
+            if (!taskId) {
+              return null;
             }
-          });
-        });
 
-        allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        setLogs([...allLogs]);
-        setLoading(false);
+            return {
+              id: taskId,
+              type: 'task',
+              title: `Task ${task.name || task.task_name || taskId} (${task.tes_name || 'Unknown'})`,
+              content: formatSubmittedTaskLog(task, taskId),
+              timestamp: task.submitted_at || task.creation_time || new Date().toISOString(),
+              metadata: {
+                status: task.status || task.state,
+                tesInstance: task.tes_name || 'Unknown'
+              },
+              task
+            };
+          })
+          .filter(Boolean);
+
+        allLogs.push(...taskLogs);
       }
 
         if (Array.isArray(dashboardData.workflow_runs)) {
@@ -434,11 +450,10 @@ const Logs = () => {
       }
 
         allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      
-      setLogs(allLogs);
     } catch (err) {
       setError('Failed to load logs: ' + err.message);
     } finally {
+      setLogs(allLogs);
       setLoading(false);
     }
   };

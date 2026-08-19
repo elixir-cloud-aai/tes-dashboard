@@ -36,4 +36,4 @@ CORS_ORIGINS = [
 
 TES_INSTANCES_FILE = Path(__file__).parent / '.tes_instances'
 TES_LOCATIONS_FILE = Path(__file__).parent / 'tes_instance_locations.json'
-BATCH_RUNS_FILE = os.path.join(UPLOAD_FOLDER, 'batch_runs.json')
+SUBMITTED_TASKS_FILE = os.path.join(UPLOAD_FOLDER, 'submitted_tasks.json')
