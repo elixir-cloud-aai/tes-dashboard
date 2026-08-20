@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { taskService } from '../services/taskService';
 import usePolling from '../hooks/usePolling';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import { formatDate, formatTaskStatus, formatDuration } from '../utils/formatters';
 import { TASK_STATE_COLORS, POLLING_INTERVALS } from '../utils/constants';
@@ -381,8 +380,6 @@ const Tasks = () => {
             {error.message}
           </StatusNotification>
         )}
-        
-        {loading && <LoadingSpinner text="Loading tasks..." />}
         
         {!loading && filteredTasks.length === 0 ? (
           <EmptyState>

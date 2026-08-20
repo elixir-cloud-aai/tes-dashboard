@@ -491,8 +491,8 @@ const Utilities = () => {
   return (
     <UtilitiesContainer>
       <PageHeader>
-        <PageTitle>Utilities & Instance Management</PageTitle>
-        <PageSubtitle>System monitoring and TES instance management with real-time status checking</PageSubtitle>
+        <PageTitle>Utilities & Instances</PageTitle>
+        <PageSubtitle>System monitoring and TES instance list with real-time status checking</PageSubtitle>
       </PageHeader>
  
       <ServiceStatusSection>
@@ -539,7 +539,7 @@ const Utilities = () => {
       <TESInstancesSection>
         <SectionHeader>
           <div>
-            <SectionTitle>TES Instance Management</SectionTitle>
+            <SectionTitle>TES Instances</SectionTitle>
             <SectionDescription>
               Monitor and manage TES instances with real-time status checking. Status updates every hour.
             </SectionDescription>
