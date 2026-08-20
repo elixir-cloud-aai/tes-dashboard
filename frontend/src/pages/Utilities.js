@@ -539,7 +539,7 @@ const Utilities = () => {
       <TESInstancesSection>
         <SectionHeader>
           <div>
-            <SectionTitle>TES Instance </SectionTitle>
+            <SectionTitle>TES Instances</SectionTitle>
             <SectionDescription>
               Monitor and manage TES instances with real-time status checking. Status updates every hour.
             </SectionDescription>
