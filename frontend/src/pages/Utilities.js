@@ -491,7 +491,7 @@ const Utilities = () => {
   return (
     <UtilitiesContainer>
       <PageHeader>
-        <PageTitle>Utilities & Instance</PageTitle>
+        <PageTitle>Utilities & Instances</PageTitle>
         <PageSubtitle>System monitoring and TES instance list with real-time status checking</PageSubtitle>
       </PageHeader>
  
