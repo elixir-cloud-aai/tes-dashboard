@@ -38,6 +38,7 @@ const ContentArea = styled.main`
 function App() {
   const [connectionStatus, setConnectionStatus] = useState('Checking...');
   const [isConnected, setIsConnected] = useState(false);
+  const routerBasename = process.env.PUBLIC_URL || '/';
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -56,7 +57,7 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
+      <Router basename={routerBasename}>
         <AppContainer>
           <Header 
             connectionStatus={connectionStatus} 

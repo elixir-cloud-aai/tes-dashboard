@@ -17,6 +17,10 @@ COPY . .
 ARG REACT_APP_API_URL=""
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
+# Build for subdomain hosting (served from the root of the origin).
+ARG PUBLIC_URL=""
+ENV PUBLIC_URL=$PUBLIC_URL
+
 # Build the application
 RUN npm run build
 

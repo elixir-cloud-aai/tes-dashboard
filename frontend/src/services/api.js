@@ -1,16 +1,15 @@
 import axios from 'axios';
  
 const getApiBaseUrl = () => { 
-  if (process.env.REACT_APP_API_URL !== undefined && process.env.REACT_APP_API_URL !== null) {
-    return process.env.REACT_APP_API_URL;
+  const configuredApiUrl = process.env.REACT_APP_API_URL;
+  if (configuredApiUrl !== undefined && configuredApiUrl !== null && configuredApiUrl !== '') {
+    return configuredApiUrl;
   }
    
-  if (process.env.NODE_ENV === 'production') { 
-    if (window.location.origin.includes('tes-dashboard-frontend-route')) { 
-      return '';
-    } else { 
-      return 'https://tes-dashboard-backend-route-federated-analytics-showcase.2.rahtiapp.fi';
-    }
+  if (process.env.NODE_ENV === 'production') {
+    // In production this app is served behind a path prefix.
+    // Use the same origin/prefix instead of hardcoded external routes.
+    return process.env.PUBLIC_URL || '';
   }
    
   return 'http://localhost:8000';
