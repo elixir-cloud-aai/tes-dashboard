@@ -1,31 +1,5 @@
 [
   {
-    "id": "elixir:cz:1",
-    "name": "Funnel/OpenPBS @ ELIXIR-CZ",
-    "url": "https://funnel.cloud.e-infra.cz",
-    "country": "Czechia",
-    "lat": 50.0755,
-    "lng": 14.4378,
-    "lon": 14.4378,
-    "status": "online",
-    "description": "Funnel with OpenPBS backend",
-    "version": "1.1",
-    "region": "EU-Central"
-  },
-  {
-    "id": "elixir:cz:2",
-    "name": "Poiesis @ ELIXIR-CZ",
-    "url": "https://poiesis.dyn.cloud.e-infra.cz/",
-    "country": "Czechia",
-    "lat": 50.0755,
-    "lng": 14.4378,
-    "lon": 14.4378,
-    "status": "online",
-    "description": "Poiesis TES instance",
-    "version": "1.1",
-    "region": "EU-Central"
-  },
-  {
     "id": "elixir:fi:1",
     "name": "TESK @ ELIXIR-FI",
     "url": "https://csc-tesk-noauth.rahtiapp.fi",
@@ -36,19 +10,6 @@
     "status": "online",
     "description": "TESK instance at CSC",
     "version": "1.0",
-    "region": "EU-North"
-  },
-  {
-    "id": "elixir:fi:2",
-    "name": "Funnel/Slurm @ ELIXIR-FI",
-    "url": "https://fip-86-50-228-254.kaj.poutavm.fi/",
-    "country": "Finland",
-    "lat": 60.1699,
-    "lng": 24.9384,
-    "lon": 24.9384,
-    "status": "online",
-    "description": "Funnel with Slurm backend",
-    "version": "unknown",
     "region": "EU-North"
   },
   {
@@ -76,31 +37,5 @@
     "description": "Test Poiesis instance",
     "version": "1.1",
     "region": "EU-North"
-  },
-  {
-    "id": "elixir:de:1",
-    "name": "Funnel/Slurm @ BIH",
-    "url": "https://spe4hd.tes.bihealth.org",
-    "country": "Germany",
-    "lat": 52.52,
-    "lng": 13.40,
-    "lon": 13.40,
-    "status": "online",
-    "description": "Funnel with Slurm backend",
-    "version": "1.0",
-    "region": "EU-Central"
-  },
-  {
-    "id": "elixir:gr:1",
-    "name": "TESK @ ELIXIR-GR",
-    "url": "https://tesk-eu.hypatia-comp.athenarc.gr",
-    "country": "Greece",
-    "lat": 37.9838,
-    "lng": 23.7275,
-    "lon": 23.7275,
-    "status": "online",
-    "description": "TESK instance",
-    "version": "1.0",
-    "region": "EU-South"
   }
 ]
