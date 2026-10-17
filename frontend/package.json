@@ -4,6 +4,7 @@
   "private": true,
   "homepage": "",
   "dependencies": {
+    "@elixir-cloud/tes": "^1.0.1",
     "@hello-pangea/dnd": "^18.0.1",
     "@tanstack/react-table": "^8.21.3",
     "@testing-library/dom": "^10.4.1",
