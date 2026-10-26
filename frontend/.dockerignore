@@ -1,0 +1,16 @@
+# Allow-list: only files the build needs are sent to the build context.
+# Create React App inlines every REACT_APP_* variable from .env files into the
+# public JavaScript bundle, so .env files must never reach the build. Pass
+# non-secret build settings as --build-arg instead.
+*
+
+!package.json
+!package-lock.json
+!nginx.conf
+!public/
+!src/
+
+**/.env
+**/.env.*
+**/*.pem
+**/*.key

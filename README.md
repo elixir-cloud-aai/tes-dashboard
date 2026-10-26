@@ -224,6 +224,19 @@ TES_TOKEN=
 TES_GATEWAY=
 ```
 
+> [!WARNING]
+> `backend/.env` holds secrets. Never commit it, and never bake it into a
+> container image: anyone who can pull an image can read every file in it.
+> Both `backend/.dockerignore` and `frontend/.dockerignore` are allow-lists
+> that keep `.env` files out of the build context. Supply configuration at
+> runtime instead: `docker compose` loads `backend/.env` via `env_file`,
+> `docker run` takes `--env-file backend/.env`, and on Kubernetes use a
+> `Secret`. If you add files the app needs, add them to the matching
+> `.dockerignore` allow-list.
+>
+> Do not put secrets in `frontend/.env`: every `REACT_APP_*` variable is
+> compiled into the JavaScript served to every browser.
+
 ### TES Federation Nodes
 
 Add or edit nodes in `backend/tes_instance_locations.json`:
