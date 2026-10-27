@@ -4,7 +4,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile.production
     container_name: tes-dashboard-backend
-
+    # Secrets are injected at runtime and are never baked into the image
+    # (backend/.dockerignore keeps .env out of the build context).
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
       PORT: 8000
       FLASK_ENV: production

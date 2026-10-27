@@ -1,0 +1,28 @@
+# Allow-list: only files the image needs are sent to the build context.
+# Anything not listed here (e.g. .env, credentials, uploads, logs) never
+# reaches the image. Pass configuration at runtime instead (env_file / -e /
+# Kubernetes Secret). When adding a new top-level file or directory that the
+# app needs, add it below.
+*
+
+!app.py
+!config.py
+!middleware_config.py
+!middleware_implementations.py
+!middleware_manager.py
+!requirements.txt
+!.tes_instances
+!tes_instance_locations.json
+!middleware/
+!routes/
+!services/
+!utils/
+
+# Re-exclude junk and secrets inside allowed directories.
+**/__pycache__
+**/*.py[cod]
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/tes_credentials.json
